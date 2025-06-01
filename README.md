@@ -1,4 +1,4 @@
-# git-phantom
+# phantom
 
 A convenient CLI tool for managing Git worktrees with ease.
 
@@ -12,11 +12,11 @@ A convenient CLI tool for managing Git worktrees with ease.
 
 ```bash
 # Clone the repository
-git clone https://github.com/aku11i/git-phantom.git
-cd git-phantom
+git clone https://github.com/aku11i/phantom.git
+cd phantom
 
 # Build the binary
-go build -o git-phantom
+go build -o phantom
 
 # Optional: Install to your PATH
 go install
@@ -39,19 +39,19 @@ go run main.go help
 
 ```bash
 # Build first
-go build -o git-phantom
+go build -o phantom
 
 # Run commands
-./git-phantom list
-./git-phantom add /path/to/worktree
-./git-phantom switch /path/to/worktree
-./git-phantom remove /path/to/worktree
-./git-phantom prune
+./phantom list
+./phantom add /path/to/worktree
+./phantom switch /path/to/worktree
+./phantom remove /path/to/worktree
+./phantom prune
 ```
 
 ### Use as a Git subcommand
 
-If you install `git-phantom` to your PATH, you can use it as a Git subcommand:
+If you install `phantom` to your PATH, you can use it as a Git subcommand:
 
 ```bash
 # Install to PATH
@@ -85,12 +85,12 @@ git phantom add feature-branch
 go build
 
 # Build with specific output name
-go build -o git-phantom
+go build -o phantom
 
 # Build for different platforms
-GOOS=linux GOARCH=amd64 go build -o git-phantom-linux-amd64
-GOOS=darwin GOARCH=amd64 go build -o git-phantom-darwin-amd64
-GOOS=windows GOARCH=amd64 go build -o git-phantom-windows-amd64.exe
+GOOS=linux GOARCH=amd64 go build -o phantom-linux-amd64
+GOOS=darwin GOARCH=amd64 go build -o phantom-darwin-amd64
+GOOS=windows GOARCH=amd64 go build -o phantom-windows-amd64.exe
 ```
 
 ### Testing

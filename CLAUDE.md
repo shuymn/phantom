@@ -1,7 +1,7 @@
-# Claude Context for git-phantom
+# Claude Context for phantom
 
 ## Project Overview
-This is the git-phantom project repository.
+This is the phantom project repository.
 
 ## Development Guidelines
 - All files, issues, and pull requests in this repository must be written in English
