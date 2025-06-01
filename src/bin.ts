@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { argv, exit } from 'node:process';
-import { ruinsCreateHandler } from './commands/ruins-create.ts';
+import { ruinsCreateHandler } from './ruins/commands/create.ts';
 
 interface Command {
   name: string;
