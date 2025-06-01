@@ -2,6 +2,7 @@
 
 import { argv, exit } from "node:process";
 import { ruinsCreateHandler } from "./ruins/commands/create.ts";
+import { ruinsDeleteHandler } from "./ruins/commands/delete.ts";
 import { ruinsListHandler } from "./ruins/commands/list.ts";
 
 interface Command {
@@ -40,15 +41,8 @@ const commands: Command[] = [
       },
       {
         name: "delete",
-        description: "Delete a ruin",
-        handler: (args) => {
-          const name = args[0];
-          if (!name) {
-            console.error("Error: ruin name required");
-            exit(1);
-          }
-          console.log(`Deleting ruin: ${name}`);
-        },
+        description: "Delete a ruin (use --force for dirty ruins)",
+        handler: ruinsDeleteHandler,
       },
     ],
   },
