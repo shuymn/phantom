@@ -1,14 +1,14 @@
 import { strictEqual } from "node:assert";
 import { before, describe, it, mock } from "node:test";
 
-describe("execInRuin", () => {
+describe("execInGarden", () => {
   let spawnMock: ReturnType<typeof mock.fn>;
-  let whereRuinMock: ReturnType<typeof mock.fn>;
-  let execInRuin: typeof import("./exec.ts").execInRuin;
+  let whereGardenMock: ReturnType<typeof mock.fn>;
+  let execInGarden: typeof import("./exec.ts").execInGarden;
 
   before(async () => {
     spawnMock = mock.fn();
-    whereRuinMock = mock.fn();
+    whereGardenMock = mock.fn();
 
     mock.module("node:child_process", {
       namedExports: {
@@ -16,53 +16,53 @@ describe("execInRuin", () => {
       },
     });
 
-    mock.module("../ruins/commands/where.ts", {
+    mock.module("../gardens/commands/where.ts", {
       namedExports: {
-        whereRuin: whereRuinMock,
+        whereGarden: whereGardenMock,
       },
     });
 
-    ({ execInRuin } = await import("./exec.ts"));
+    ({ execInGarden } = await import("./exec.ts"));
   });
 
-  it("should return error when ruin name is not provided", async () => {
-    const result = await execInRuin("", ["echo", "test"]);
+  it("should return error when garden name is not provided", async () => {
+    const result = await execInGarden("", ["echo", "test"]);
     strictEqual(result.success, false);
-    strictEqual(result.message, "Error: ruin name required");
+    strictEqual(result.message, "Error: garden name required");
   });
 
   it("should return error when command is not provided", async () => {
-    const result = await execInRuin("test-ruin", []);
+    const result = await execInGarden("test-garden", []);
     strictEqual(result.success, false);
     strictEqual(result.message, "Error: command required");
   });
 
-  it("should return error when ruin does not exist", async () => {
-    whereRuinMock.mock.resetCalls();
+  it("should return error when garden does not exist", async () => {
+    whereGardenMock.mock.resetCalls();
     spawnMock.mock.resetCalls();
 
-    whereRuinMock.mock.mockImplementation(() =>
+    whereGardenMock.mock.mockImplementation(() =>
       Promise.resolve({
         success: false,
-        message: "Error: Ruin 'nonexistent' does not exist",
+        message: "Error: Garden 'nonexistent' does not exist",
       }),
     );
 
-    const result = await execInRuin("nonexistent", ["echo", "test"]);
+    const result = await execInGarden("nonexistent", ["echo", "test"]);
 
     strictEqual(result.success, false);
-    strictEqual(result.message, "Error: Ruin 'nonexistent' does not exist");
+    strictEqual(result.message, "Error: Garden 'nonexistent' does not exist");
   });
 
   it("should execute command successfully with exit code 0", async () => {
-    whereRuinMock.mock.resetCalls();
+    whereGardenMock.mock.resetCalls();
     spawnMock.mock.resetCalls();
 
-    // Mock successful ruin location
-    whereRuinMock.mock.mockImplementation(() =>
+    // Mock successful garden location
+    whereGardenMock.mock.mockImplementation(() =>
       Promise.resolve({
         success: true,
-        path: "/test/repo/.git/phantom/ruins/test-ruin",
+        path: "/test/repo/.git/phantom/gardens/test-garden",
       }),
     );
 
@@ -83,7 +83,7 @@ describe("execInRuin", () => {
 
     spawnMock.mock.mockImplementation(() => mockChildProcess);
 
-    const result = await execInRuin("test-ruin", ["echo", "hello"]);
+    const result = await execInGarden("test-garden", ["echo", "hello"]);
 
     strictEqual(result.success, true);
     strictEqual(result.exitCode, 0);
@@ -97,19 +97,19 @@ describe("execInRuin", () => {
     ];
     strictEqual(cmd, "echo");
     strictEqual(args[0], "hello");
-    strictEqual(options.cwd, "/test/repo/.git/phantom/ruins/test-ruin");
+    strictEqual(options.cwd, "/test/repo/.git/phantom/gardens/test-garden");
     strictEqual(options.stdio, "inherit");
   });
 
   it("should handle command execution failure with non-zero exit code", async () => {
-    whereRuinMock.mock.resetCalls();
+    whereGardenMock.mock.resetCalls();
     spawnMock.mock.resetCalls();
 
-    // Mock successful ruin location
-    whereRuinMock.mock.mockImplementation(() =>
+    // Mock successful garden location
+    whereGardenMock.mock.mockImplementation(() =>
       Promise.resolve({
         success: true,
-        path: "/test/repo/.git/phantom/ruins/test-ruin",
+        path: "/test/repo/.git/phantom/gardens/test-garden",
       }),
     );
 
@@ -130,21 +130,21 @@ describe("execInRuin", () => {
 
     spawnMock.mock.mockImplementation(() => mockChildProcess);
 
-    const result = await execInRuin("test-ruin", ["false"]);
+    const result = await execInGarden("test-garden", ["false"]);
 
     strictEqual(result.success, false);
     strictEqual(result.exitCode, 1);
   });
 
   it("should handle command execution error", async () => {
-    whereRuinMock.mock.resetCalls();
+    whereGardenMock.mock.resetCalls();
     spawnMock.mock.resetCalls();
 
-    // Mock successful ruin location
-    whereRuinMock.mock.mockImplementation(() =>
+    // Mock successful garden location
+    whereGardenMock.mock.mockImplementation(() =>
       Promise.resolve({
         success: true,
-        path: "/test/repo/.git/phantom/ruins/test-ruin",
+        path: "/test/repo/.git/phantom/gardens/test-garden",
       }),
     );
 
@@ -159,21 +159,21 @@ describe("execInRuin", () => {
 
     spawnMock.mock.mockImplementation(() => mockChildProcess);
 
-    const result = await execInRuin("test-ruin", ["nonexistent-command"]);
+    const result = await execInGarden("test-garden", ["nonexistent-command"]);
 
     strictEqual(result.success, false);
     strictEqual(result.message, "Error executing command: Command not found");
   });
 
   it("should handle signal termination", async () => {
-    whereRuinMock.mock.resetCalls();
+    whereGardenMock.mock.resetCalls();
     spawnMock.mock.resetCalls();
 
-    // Mock successful ruin location
-    whereRuinMock.mock.mockImplementation(() =>
+    // Mock successful garden location
+    whereGardenMock.mock.mockImplementation(() =>
       Promise.resolve({
         success: true,
-        path: "/test/repo/.git/phantom/ruins/test-ruin",
+        path: "/test/repo/.git/phantom/gardens/test-garden",
       }),
     );
 
@@ -194,7 +194,7 @@ describe("execInRuin", () => {
 
     spawnMock.mock.mockImplementation(() => mockChildProcess);
 
-    const result = await execInRuin("test-ruin", ["long-running-command"]);
+    const result = await execInGarden("test-garden", ["long-running-command"]);
 
     strictEqual(result.success, false);
     strictEqual(result.message, "Command terminated by signal: SIGTERM");
@@ -202,14 +202,14 @@ describe("execInRuin", () => {
   });
 
   it("should parse complex commands with multiple arguments", async () => {
-    whereRuinMock.mock.resetCalls();
+    whereGardenMock.mock.resetCalls();
     spawnMock.mock.resetCalls();
 
-    // Mock successful ruin location
-    whereRuinMock.mock.mockImplementation(() =>
+    // Mock successful garden location
+    whereGardenMock.mock.mockImplementation(() =>
       Promise.resolve({
         success: true,
-        path: "/test/repo/.git/phantom/ruins/test-ruin",
+        path: "/test/repo/.git/phantom/gardens/test-garden",
       }),
     );
 
@@ -229,7 +229,7 @@ describe("execInRuin", () => {
 
     spawnMock.mock.mockImplementation(() => mockChildProcess);
 
-    const result = await execInRuin("test-ruin", [
+    const result = await execInGarden("test-garden", [
       "npm",
       "run",
       "test",

@@ -1,10 +1,10 @@
 import { strictEqual } from "node:assert";
 import { before, describe, it, mock } from "node:test";
 
-describe("whereRuin", () => {
+describe("whereGarden", () => {
   let accessMock: ReturnType<typeof mock.fn>;
   let execMock: ReturnType<typeof mock.fn>;
-  let whereRuin: typeof import("./where.ts").whereRuin;
+  let whereGarden: typeof import("./where.ts").whereGarden;
 
   before(async () => {
     accessMock = mock.fn();
@@ -28,16 +28,16 @@ describe("whereRuin", () => {
       },
     });
 
-    ({ whereRuin } = await import("./where.ts"));
+    ({ whereGarden } = await import("./where.ts"));
   });
 
   it("should return error when name is not provided", async () => {
-    const result = await whereRuin("");
+    const result = await whereGarden("");
     strictEqual(result.success, false);
-    strictEqual(result.message, "Error: ruin name required");
+    strictEqual(result.message, "Error: garden name required");
   });
 
-  it("should return error when ruin does not exist", async () => {
+  it("should return error when garden does not exist", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -49,21 +49,21 @@ describe("whereRuin", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruin doesn't exist
+    // Mock garden doesn't exist
     accessMock.mock.mockImplementation(() => {
       return Promise.reject(new Error("ENOENT"));
     });
 
-    const result = await whereRuin("nonexistent-ruin");
+    const result = await whereGarden("nonexistent-garden");
 
     strictEqual(result.success, false);
     strictEqual(
       result.message,
-      "Error: Ruin 'nonexistent-ruin' does not exist",
+      "Error: Garden 'nonexistent-garden' does not exist",
     );
   });
 
-  it("should return path when ruin exists", async () => {
+  it("should return path when garden exists", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -75,13 +75,13 @@ describe("whereRuin", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await whereRuin("existing-ruin");
+    const result = await whereGarden("existing-garden");
 
     strictEqual(result.success, true);
-    strictEqual(result.path, "/test/repo/.git/phantom/ruins/existing-ruin");
+    strictEqual(result.path, "/test/repo/.git/phantom/gardens/existing-garden");
   });
 
   it("should handle git root detection failures", async () => {
@@ -93,13 +93,13 @@ describe("whereRuin", () => {
       return Promise.reject(new Error("Not a git repository"));
     });
 
-    const result = await whereRuin("some-ruin");
+    const result = await whereGarden("some-garden");
 
     strictEqual(result.success, false);
-    strictEqual(result.message, "Error locating ruin: Not a git repository");
+    strictEqual(result.message, "Error locating garden: Not a git repository");
   });
 
-  it("should handle different ruin names correctly", async () => {
+  it("should handle different garden names correctly", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -111,19 +111,19 @@ describe("whereRuin", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await whereRuin("feature-branch-123");
+    const result = await whereGarden("feature-branch-123");
 
     strictEqual(result.success, true);
     strictEqual(
       result.path,
-      "/different/repo/.git/phantom/ruins/feature-branch-123",
+      "/different/repo/.git/phantom/gardens/feature-branch-123",
     );
   });
 
-  it("should handle special characters in ruin names", async () => {
+  it("should handle special characters in garden names", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -135,15 +135,15 @@ describe("whereRuin", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await whereRuin("feature-with-dashes_and_underscores");
+    const result = await whereGarden("feature-with-dashes_and_underscores");
 
     strictEqual(result.success, true);
     strictEqual(
       result.path,
-      "/test/repo/.git/phantom/ruins/feature-with-dashes_and_underscores",
+      "/test/repo/.git/phantom/gardens/feature-with-dashes_and_underscores",
     );
   });
 });

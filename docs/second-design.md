@@ -3,7 +3,7 @@
 ## 🎯 ツール概要
 
 `phantom` は、Git Worktree を便利に扱うための CLI ツール。  
-複数の作業ツリー（= ruins）を管理し、それぞれにコーディングエージェント（= phantom）を「召喚」するという世界観をベースに設計する。
+複数の作業ツリー（= gardens）を管理し、それぞれにコーディングエージェント（= phantom）を「召喚」するという世界観をベースに設計する。
 
 ---
 
@@ -27,19 +27,19 @@ phantom
 
 | サブコマンド | 概要 |
 |--------------|------|
-| `ruins create <name>` | 新しい worktree（ruin）を作成 |
-| `ruins list` | 作成済みの ruin 一覧を表示 |
-| `ruins switch <name>` | 指定した ruin に切り替え |
-| `ruins delete <name>` | ruin を削除 |
-| `spawn <ruin-name> <command>` | ruin 上で任意のコマンドを実行（phantom を召喚）|
-| `kill <ruin-name> <command>` | ruin 上で動作中のプロセスを終了（phantom を消滅）|
+| `garden create <name>` | 新しい worktree（garden）を作成 |
+| `garden list` | 作成済みの garden 一覧を表示 |
+| `garden switch <name>` | 指定した garden に切り替え |
+| `garden delete <name>` | garden を削除 |
+| `spawn <garden-name> <command>` | garden 上で任意のコマンドを実行（phantom を召喚）|
+| `kill <garden-name> <command>` | garden 上で動作中のプロセスを終了（phantom を消滅）|
 | `list` | 動作中の phantom（プロセス）一覧を表示 |
 
 ---
 
 ## 🧠 補足事項・世界観
 
-- `ruin`: git worktree の各作業ディレクトリを指す。
+- `garden`: git worktree の各作業ディレクトリを指す。
 - `phantom`: コーディングエージェントやエディタなど、各作業ツリー上で動かすプロセスの比喩的表現。
 - `spawn`, `kill`: 実行中プロセスの管理をわかりやすく表現した言葉。
 - `phantom list`: 起動中の phantom 一覧を表示（例: `docker ps` 相当）。

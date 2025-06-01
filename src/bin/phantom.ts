@@ -3,10 +3,10 @@
 import { argv, exit } from "node:process";
 import { execHandler } from "../commands/exec.ts";
 import { shellHandler } from "../commands/shell.ts";
-import { ruinsCreateHandler } from "../ruins/commands/create.ts";
-import { ruinsDeleteHandler } from "../ruins/commands/delete.ts";
-import { ruinsListHandler } from "../ruins/commands/list.ts";
-import { ruinsWhereHandler } from "../ruins/commands/where.ts";
+import { gardensCreateHandler } from "../gardens/commands/create.ts";
+import { gardensDeleteHandler } from "../gardens/commands/delete.ts";
+import { gardensListHandler } from "../gardens/commands/list.ts";
+import { gardensWhereHandler } from "../gardens/commands/where.ts";
 
 interface Command {
   name: string;
@@ -17,39 +17,39 @@ interface Command {
 
 const commands: Command[] = [
   {
-    name: "ruins",
-    description: "Manage git worktrees (ruins)",
+    name: "garden",
+    description: "Manage git worktrees (gardens)",
     subcommands: [
       {
         name: "create",
-        description: "Create a new worktree (ruin)",
-        handler: ruinsCreateHandler,
+        description: "Create a new worktree (garden)",
+        handler: gardensCreateHandler,
       },
       {
         name: "list",
-        description: "List all ruins",
-        handler: ruinsListHandler,
+        description: "List all gardens",
+        handler: gardensListHandler,
       },
       {
         name: "where",
-        description: "Output the path of a specific ruin",
-        handler: ruinsWhereHandler,
+        description: "Output the path of a specific garden",
+        handler: gardensWhereHandler,
       },
       {
         name: "delete",
-        description: "Delete a ruin (use --force for dirty ruins)",
-        handler: ruinsDeleteHandler,
+        description: "Delete a garden (use --force for dirty gardens)",
+        handler: gardensDeleteHandler,
       },
     ],
   },
   {
     name: "exec",
-    description: "Execute a command in a ruin directory",
+    description: "Execute a command in a garden directory",
     handler: execHandler,
   },
   {
     name: "shell",
-    description: "Open interactive shell in a ruin directory",
+    description: "Open interactive shell in a garden directory",
     handler: shellHandler,
   },
 ];

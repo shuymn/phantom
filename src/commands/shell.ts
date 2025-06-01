@@ -1,35 +1,35 @@
 import { spawn } from "node:child_process";
 import { exit } from "node:process";
-import { whereRuin } from "../ruins/commands/where.ts";
+import { whereGarden } from "../gardens/commands/where.ts";
 
-export async function shellInRuin(ruinName: string): Promise<{
+export async function shellInGarden(gardenName: string): Promise<{
   success: boolean;
   message?: string;
   exitCode?: number;
 }> {
-  if (!ruinName) {
-    return { success: false, message: "Error: ruin name required" };
+  if (!gardenName) {
+    return { success: false, message: "Error: garden name required" };
   }
 
-  // Validate ruin exists and get its path
-  const ruinResult = await whereRuin(ruinName);
-  if (!ruinResult.success) {
-    return { success: false, message: ruinResult.message };
+  // Validate garden exists and get its path
+  const gardenResult = await whereGarden(gardenName);
+  if (!gardenResult.success) {
+    return { success: false, message: gardenResult.message };
   }
 
-  const ruinPath = ruinResult.path as string;
+  const gardenPath = gardenResult.path as string;
   // Use user's preferred shell or fallback to /bin/sh
   const shell = process.env.SHELL || "/bin/sh";
 
   return new Promise((resolve) => {
     const childProcess = spawn(shell, [], {
-      cwd: ruinPath,
+      cwd: gardenPath,
       stdio: "inherit",
       env: {
         ...process.env,
-        // Add environment variable to indicate we're in a phantom ruin
-        PHANTOM_RUIN: ruinName,
-        PHANTOM_RUIN_PATH: ruinPath,
+        // Add environment variable to indicate we're in a phantom garden
+        PHANTOM_GARDEN: gardenName,
+        PHANTOM_GARDEN_PATH: gardenPath,
       },
     });
 
@@ -60,24 +60,24 @@ export async function shellInRuin(ruinName: string): Promise<{
 
 export async function shellHandler(args: string[]): Promise<void> {
   if (args.length < 1) {
-    console.error("Usage: phantom shell <ruin-name>");
+    console.error("Usage: phantom shell <garden-name>");
     exit(1);
   }
 
-  const ruinName = args[0];
+  const gardenName = args[0];
 
-  // Get ruin path for display
-  const ruinResult = await whereRuin(ruinName);
-  if (!ruinResult.success) {
-    console.error(ruinResult.message);
+  // Get garden path for display
+  const gardenResult = await whereGarden(gardenName);
+  if (!gardenResult.success) {
+    console.error(gardenResult.message);
     exit(1);
   }
 
   // Display entering message
-  console.log(`Entering ruin '${ruinName}' at ${ruinResult.path}`);
+  console.log(`Entering garden '${gardenName}' at ${gardenResult.path}`);
   console.log("Type 'exit' to return to your original directory\n");
 
-  const result = await shellInRuin(ruinName);
+  const result = await shellInGarden(gardenName);
 
   if (!result.success) {
     if (result.message) {

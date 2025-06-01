@@ -6,42 +6,42 @@ import { getGitRoot } from "../../git/libs/get-git-root.ts";
 
 const execAsync = promisify(exec);
 
-export interface RuinInfo {
+export interface GardenInfo {
   name: string;
   branch: string;
   status: "clean" | "dirty";
   changedFiles?: number;
 }
 
-export async function listRuins(): Promise<{
+export async function listGardens(): Promise<{
   success: boolean;
   message?: string;
-  ruins?: RuinInfo[];
+  gardens?: GardenInfo[];
 }> {
   try {
     const gitRoot = await getGitRoot();
-    const ruinsPath = join(gitRoot, ".git", "phantom", "ruins");
+    const gardensPath = join(gitRoot, ".git", "phantom", "gardens");
 
-    // Check if ruins directory exists
+    // Check if gardens directory exists
     try {
-      await access(ruinsPath);
+      await access(gardensPath);
     } catch {
       return {
         success: true,
-        ruins: [],
-        message: "No ruins found (ruins directory doesn't exist)",
+        gardens: [],
+        message: "No gardens found (gardens directory doesn't exist)",
       };
     }
 
-    // Read ruins directory
-    let ruinNames: string[];
+    // Read gardens directory
+    let gardenNames: string[];
     try {
-      const entries = await readdir(ruinsPath);
+      const entries = await readdir(gardensPath);
       // Filter entries to only include directories
       const validEntries = await Promise.all(
         entries.map(async (entry) => {
           try {
-            const entryPath = join(ruinsPath, entry);
+            const entryPath = join(gardensPath, entry);
             await access(entryPath);
             return entry;
           } catch {
@@ -49,35 +49,35 @@ export async function listRuins(): Promise<{
           }
         }),
       );
-      ruinNames = validEntries.filter(
+      gardenNames = validEntries.filter(
         (entry): entry is string => entry !== null,
       );
     } catch {
       return {
         success: true,
-        ruins: [],
-        message: "No ruins found (unable to read ruins directory)",
+        gardens: [],
+        message: "No gardens found (unable to read gardens directory)",
       };
     }
 
-    if (ruinNames.length === 0) {
+    if (gardenNames.length === 0) {
       return {
         success: true,
-        ruins: [],
-        message: "No ruins found",
+        gardens: [],
+        message: "No gardens found",
       };
     }
 
-    // Get detailed information for each ruin
-    const ruins: RuinInfo[] = await Promise.all(
-      ruinNames.map(async (name) => {
-        const ruinPath = join(ruinsPath, name);
+    // Get detailed information for each garden
+    const gardens: GardenInfo[] = await Promise.all(
+      gardenNames.map(async (name) => {
+        const gardenPath = join(gardensPath, name);
 
         // Get current branch
         let branch = "unknown";
         try {
           const { stdout } = await execAsync("git branch --show-current", {
-            cwd: ruinPath,
+            cwd: gardenPath,
           });
           branch = stdout.trim() || "detached HEAD";
         } catch {
@@ -89,7 +89,7 @@ export async function listRuins(): Promise<{
         let changedFiles: number | undefined;
         try {
           const { stdout } = await execAsync("git status --porcelain", {
-            cwd: ruinPath,
+            cwd: gardenPath,
           });
           const changes = stdout.trim();
           if (changes) {
@@ -112,41 +112,41 @@ export async function listRuins(): Promise<{
 
     return {
       success: true,
-      ruins,
+      gardens,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Error listing ruins: ${errorMessage}`,
+      message: `Error listing gardens: ${errorMessage}`,
     };
   }
 }
 
-export async function ruinsListHandler(): Promise<void> {
-  const result = await listRuins();
+export async function gardensListHandler(): Promise<void> {
+  const result = await listGardens();
 
   if (!result.success) {
     console.error(result.message);
     return;
   }
 
-  if (!result.ruins || result.ruins.length === 0) {
-    console.log(result.message || "No ruins found");
+  if (!result.gardens || result.gardens.length === 0) {
+    console.log(result.message || "No gardens found");
     return;
   }
 
-  console.log("Ruins:");
-  for (const ruin of result.ruins) {
+  console.log("Gardens:");
+  for (const garden of result.gardens) {
     const statusText =
-      ruin.status === "clean"
+      garden.status === "clean"
         ? "[clean]"
-        : `[dirty: ${ruin.changedFiles} files]`;
+        : `[dirty: ${garden.changedFiles} files]`;
 
     console.log(
-      `  ${ruin.name.padEnd(20)} (branch: ${ruin.branch.padEnd(20)}) ${statusText}`,
+      `  ${garden.name.padEnd(20)} (branch: ${garden.branch.padEnd(20)}) ${statusText}`,
     );
   }
 
-  console.log(`\nTotal: ${result.ruins.length} ruins`);
+  console.log(`\nTotal: ${result.gardens.length} gardens`);
 }

@@ -7,7 +7,7 @@ import { getGitRoot } from "../../git/libs/get-git-root.ts";
 
 const execAsync = promisify(exec);
 
-export async function deleteRuin(
+export async function deleteGarden(
   name: string,
   options: { force?: boolean } = {},
 ): Promise<{
@@ -17,23 +17,23 @@ export async function deleteRuin(
   changedFiles?: number;
 }> {
   if (!name) {
-    return { success: false, message: "Error: ruin name required" };
+    return { success: false, message: "Error: garden name required" };
   }
 
   const { force = false } = options;
 
   try {
     const gitRoot = await getGitRoot();
-    const ruinsPath = join(gitRoot, ".git", "phantom", "ruins");
-    const ruinPath = join(ruinsPath, name);
+    const gardensPath = join(gitRoot, ".git", "phantom", "gardens");
+    const gardenPath = join(gardensPath, name);
 
-    // Check if ruin exists
+    // Check if garden exists
     try {
-      await access(ruinPath);
+      await access(gardenPath);
     } catch {
       return {
         success: false,
-        message: `Error: Ruin '${name}' does not exist`,
+        message: `Error: Garden '${name}' does not exist`,
       };
     }
 
@@ -42,7 +42,7 @@ export async function deleteRuin(
     let changedFiles = 0;
     try {
       const { stdout } = await execAsync("git status --porcelain", {
-        cwd: ruinPath,
+        cwd: gardenPath,
       });
       const changes = stdout.trim();
       if (changes) {
@@ -54,11 +54,11 @@ export async function deleteRuin(
       hasUncommittedChanges = false;
     }
 
-    // If ruin has uncommitted changes and --force is not specified, refuse deletion
+    // If garden has uncommitted changes and --force is not specified, refuse deletion
     if (hasUncommittedChanges && !force) {
       return {
         success: false,
-        message: `Error: Ruin '${name}' has uncommitted changes (${changedFiles} files). Use --force to delete anyway.`,
+        message: `Error: Garden '${name}' has uncommitted changes (${changedFiles} files). Use --force to delete anyway.`,
         hasUncommittedChanges: true,
         changedFiles,
       };
@@ -66,25 +66,25 @@ export async function deleteRuin(
 
     // Remove git worktree
     try {
-      await execAsync(`git worktree remove "${ruinPath}"`, {
+      await execAsync(`git worktree remove "${gardenPath}"`, {
         cwd: gitRoot,
       });
     } catch (error) {
       // If worktree remove fails, try force removal
       try {
-        await execAsync(`git worktree remove --force "${ruinPath}"`, {
+        await execAsync(`git worktree remove --force "${gardenPath}"`, {
           cwd: gitRoot,
         });
       } catch {
         return {
           success: false,
-          message: `Error: Failed to remove worktree for ruin '${name}'`,
+          message: `Error: Failed to remove worktree for garden '${name}'`,
         };
       }
     }
 
     // Delete associated branch
-    const branchName = `phantom/ruins/${name}`;
+    const branchName = `phantom/gardens/${name}`;
     try {
       await execAsync(`git branch -D "${branchName}"`, {
         cwd: gitRoot,
@@ -94,9 +94,9 @@ export async function deleteRuin(
       // We'll still report success for the worktree removal
     }
 
-    let message = `Deleted ruin '${name}' and its branch '${branchName}'`;
+    let message = `Deleted garden '${name}' and its branch '${branchName}'`;
     if (hasUncommittedChanges) {
-      message = `Warning: Ruin '${name}' had uncommitted changes (${changedFiles} files)\n${message}`;
+      message = `Warning: Garden '${name}' had uncommitted changes (${changedFiles} files)\n${message}`;
     }
 
     return {
@@ -109,21 +109,21 @@ export async function deleteRuin(
     const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Error deleting ruin: ${errorMessage}`,
+      message: `Error deleting garden: ${errorMessage}`,
     };
   }
 }
 
-export async function ruinsDeleteHandler(args: string[]): Promise<void> {
+export async function gardensDeleteHandler(args: string[]): Promise<void> {
   // Parse arguments for --force flag
   const forceIndex = args.indexOf("--force");
   const force = forceIndex !== -1;
 
-  // Remove --force from args to get the ruin name
+  // Remove --force from args to get the garden name
   const filteredArgs = args.filter((arg) => arg !== "--force");
   const name = filteredArgs[0];
 
-  const result = await deleteRuin(name, { force });
+  const result = await deleteGarden(name, { force });
 
   if (!result.success) {
     console.error(result.message);

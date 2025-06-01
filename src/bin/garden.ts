@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { argv, exit } from "node:process";
-import { ruinsCreateHandler } from "../ruins/commands/create.ts";
-import { ruinsDeleteHandler } from "../ruins/commands/delete.ts";
-import { ruinsListHandler } from "../ruins/commands/list.ts";
-import { ruinsWhereHandler } from "../ruins/commands/where.ts";
+import { gardensCreateHandler } from "../gardens/commands/create.ts";
+import { gardensDeleteHandler } from "../gardens/commands/delete.ts";
+import { gardensListHandler } from "../gardens/commands/list.ts";
+import { gardensWhereHandler } from "../gardens/commands/where.ts";
 
 interface Command {
   name: string;
@@ -15,33 +15,33 @@ interface Command {
 const commands: Command[] = [
   {
     name: "create",
-    description: "Create a new worktree (ruin)",
-    handler: ruinsCreateHandler,
+    description: "Create a new worktree (garden)",
+    handler: gardensCreateHandler,
   },
   {
     name: "list",
-    description: "List all ruins",
-    handler: ruinsListHandler,
+    description: "List all gardens",
+    handler: gardensListHandler,
   },
   {
     name: "where",
-    description: "Output the path of a specific ruin",
-    handler: ruinsWhereHandler,
+    description: "Output the path of a specific garden",
+    handler: gardensWhereHandler,
   },
   {
     name: "delete",
-    description: "Delete a ruin (use --force for dirty ruins)",
-    handler: ruinsDeleteHandler,
+    description: "Delete a garden (use --force for dirty gardens)",
+    handler: gardensDeleteHandler,
   },
 ];
 
 function printHelp() {
-  console.log("Usage: ruins <command> [options]\n");
+  console.log("Usage: garden <command> [options]\n");
   console.log("Commands:");
   for (const cmd of commands) {
     console.log(`  ${cmd.name.padEnd(20)} ${cmd.description}`);
   }
-  console.log("\nThis is an alias for 'phantom ruins' commands.");
+  console.log("\nThis is an alias for 'phantom garden' commands.");
 }
 
 function findCommand(cmdName: string, commands: Command[]): Command | null {

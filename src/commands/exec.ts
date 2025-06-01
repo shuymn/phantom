@@ -1,35 +1,35 @@
 import { spawn } from "node:child_process";
 import { exit } from "node:process";
-import { whereRuin } from "../ruins/commands/where.ts";
+import { whereGarden } from "../gardens/commands/where.ts";
 
-export async function execInRuin(
-  ruinName: string,
+export async function execInGarden(
+  gardenName: string,
   command: string[],
 ): Promise<{
   success: boolean;
   message?: string;
   exitCode?: number;
 }> {
-  if (!ruinName) {
-    return { success: false, message: "Error: ruin name required" };
+  if (!gardenName) {
+    return { success: false, message: "Error: garden name required" };
   }
 
   if (!command || command.length === 0) {
     return { success: false, message: "Error: command required" };
   }
 
-  // Validate ruin exists and get its path
-  const ruinResult = await whereRuin(ruinName);
-  if (!ruinResult.success) {
-    return { success: false, message: ruinResult.message };
+  // Validate garden exists and get its path
+  const gardenResult = await whereGarden(gardenName);
+  if (!gardenResult.success) {
+    return { success: false, message: gardenResult.message };
   }
 
-  const ruinPath = ruinResult.path as string;
+  const gardenPath = gardenResult.path as string;
   const [cmd, ...args] = command;
 
   return new Promise((resolve) => {
     const childProcess = spawn(cmd, args, {
-      cwd: ruinPath,
+      cwd: gardenPath,
       stdio: "inherit",
     });
 
@@ -60,14 +60,14 @@ export async function execInRuin(
 
 export async function execHandler(args: string[]): Promise<void> {
   if (args.length < 2) {
-    console.error("Usage: phantom exec <ruin-name> <command> [args...]");
+    console.error("Usage: phantom exec <garden-name> <command> [args...]");
     exit(1);
   }
 
-  const ruinName = args[0];
+  const gardenName = args[0];
   const command = args.slice(1);
 
-  const result = await execInRuin(ruinName, command);
+  const result = await execInGarden(gardenName, command);
 
   if (!result.success) {
     if (result.message) {

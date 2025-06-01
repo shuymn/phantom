@@ -2,13 +2,13 @@
   "name": "@aku11i/phantom",
   "packageManager": "pnpm@10.8.1",
   "version": "0.1.0",
-  "description": "A CLI tool for managing Git worktrees (ruins) with enhanced functionality",
+  "description": "A CLI tool for managing Git worktrees (gardens) with enhanced functionality",
   "keywords": [
     "git",
     "worktree",
     "cli",
     "phantom",
-    "ruins",
+    "gardens",
     "workspace",
     "development"
   ],
@@ -25,12 +25,12 @@
   "type": "module",
   "bin": {
     "phantom": "./src/bin/phantom.ts",
-    "ruins": "./src/bin/ruins.ts"
+    "garden": "./src/bin/garden.ts"
   },
   "scripts": {
     "start": "node ./src/bin/phantom.ts",
     "phantom": "node ./src/bin/phantom.ts",
-    "ruins": "node ./src/bin/ruins.ts",
+    "garden": "node ./src/bin/garden.ts",
     "type-check": "tsc --noEmit",
     "test": "node --test --experimental-test-module-mocks src/**/*.test.ts",
     "lint": "biome check .",

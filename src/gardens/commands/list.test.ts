@@ -1,11 +1,11 @@
 import { deepStrictEqual, strictEqual } from "node:assert";
 import { before, describe, it, mock } from "node:test";
 
-describe("listRuins", () => {
+describe("listGardens", () => {
   let accessMock: ReturnType<typeof mock.fn>;
   let readdirMock: ReturnType<typeof mock.fn>;
   let execMock: ReturnType<typeof mock.fn>;
-  let listRuins: typeof import("./list.ts").listRuins;
+  let listGardens: typeof import("./list.ts").listGardens;
 
   before(async () => {
     accessMock = mock.fn();
@@ -31,10 +31,10 @@ describe("listRuins", () => {
       },
     });
 
-    ({ listRuins } = await import("./list.ts"));
+    ({ listGardens } = await import("./list.ts"));
   });
 
-  it("should return empty array when ruins directory doesn't exist", async () => {
+  it("should return empty array when gardens directory doesn't exist", async () => {
     accessMock.mock.resetCalls();
     readdirMock.mock.resetCalls();
     execMock.mock.resetCalls();
@@ -47,25 +47,25 @@ describe("listRuins", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruins directory doesn't exist
+    // Mock gardens directory doesn't exist
     accessMock.mock.mockImplementation((path: string) => {
-      if (path === "/test/repo/.git/phantom/ruins") {
+      if (path === "/test/repo/.git/phantom/gardens") {
         return Promise.reject(new Error("ENOENT"));
       }
       return Promise.resolve();
     });
 
-    const result = await listRuins();
+    const result = await listGardens();
 
     strictEqual(result.success, true);
-    deepStrictEqual(result.ruins, []);
+    deepStrictEqual(result.gardens, []);
     strictEqual(
       result.message,
-      "No ruins found (ruins directory doesn't exist)",
+      "No gardens found (gardens directory doesn't exist)",
     );
   });
 
-  it("should return empty array when ruins directory is empty", async () => {
+  it("should return empty array when gardens directory is empty", async () => {
     accessMock.mock.resetCalls();
     readdirMock.mock.resetCalls();
     execMock.mock.resetCalls();
@@ -78,18 +78,18 @@ describe("listRuins", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruins directory exists but is empty
+    // Mock gardens directory exists but is empty
     accessMock.mock.mockImplementation(() => Promise.resolve());
     readdirMock.mock.mockImplementation(() => Promise.resolve([]));
 
-    const result = await listRuins();
+    const result = await listGardens();
 
     strictEqual(result.success, true);
-    deepStrictEqual(result.ruins, []);
-    strictEqual(result.message, "No ruins found");
+    deepStrictEqual(result.gardens, []);
+    strictEqual(result.message, "No gardens found");
   });
 
-  it("should list ruins with clean status", async () => {
+  it("should list gardens with clean status", async () => {
     accessMock.mock.resetCalls();
     readdirMock.mock.resetCalls();
     execMock.mock.resetCalls();
@@ -101,10 +101,10 @@ describe("listRuins", () => {
           return Promise.resolve({ stdout: "/test/repo\n", stderr: "" });
         }
         if (cmd === "git branch --show-current") {
-          if (options?.cwd?.includes("test-ruin-1")) {
+          if (options?.cwd?.includes("test-garden-1")) {
             return Promise.resolve({ stdout: "feature/test\n", stderr: "" });
           }
-          if (options?.cwd?.includes("test-ruin-2")) {
+          if (options?.cwd?.includes("test-garden-2")) {
             return Promise.resolve({ stdout: "main\n", stderr: "" });
           }
         }
@@ -115,25 +115,25 @@ describe("listRuins", () => {
       },
     );
 
-    // Mock ruins directory and contents
+    // Mock gardens directory and contents
     accessMock.mock.mockImplementation(() => Promise.resolve());
     readdirMock.mock.mockImplementation(() =>
-      Promise.resolve(["test-ruin-1", "test-ruin-2"]),
+      Promise.resolve(["test-garden-1", "test-garden-2"]),
     );
 
-    const result = await listRuins();
+    const result = await listGardens();
 
     strictEqual(result.success, true);
-    strictEqual(result.ruins?.length, 2);
-    strictEqual(result.ruins?.[0].name, "test-ruin-1");
-    strictEqual(result.ruins?.[0].branch, "feature/test");
-    strictEqual(result.ruins?.[0].status, "clean");
-    strictEqual(result.ruins?.[1].name, "test-ruin-2");
-    strictEqual(result.ruins?.[1].branch, "main");
-    strictEqual(result.ruins?.[1].status, "clean");
+    strictEqual(result.gardens?.length, 2);
+    strictEqual(result.gardens?.[0].name, "test-garden-1");
+    strictEqual(result.gardens?.[0].branch, "feature/test");
+    strictEqual(result.gardens?.[0].status, "clean");
+    strictEqual(result.gardens?.[1].name, "test-garden-2");
+    strictEqual(result.gardens?.[1].branch, "main");
+    strictEqual(result.gardens?.[1].status, "clean");
   });
 
-  it("should list ruins with dirty status", async () => {
+  it("should list gardens with dirty status", async () => {
     accessMock.mock.resetCalls();
     readdirMock.mock.resetCalls();
     execMock.mock.resetCalls();
@@ -157,18 +157,18 @@ describe("listRuins", () => {
       },
     );
 
-    // Mock ruins directory and contents
+    // Mock gardens directory and contents
     accessMock.mock.mockImplementation(() => Promise.resolve());
-    readdirMock.mock.mockImplementation(() => Promise.resolve(["dirty-ruin"]));
+    readdirMock.mock.mockImplementation(() => Promise.resolve(["dirty-garden"]));
 
-    const result = await listRuins();
+    const result = await listGardens();
 
     strictEqual(result.success, true);
-    strictEqual(result.ruins?.length, 1);
-    strictEqual(result.ruins?.[0].name, "dirty-ruin");
-    strictEqual(result.ruins?.[0].branch, "feature/dirty");
-    strictEqual(result.ruins?.[0].status, "dirty");
-    strictEqual(result.ruins?.[0].changedFiles, 2);
+    strictEqual(result.gardens?.length, 1);
+    strictEqual(result.gardens?.[0].name, "dirty-garden");
+    strictEqual(result.gardens?.[0].branch, "feature/dirty");
+    strictEqual(result.gardens?.[0].status, "dirty");
+    strictEqual(result.gardens?.[0].changedFiles, 2);
   });
 
   it("should handle git command errors gracefully", async () => {
@@ -190,17 +190,17 @@ describe("listRuins", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruins directory and contents
+    // Mock gardens directory and contents
     accessMock.mock.mockImplementation(() => Promise.resolve());
-    readdirMock.mock.mockImplementation(() => Promise.resolve(["error-ruin"]));
+    readdirMock.mock.mockImplementation(() => Promise.resolve(["error-garden"]));
 
-    const result = await listRuins();
+    const result = await listGardens();
 
     strictEqual(result.success, true);
-    strictEqual(result.ruins?.length, 1);
-    strictEqual(result.ruins?.[0].name, "error-ruin");
-    strictEqual(result.ruins?.[0].branch, "unknown");
-    strictEqual(result.ruins?.[0].status, "clean");
+    strictEqual(result.gardens?.length, 1);
+    strictEqual(result.gardens?.[0].name, "error-garden");
+    strictEqual(result.gardens?.[0].branch, "unknown");
+    strictEqual(result.gardens?.[0].status, "clean");
   });
 
   it("should handle detached HEAD state", async () => {
@@ -222,18 +222,18 @@ describe("listRuins", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruins directory and contents
+    // Mock gardens directory and contents
     accessMock.mock.mockImplementation(() => Promise.resolve());
     readdirMock.mock.mockImplementation(() =>
-      Promise.resolve(["detached-ruin"]),
+      Promise.resolve(["detached-garden"]),
     );
 
-    const result = await listRuins();
+    const result = await listGardens();
 
     strictEqual(result.success, true);
-    strictEqual(result.ruins?.length, 1);
-    strictEqual(result.ruins?.[0].name, "detached-ruin");
-    strictEqual(result.ruins?.[0].branch, "detached HEAD");
-    strictEqual(result.ruins?.[0].status, "clean");
+    strictEqual(result.gardens?.length, 1);
+    strictEqual(result.gardens?.[0].name, "detached-garden");
+    strictEqual(result.gardens?.[0].branch, "detached HEAD");
+    strictEqual(result.gardens?.[0].status, "clean");
   });
 });

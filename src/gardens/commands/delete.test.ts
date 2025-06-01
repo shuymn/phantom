@@ -1,10 +1,10 @@
 import { strictEqual } from "node:assert";
 import { before, describe, it, mock } from "node:test";
 
-describe("deleteRuin", () => {
+describe("deleteGarden", () => {
   let accessMock: ReturnType<typeof mock.fn>;
   let execMock: ReturnType<typeof mock.fn>;
-  let deleteRuin: typeof import("./delete.ts").deleteRuin;
+  let deleteGarden: typeof import("./delete.ts").deleteGarden;
 
   before(async () => {
     accessMock = mock.fn();
@@ -28,16 +28,16 @@ describe("deleteRuin", () => {
       },
     });
 
-    ({ deleteRuin } = await import("./delete.ts"));
+    ({ deleteGarden } = await import("./delete.ts"));
   });
 
   it("should return error when name is not provided", async () => {
-    const result = await deleteRuin("");
+    const result = await deleteGarden("");
     strictEqual(result.success, false);
-    strictEqual(result.message, "Error: ruin name required");
+    strictEqual(result.message, "Error: garden name required");
   });
 
-  it("should return error when ruin does not exist", async () => {
+  it("should return error when garden does not exist", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -49,21 +49,21 @@ describe("deleteRuin", () => {
       return Promise.resolve({ stdout: "", stderr: "" });
     });
 
-    // Mock ruin doesn't exist
+    // Mock garden doesn't exist
     accessMock.mock.mockImplementation(() => {
       return Promise.reject(new Error("ENOENT"));
     });
 
-    const result = await deleteRuin("nonexistent-ruin");
+    const result = await deleteGarden("nonexistent-garden");
 
     strictEqual(result.success, false);
     strictEqual(
       result.message,
-      "Error: Ruin 'nonexistent-ruin' does not exist",
+      "Error: Garden 'nonexistent-garden' does not exist",
     );
   });
 
-  it("should delete clean ruin successfully", async () => {
+  it("should delete clean garden successfully", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -86,20 +86,20 @@ describe("deleteRuin", () => {
       },
     );
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await deleteRuin("clean-ruin");
+    const result = await deleteGarden("clean-garden");
 
     strictEqual(result.success, true);
     strictEqual(
       result.message,
-      "Deleted ruin 'clean-ruin' and its branch 'phantom/ruins/clean-ruin'",
+      "Deleted garden 'clean-garden' and its branch 'phantom/gardens/clean-garden'",
     );
     strictEqual(result.hasUncommittedChanges, false);
   });
 
-  it("should refuse to delete dirty ruin without --force", async () => {
+  it("should refuse to delete dirty garden without --force", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -119,21 +119,21 @@ describe("deleteRuin", () => {
       },
     );
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await deleteRuin("dirty-ruin");
+    const result = await deleteGarden("dirty-garden");
 
     strictEqual(result.success, false);
     strictEqual(
       result.message,
-      "Error: Ruin 'dirty-ruin' has uncommitted changes (2 files). Use --force to delete anyway.",
+      "Error: Garden 'dirty-garden' has uncommitted changes (2 files). Use --force to delete anyway.",
     );
     strictEqual(result.hasUncommittedChanges, true);
     strictEqual(result.changedFiles, 2);
   });
 
-  it("should delete dirty ruin with --force", async () => {
+  it("should delete dirty garden with --force", async () => {
     accessMock.mock.resetCalls();
     execMock.mock.resetCalls();
 
@@ -159,15 +159,15 @@ describe("deleteRuin", () => {
       },
     );
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await deleteRuin("dirty-ruin", { force: true });
+    const result = await deleteGarden("dirty-garden", { force: true });
 
     strictEqual(result.success, true);
     strictEqual(
       result.message,
-      "Warning: Ruin 'dirty-ruin' had uncommitted changes (2 files)\nDeleted ruin 'dirty-ruin' and its branch 'phantom/ruins/dirty-ruin'",
+      "Warning: Garden 'dirty-garden' had uncommitted changes (2 files)\nDeleted garden 'dirty-garden' and its branch 'phantom/gardens/dirty-garden'",
     );
     strictEqual(result.hasUncommittedChanges, true);
     strictEqual(result.changedFiles, 2);
@@ -199,15 +199,15 @@ describe("deleteRuin", () => {
       },
     );
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await deleteRuin("stubborn-ruin");
+    const result = await deleteGarden("stubborn-garden");
 
     strictEqual(result.success, true);
     strictEqual(
       result.message,
-      "Deleted ruin 'stubborn-ruin' and its branch 'phantom/ruins/stubborn-ruin'",
+      "Deleted garden 'stubborn-garden' and its branch 'phantom/gardens/stubborn-garden'",
     );
   });
 
@@ -234,15 +234,15 @@ describe("deleteRuin", () => {
       },
     );
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await deleteRuin("branch-missing-ruin");
+    const result = await deleteGarden("branch-missing-garden");
 
     strictEqual(result.success, true);
     strictEqual(
       result.message,
-      "Deleted ruin 'branch-missing-ruin' and its branch 'phantom/ruins/branch-missing-ruin'",
+      "Deleted garden 'branch-missing-garden' and its branch 'phantom/gardens/branch-missing-garden'",
     );
   });
 
@@ -266,15 +266,15 @@ describe("deleteRuin", () => {
       },
     );
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await deleteRuin("impossible-ruin");
+    const result = await deleteGarden("impossible-garden");
 
     strictEqual(result.success, false);
     strictEqual(
       result.message,
-      "Error: Failed to remove worktree for ruin 'impossible-ruin'",
+      "Error: Failed to remove worktree for garden 'impossible-garden'",
     );
   });
 
@@ -301,15 +301,15 @@ describe("deleteRuin", () => {
       },
     );
 
-    // Mock ruin exists
+    // Mock garden exists
     accessMock.mock.mockImplementation(() => Promise.resolve());
 
-    const result = await deleteRuin("status-error-ruin");
+    const result = await deleteGarden("status-error-garden");
 
     strictEqual(result.success, true);
     strictEqual(
       result.message,
-      "Deleted ruin 'status-error-ruin' and its branch 'phantom/ruins/status-error-ruin'",
+      "Deleted garden 'status-error-garden' and its branch 'phantom/gardens/status-error-garden'",
     );
     strictEqual(result.hasUncommittedChanges, false);
   });
