@@ -165,6 +165,68 @@ pnpm lint
 pnpm ready
 ```
 
+## 🚀 Release Process
+
+To release a new version of Phantom:
+
+1. **Ensure you're on main branch and up to date**
+   ```bash
+   git checkout main
+   git pull
+   ```
+
+2. **Run all checks**
+   ```bash
+   pnpm ready
+   ```
+
+3. **Bump version**
+   ```bash
+   # For patch releases (bug fixes)
+   npm version patch
+   
+   # For minor releases (new features)
+   npm version minor
+   
+   # For major releases (breaking changes)
+   npm version major
+   ```
+
+4. **Push the version commit and tag**
+   ```bash
+   git push && git push --tags
+   ```
+
+5. **Publish to npm**
+   ```bash
+   pnpm publish
+   ```
+
+6. **Create GitHub release**
+   ```bash
+   # Create a release with the new version tag
+   gh release create v<version> \
+     --title "Phantom v<version>" \
+     --notes "Release notes here" \
+     --target main
+   
+   # Example for v0.1.3:
+   gh release create v0.1.3 \
+     --title "Phantom v0.1.3" \
+     --notes "## Changes
+   - Feature: Add new command
+   - Fix: Resolve issue with garden creation
+   - Docs: Update README" \
+     --target main
+   ```
+
+The build process is automatically handled by the `prepublishOnly` script, which:
+- Runs all tests and checks
+- Builds the TypeScript source to JavaScript using esbuild
+- Creates bundled executables in the `dist/` directory
+
+**Note**: The `dist/` directory is git-ignored and only created during the publish process.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
