@@ -21,7 +21,9 @@
     "type-check": "tsc --noEmit",
     "test": "node --test --experimental-test-module-mocks src/**/*.test.ts",
     "lint": "biome check .",
-    "fix": "biome check --write ."
+    "fix": "biome check --write .",
+    "ready": "pnpm fix && pnpm type-check && pnpm test",
+    "ready:check": "pnpm lint && pnpm type-check && pnpm test"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

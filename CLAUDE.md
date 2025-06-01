@@ -7,6 +7,7 @@ This is the phantom project repository.
 - All files, issues, and pull requests in this repository must be written in English
 - Follow existing code conventions and patterns when making changes
 - Test all changes before committing
+- Always run pnpm ready before committing
 
 ## Project Structure
 - `README.md` - Main project documentation
