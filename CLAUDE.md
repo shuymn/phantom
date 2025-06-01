@@ -18,3 +18,4 @@ This is the phantom project repository.
 
 ## Early Design
 - Initial design concept is available in docs/first-design.md
+- Latest design concept is available in docs/second-design.md
