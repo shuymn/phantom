@@ -15,12 +15,16 @@ describe('createRuin', () => {
       if (cmd === 'git rev-parse --show-toplevel') {
         return '/test/repo\n';
       }
+      if (cmd.startsWith('git worktree add')) {
+        return '';
+      }
       return '';
     });
     const existsSyncMock = mock.fn(() => false);
 
     const result = createRuin('test-ruin', {
-      execSync: execSyncMock as any,
+      gitExecutor: { execSync: execSyncMock as any },
+      worktreeExecutor: { execSync: execSyncMock as any },
       existsSync: existsSyncMock as any,
       mkdirSync: mkdirSyncMock as any,
     });
@@ -54,7 +58,7 @@ describe('createRuin', () => {
     });
 
     const result = createRuin('existing-ruin', {
-      execSync: execSyncMock as any,
+      gitExecutor: { execSync: execSyncMock as any },
       existsSync: existsSyncMock as any,
     });
 
@@ -68,7 +72,7 @@ describe('createRuin', () => {
     });
 
     const result = createRuin('test-ruin', {
-      execSync: execSyncMock as any,
+      gitExecutor: { execSync: execSyncMock as any },
     });
 
     strictEqual(result.success, false);
@@ -81,6 +85,9 @@ describe('createRuin', () => {
       if (cmd === 'git rev-parse --show-toplevel') {
         return '/test/repo\n';
       }
+      if (cmd.startsWith('git worktree add')) {
+        return '';
+      }
       return '';
     });
     const existsSyncMock = mock.fn((path: string) => {
@@ -88,7 +95,8 @@ describe('createRuin', () => {
     });
 
     const result = createRuin('test-ruin', {
-      execSync: execSyncMock as any,
+      gitExecutor: { execSync: execSyncMock as any },
+      worktreeExecutor: { execSync: execSyncMock as any },
       existsSync: existsSyncMock as any,
       mkdirSync: mkdirSyncMock as any,
     });
