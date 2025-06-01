@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { argv, exit } from 'node:process';
+import { ruinsCreateHandler } from './commands/ruins-create.ts';
 
 interface Command {
   name: string;
@@ -17,14 +18,7 @@ const commands: Command[] = [
       {
         name: 'create',
         description: 'Create a new worktree (ruin)',
-        handler: (args) => {
-          const name = args[0];
-          if (!name) {
-            console.error('Error: ruin name required');
-            exit(1);
-          }
-          console.log(`Creating ruin: ${name}`);
-        },
+        handler: ruinsCreateHandler,
       },
       {
         name: 'list',
