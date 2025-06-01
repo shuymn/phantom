@@ -33,7 +33,7 @@
     "garden": "node ./src/bin/garden.ts",
     "build": "node build.ts",
     "type-check": "tsc --noEmit",
-    "test": "node --test --experimental-test-module-mocks src/**/*.test.ts",
+    "test": "node --test --experimental-strip-types --experimental-test-module-mocks src/**/*.test.ts",
     "lint": "biome check .",
     "fix": "biome check --write .",
     "ready": "pnpm fix && pnpm type-check && pnpm test",
@@ -41,7 +41,7 @@
     "prepublishOnly": "pnpm ready:check && pnpm build"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "files": ["dist/", "README.md", "LICENSE"],
   "devDependencies": {
