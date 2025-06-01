@@ -91,7 +91,7 @@ npm link
 
 **Gardens** 🌳 - Git worktrees managed by Phantom. Each garden is an isolated workspace for a specific branch or feature.
 
-**Phantoms** 👻 - Processes or agents that work within gardens. When you run commands or shells in a garden, you're summoning phantoms.
+**Phantoms** 👻 - Processes or agents that work within gardens.
 
 ### Commands Overview
 

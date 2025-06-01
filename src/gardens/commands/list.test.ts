@@ -159,7 +159,9 @@ describe("listGardens", () => {
 
     // Mock gardens directory and contents
     accessMock.mock.mockImplementation(() => Promise.resolve());
-    readdirMock.mock.mockImplementation(() => Promise.resolve(["dirty-garden"]));
+    readdirMock.mock.mockImplementation(() =>
+      Promise.resolve(["dirty-garden"]),
+    );
 
     const result = await listGardens();
 
@@ -192,7 +194,9 @@ describe("listGardens", () => {
 
     // Mock gardens directory and contents
     accessMock.mock.mockImplementation(() => Promise.resolve());
-    readdirMock.mock.mockImplementation(() => Promise.resolve(["error-garden"]));
+    readdirMock.mock.mockImplementation(() =>
+      Promise.resolve(["error-garden"]),
+    );
 
     const result = await listGardens();
 

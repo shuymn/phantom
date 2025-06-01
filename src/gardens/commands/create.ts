@@ -47,7 +47,10 @@ export async function createGarden(name: string): Promise<{
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    return { success: false, message: `Error creating garden: ${errorMessage}` };
+    return {
+      success: false,
+      message: `Error creating garden: ${errorMessage}`,
+    };
   }
 }
 

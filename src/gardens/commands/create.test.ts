@@ -123,7 +123,10 @@ describe("createGarden", () => {
     const result = await createGarden("existing-garden");
 
     strictEqual(result.success, false);
-    strictEqual(result.message, "Error: garden 'existing-garden' already exists");
+    strictEqual(
+      result.message,
+      "Error: garden 'existing-garden' already exists",
+    );
   });
 
   it("should handle git command errors", async () => {
