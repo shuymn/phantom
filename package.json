@@ -13,10 +13,10 @@
   "author": "aku11i",
   "type": "module",
   "bin": {
-    "phantom": "./bin.ts"
+    "phantom": "./src/bin.ts"
   },
   "scripts": {
-    "start": "node ./bin.ts",
+    "start": "node ./src/bin.ts",
     "type-check": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
