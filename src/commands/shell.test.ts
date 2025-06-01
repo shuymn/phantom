@@ -107,6 +107,7 @@ describe("shellInGarden", () => {
 
     // Temporarily remove SHELL env var
     const originalShell = process.env.SHELL;
+    // biome-ignore lint/performance/noDelete: Need to actually delete for test
     delete process.env.SHELL;
 
     // Mock successful garden location
