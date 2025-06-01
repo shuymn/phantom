@@ -12,7 +12,15 @@
   "license": "MIT",
   "author": "aku11i",
   "type": "module",
+  "bin": {
+    "phantom": "./bin.ts"
+  },
   "scripts": {
+    "start": "node ./bin.ts",
+    "type-check": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29"
   }
 }
