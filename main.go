@@ -14,6 +14,16 @@ func main() {
 	subcommand := os.Args[1]
 
 	switch subcommand {
+	case "create":
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Error: create command requires a name argument\n")
+			fmt.Fprintf(os.Stderr, "Usage: git phantom create <name>\n")
+			os.Exit(1)
+		}
+		if err := executeCreate(os.Args[2]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "list":
 		fmt.Println("TODO: Implement list command")
 	case "add":
@@ -40,6 +50,7 @@ func printUsage() {
 	fmt.Println("  git phantom <command> [arguments]")
 	fmt.Println()
 	fmt.Println("Available commands:")
+	fmt.Println("  create <name>     Create a new phantom worktree with branch")
 	fmt.Println("  list              List all worktrees")
 	fmt.Println("  add <path>        Create a new worktree")
 	fmt.Println("  switch <path>     Switch to a worktree (output cd command)")
