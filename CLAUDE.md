@@ -1,19 +1,17 @@
 # Claude Context for phantom
 
 ## Project Overview
-This is the phantom project repository.
+Phantom is a CLI tool for managing Git worktrees (called "gardens") with enhanced functionality. For detailed project information, features, and usage, see README.md.
 
 ## Development Guidelines
 - All files, issues, and pull requests in this repository must be written in English
 - Follow existing code conventions and patterns when making changes
 - Test all changes before committing
-- Always run pnpm ready before committing
+- Always run `pnpm ready` before committing (runs lint, type-check, and tests)
 
 ## Project Structure
 - `README.md` - Main project documentation
 - `docs/` - Additional documentation files
-  - `first-design.md` - Initial design concept
-  - `second-design.md` - Latest design concept
 - `src/` - Source code
   - `bin/` - Executable entry points
     - `phantom.ts` - Main CLI entry point
@@ -37,3 +35,6 @@ This is the phantom project repository.
 ## Early Design
 - Initial design concept is available in docs/first-design.md
 - Latest design concept is available in docs/second-design.md
+
+## Additional Notes
+- プロジェクトの概要や開発ルールなどはREADME.mdに記載されています。
