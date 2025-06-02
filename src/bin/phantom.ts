@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import { argv, exit } from "node:process";
-import { createHandler } from "../commands/create.ts";
-import { deleteHandler } from "../commands/delete.ts";
-import { execHandler } from "../commands/exec.ts";
-import { listHandler } from "../commands/list.ts";
-import { shellHandler } from "../commands/shell.ts";
-import { versionHandler } from "../commands/version.ts";
-import { whereHandler } from "../commands/where.ts";
+import { createHandler } from "../cli/handlers/create.ts";
+import { deleteHandler } from "../cli/handlers/delete.ts";
+import { execHandler } from "../cli/handlers/exec.ts";
+import { listHandler } from "../cli/handlers/list.ts";
+import { shellHandler } from "../cli/handlers/shell.ts";
+import { versionHandler } from "../cli/handlers/version.ts";
+import { whereHandler } from "../cli/handlers/where.ts";
 
 interface Command {
   name: string;
