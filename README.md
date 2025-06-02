@@ -12,7 +12,11 @@
 
 </div>
 
-## ✨ Key Features
+## ✨ Overview
+
+Phantom is a CLI tool that dramatically simplifies Git worktree management. It's optimized for modern development workflows where you need to work on multiple features, bug fixes, and PR reviews in parallel.
+
+### Key Features
 
 - 🚀 **Simplified Worktree Management** - Create and manage Git worktrees with intuitive commands
 - 🔄 **Seamless Context Switching** - Jump between different features without stashing or committing
@@ -23,19 +27,24 @@
 
 ## 🤔 Why Phantom?
 
-Modern development workflows often require working on multiple features simultaneously. Whether you're running AI coding agents in parallel, reviewing PRs while developing, or simply multitasking across features, managing multiple Git worktrees can be cumbersome.
+Modern development workflows often require working on multiple features simultaneously. While Git worktree is a powerful feature, it requires specifying paths and branches separately, which can be cumbersome.
 
-**The Problem:**
-- Git worktree commands are verbose and complex
-- Managing branches and worktrees separately is error-prone
-- Switching contexts requires multiple commands
-- Running parallel AI agents on the same codebase is challenging
+### The Manual Process
 
-**The Phantom Solution:**
-- One command to create both worktree and branch: `phantom create feature-x`
-- Instant context switching: `phantom shell feature-x`
-- Execute commands without changing directories: `phantom exec feature-x npm test`
-- Perfect for "parallel vibe coding" with multiple AI agents
+When using Git worktree directly, you need to specify the worktree path, branch name, and base branch each time. Additionally, switching between tasks requires navigating directories, which can be a bit tedious when frequently switching between multiple parallel tasks.
+
+### The Phantom Solution
+
+```bash
+# Traditional approach
+git worktree add -b feature ../project-feature origin/main
+cd ../project-feature
+
+# With Phantom
+phantom create feature --shell
+```
+
+Phantom combines worktree and branch creation into a single command, making it easy to switch between and work in different workspaces.
 
 ## 🚀 Quick Start
 
@@ -183,10 +192,10 @@ To release a new version of Phantom:
    ```bash
    # For patch releases (bug fixes)
    npm version patch
-   
+
    # For minor releases (new features)
    npm version minor
-   
+
    # For major releases (breaking changes)
    npm version major
    ```
@@ -208,7 +217,7 @@ To release a new version of Phantom:
      --title "Phantom v<version>" \
      --generate-notes \
      --target main
-   
+
    # Example for v0.1.3:
    gh release create v0.1.3 \
      --title "Phantom v0.1.3" \
