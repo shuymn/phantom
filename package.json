@@ -1,7 +1,7 @@
 {
   "name": "@aku11i/phantom",
   "packageManager": "pnpm@10.8.1",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A powerful CLI tool for managing Git worktrees for parallel development",
   "keywords": [
     "git",
@@ -41,7 +41,11 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "files": ["dist/", "README.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.15.29",
