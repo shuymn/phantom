@@ -149,7 +149,7 @@ tmuxとPhantomを組み合わせることで、驚くほど効率的なワーク
 
 ```bash
 # 新しいtmuxウィンドウを開いて、同時にworktreeを作成
-tmux new-window 'phantom create new-feature --shell'
+tmux new-window 'phantom create --shell new-feature'
 ```
 
 このたった1行のコマンドで：
@@ -163,8 +163,8 @@ tmux new-window 'phantom create new-feature --shell'
 
 ```bash
 # worktreeを作成してすぐにVS Codeで開く
-phantom create feature-auth
-phantom exec feature-auth code .
+phantom create --exec "code ." new-feature
+phantom create --exec "cursor ." new-feature # Cursorでも動作します！
 ```
 
 ### 並行開発ワークフロー

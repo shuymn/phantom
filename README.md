@@ -149,7 +149,7 @@ Combine tmux with Phantom for an incredibly efficient workflow:
 
 ```bash
 # Open a new tmux window and create a worktree in one command
-tmux new-window 'phantom create new-feature --shell'
+tmux new-window 'phantom create --shell new-feature'
 ```
 
 This single line:
@@ -163,8 +163,8 @@ When developing multiple features in parallel, you can manage each feature in it
 
 ```bash
 # Create a worktree and immediately open it in VS Code
-phantom create feature-auth
-phantom exec feature-auth code .
+phantom create --exec "code ." new-feature
+phantom create --exec "cursor ." new-feature # also works with cursor!!
 ```
 
 ### Parallel Development Workflow
