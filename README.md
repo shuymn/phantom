@@ -262,6 +262,33 @@ To release a new version of Phantom:
      --target main
    ```
 
+7. **Update release notes for clarity**
+   - Review the auto-generated release notes
+   - Check PR descriptions for important details
+   - Update the release notes to be more user-friendly:
+     - Group changes by category (Features, Bug Fixes, Improvements)
+     - Add usage examples for new features
+     - Explain the impact of changes in plain language
+     - Highlight security fixes and breaking changes
+   
+   ```bash
+   # Edit the release notes
+   gh release edit v<version> --notes "$(cat <<'EOF'
+   ## 🚀 What's New in v<version>
+   
+   ### ✨ New Features
+   - Feature description with usage example
+   
+   ### 🐛 Bug Fixes
+   - Clear description of what was fixed
+   
+   ### 🛠️ Improvements
+   - Performance, security, or other improvements
+   
+   EOF
+   )"
+   ```
+
 The build process is automatically handled by the `prepublishOnly` script, which:
 - Runs all tests and checks
 - Builds the TypeScript source to JavaScript using esbuild
