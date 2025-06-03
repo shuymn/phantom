@@ -1,10 +1,17 @@
+import { parseArgs } from "node:util";
 import { getGitRoot } from "../../core/git/libs/get-git-root.ts";
 import { isErr } from "../../core/types/result.ts";
 import { listWorktrees as listWorktreesCore } from "../../core/worktree/list.ts";
 import { exitCodes, exitWithError } from "../errors.ts";
 import { output } from "../output.ts";
 
-export async function listHandler(): Promise<void> {
+export async function listHandler(args: string[] = []): Promise<void> {
+  parseArgs({
+    args,
+    options: {},
+    strict: true,
+    allowPositionals: false,
+  });
   try {
     const gitRoot = await getGitRoot();
     const result = await listWorktreesCore(gitRoot);
