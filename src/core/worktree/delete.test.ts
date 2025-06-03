@@ -1,9 +1,62 @@
 import { deepStrictEqual, strictEqual } from "node:assert";
 import { describe, it, mock } from "node:test";
 import { isErr, isOk } from "../types/result.ts";
-import { WorktreeError, WorktreeNotFoundError } from "./errors.ts";
+import {
+  GitOperationError,
+  WorktreeError,
+  WorktreeNotFoundError,
+} from "./errors.ts";
 
 describe("deleteWorktree", () => {
+  it("should delete worktree and report when branch deletion fails", async () => {
+    const validateMock = mock.fn(() =>
+      Promise.resolve({
+        exists: true,
+        path: "/test/repo/.git/phantom/worktrees/feature",
+      }),
+    );
+
+    const executeGitCommandMock = mock.fn((command: string) => {
+      if (command.includes("worktree remove")) {
+        return Promise.resolve({ stdout: "", stderr: "" });
+      }
+      if (command.includes("branch -D")) {
+        return Promise.reject(new Error("error: branch 'feature' not found."));
+      }
+      return Promise.reject(new Error("Unexpected command"));
+    });
+    const executeGitCommandInDirectoryMock = mock.fn(() =>
+      Promise.resolve({ stdout: "", stderr: "" }),
+    );
+
+    mock.module("./validate.ts", {
+      namedExports: {
+        validateWorktreeExists: validateMock,
+      },
+    });
+
+    mock.module("../git/executor.ts", {
+      namedExports: {
+        executeGitCommand: executeGitCommandMock,
+        executeGitCommandInDirectory: executeGitCommandInDirectoryMock,
+      },
+    });
+
+    const { deleteWorktree } = await import("./delete.ts");
+
+    const result = await deleteWorktree("/test/repo", "feature");
+
+    strictEqual(isOk(result), true);
+    if (isOk(result)) {
+      strictEqual(
+        result.value.message,
+        "Deleted worktree 'feature'\nNote: Branch 'feature' could not be deleted: Git branch delete failed: error: branch 'feature' not found.",
+      );
+      strictEqual(result.value.hasUncommittedChanges, false);
+      strictEqual(result.value.changedFiles, undefined);
+    }
+  });
+
   it("should delete a worktree successfully when no uncommitted changes", async () => {
     const validateMock = mock.fn(() =>
       Promise.resolve({
@@ -46,7 +99,7 @@ describe("deleteWorktree", () => {
     if (isOk(result)) {
       strictEqual(
         result.value.message,
-        "Deleted worktree 'feature' and its branch 'phantom/worktrees/feature'",
+        "Deleted worktree 'feature' and its branch 'feature'",
       );
       strictEqual(result.value.hasUncommittedChanges, false);
       strictEqual(result.value.changedFiles, undefined);
@@ -70,7 +123,7 @@ describe("deleteWorktree", () => {
       { cwd: "/test/repo" },
     ]);
     deepStrictEqual(executeGitCommandMock.mock.calls[1].arguments, [
-      'branch -D "phantom/worktrees/feature"',
+      'branch -D "feature"',
       { cwd: "/test/repo" },
     ]);
   });
@@ -189,7 +242,7 @@ describe("deleteWorktree", () => {
     if (isOk(result)) {
       strictEqual(
         result.value.message,
-        "Warning: Worktree 'feature' had uncommitted changes (2 files)\nDeleted worktree 'feature' and its branch 'phantom/worktrees/feature'",
+        "Warning: Worktree 'feature' had uncommitted changes (2 files)\nDeleted worktree 'feature' and its branch 'feature'",
       );
       strictEqual(result.value.hasUncommittedChanges, true);
       strictEqual(result.value.changedFiles, 2);
@@ -373,20 +426,20 @@ describe("deleteBranch", () => {
 
     const { deleteBranch } = await import("./delete.ts");
 
-    const result = await deleteBranch(
-      "/test/repo",
-      "phantom/worktrees/feature",
-    );
+    const result = await deleteBranch("/test/repo", "feature");
 
-    strictEqual(result, true);
+    strictEqual(isOk(result), true);
+    if (isOk(result)) {
+      strictEqual(result.value, true);
+    }
     strictEqual(executeGitCommandMock.mock.calls.length, 1);
     deepStrictEqual(executeGitCommandMock.mock.calls[0].arguments, [
-      'branch -D "phantom/worktrees/feature"',
+      'branch -D "feature"',
       { cwd: "/test/repo" },
     ]);
   });
 
-  it("should return false when branch deletion fails", async () => {
+  it("should return error when branch deletion fails", async () => {
     const executeGitCommandMock = mock.fn(() =>
       Promise.reject(new Error("Branch not found")),
     );
@@ -400,12 +453,16 @@ describe("deleteBranch", () => {
 
     const { deleteBranch } = await import("./delete.ts");
 
-    const result = await deleteBranch(
-      "/test/repo",
-      "phantom/worktrees/feature",
-    );
+    const result = await deleteBranch("/test/repo", "feature");
 
-    strictEqual(result, false);
+    strictEqual(isErr(result), true);
+    if (isErr(result)) {
+      strictEqual(result.error instanceof GitOperationError, true);
+      strictEqual(
+        result.error.message,
+        "Git branch delete failed: Branch not found",
+      );
+    }
     strictEqual(executeGitCommandMock.mock.calls.length, 1);
   });
 });
