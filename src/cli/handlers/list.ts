@@ -1,5 +1,5 @@
+import { getGitRoot } from "../../core/git/libs/get-git-root.ts";
 import { listWorktrees as listWorktreesCore } from "../../core/worktree/list.ts";
-import { getGitRoot } from "../../git/libs/get-git-root.ts";
 import { exitCodes, exitWithError } from "../errors.ts";
 import { output } from "../output.ts";
 
@@ -27,7 +27,7 @@ export async function listHandler(): Promise<void> {
     for (const worktree of result.worktrees) {
       const paddedName = worktree.name.padEnd(maxNameLength + 2);
       const branchInfo = worktree.branch ? `(${worktree.branch})` : "";
-      const status = worktree.status === "dirty" ? " [dirty]" : "";
+      const status = !worktree.isClean ? " [dirty]" : "";
 
       output.log(`${paddedName} ${branchInfo}${status}`);
     }
