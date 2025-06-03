@@ -212,7 +212,7 @@ pnpm install
 pnpm test
 
 # Type checking
-pnpm type-check
+pnpm typecheck
 
 # Linting
 pnpm lint

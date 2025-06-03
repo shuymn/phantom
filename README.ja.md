@@ -212,7 +212,7 @@ pnpm install
 pnpm test
 
 # 型チェック
-pnpm type-check
+pnpm typecheck
 
 # リンティング
 pnpm lint

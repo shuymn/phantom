@@ -7,7 +7,7 @@ Phantom is a CLI tool for managing Git worktrees (called "phantoms") with enhanc
 - All files, issues, and pull requests in this repository must be written in English
 - Follow existing code conventions and patterns when making changes
 - Test all changes before committing
-- Always run `pnpm ready` before committing (runs lint, type-check, and tests)
+- Always run `pnpm ready` before committing (runs lint, typecheck, and tests)
 - Other rules is written in the [](./README.md).
 
 ## Project Structure (Updated after Refactoring)

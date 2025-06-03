@@ -30,12 +30,12 @@
     "start": "node ./src/bin/phantom.ts",
     "phantom": "node ./src/bin/phantom.ts",
     "build": "node build.ts",
-    "type-check": "tsgo --noEmit",
+    "typecheck": "tsgo --noEmit",
     "test": "node --test --experimental-strip-types --experimental-test-module-mocks src/**/*.test.ts",
     "lint": "biome check .",
     "fix": "biome check --write .",
-    "ready": "pnpm fix && pnpm type-check && pnpm test",
-    "ready:check": "pnpm lint && pnpm type-check && pnpm test",
+    "ready": "pnpm fix && pnpm typecheck && pnpm test",
+    "ready:check": "pnpm lint && pnpm typecheck && pnpm test",
     "prepublishOnly": "pnpm ready:check && pnpm build"
   },
   "engines": {
