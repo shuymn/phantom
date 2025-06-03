@@ -24,6 +24,7 @@ Phantom is a CLI tool that dramatically simplifies Git worktree management. It's
 - 🎯 **Branch-Worktree Sync** - Automatically creates matching branches for each worktree
 - 🐚 **Interactive Shell** - SSH-like experience for worktree navigation
 - ⚡ **Zero Configuration** - Works out of the box with sensible defaults
+- 📦 **Zero Dependencies** - Lightweight and fast with no external dependencies
 
 ## 🤔 Why Phantom?
 
