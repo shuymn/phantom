@@ -83,6 +83,11 @@ Examples:
 
 ## Rules
 
+- **Accuracy and Verification**: 
+  - **CRITICAL**: Only document facts that can be verified in the actual codebase
+  - Before writing about any tool, framework, or process, verify its actual usage in the repository
+  - Never assume or guess about technical details - always verify
+  - If unsure about a technical detail, check the source code first
 - **Formatting**: Use GitHub Flavored Markdown.
   - **Mermaid Syntax**: Use Mermaid syntax for architecture and data flow diagrams.
   - **Links**: Use Markdown link syntax for links to related documents and resources within sections.
