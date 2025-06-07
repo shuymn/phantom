@@ -53,6 +53,7 @@ describe("execInWorktree", () => {
       args: ["test"],
       options: {
         cwd: "/test/repo/.git/phantom/worktrees/my-feature",
+        stdio: ["ignore", "inherit", "inherit"],
       },
     });
   });
@@ -104,6 +105,37 @@ describe("execInWorktree", () => {
       args: [],
       options: {
         cwd: "/test/repo/.git/phantom/worktrees/feature",
+        stdio: ["ignore", "inherit", "inherit"],
+      },
+    });
+  });
+
+  it("should use inherit stdio for stdout/stderr when interactive", async () => {
+    validateMock.mock.resetCalls();
+    spawnMock.mock.resetCalls();
+
+    validateMock.mock.mockImplementation(() => ({
+      exists: true,
+      path: "/test/repo/.git/phantom/worktrees/feature",
+    }));
+
+    spawnMock.mock.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        value: { exitCode: 0 },
+      }),
+    );
+
+    await execInWorktree("/test/repo", "feature", ["echo", "test"], {
+      interactive: true,
+    });
+
+    deepStrictEqual(spawnMock.mock.calls[0].arguments[0], {
+      command: "echo",
+      args: ["test"],
+      options: {
+        cwd: "/test/repo/.git/phantom/worktrees/feature",
+        stdio: "inherit",
       },
     });
   });
