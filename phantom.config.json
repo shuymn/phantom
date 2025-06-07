@@ -1,0 +1,5 @@
+{
+  "postCreate": {
+    "copyFiles": [".claude/settings.local.json"]
+  }
+}
