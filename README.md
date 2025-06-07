@@ -336,8 +336,8 @@ To release a new version of Phantom:
    ```
 
 7. **Update release notes for clarity**
-   - Review the auto-generated release notes
-   - Check PR descriptions for important details
+   - Review the auto-generated release notes using `gh release view v<version>`
+   - Check PR descriptions for important details using `gh pr view <number>`
    - Update the release notes to be more user-friendly:
      - Group changes by category (Features, Bug Fixes, Improvements)
      - Add usage examples for new features
