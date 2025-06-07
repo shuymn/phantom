@@ -2,39 +2,58 @@ import { parseArgs } from "node:util";
 import { getGitRoot } from "../../core/git/libs/get-git-root.ts";
 import { isErr } from "../../core/types/result.ts";
 import { listWorktrees as listWorktreesCore } from "../../core/worktree/list.ts";
+import { selectWorktreeWithFzf } from "../../core/worktree/select.ts";
 import { exitCodes, exitWithError } from "../errors.ts";
 import { output } from "../output.ts";
 
 export async function listHandler(args: string[] = []): Promise<void> {
-  parseArgs({
+  const { values } = parseArgs({
     args,
-    options: {},
+    options: {
+      fzf: {
+        type: "boolean",
+        default: false,
+      },
+    },
     strict: true,
     allowPositionals: false,
   });
   try {
     const gitRoot = await getGitRoot();
-    const result = await listWorktreesCore(gitRoot);
 
-    if (isErr(result)) {
-      exitWithError("Failed to list worktrees", exitCodes.generalError);
-    }
+    if (values.fzf) {
+      const selectResult = await selectWorktreeWithFzf(gitRoot);
 
-    const { worktrees, message } = result.value;
+      if (isErr(selectResult)) {
+        exitWithError(selectResult.error.message, exitCodes.generalError);
+      }
 
-    if (worktrees.length === 0) {
-      output.log(message || "No worktrees found.");
-      process.exit(exitCodes.success);
-    }
+      if (selectResult.value) {
+        output.log(selectResult.value.name);
+      }
+    } else {
+      const result = await listWorktreesCore(gitRoot);
 
-    const maxNameLength = Math.max(...worktrees.map((wt) => wt.name.length));
+      if (isErr(result)) {
+        exitWithError("Failed to list worktrees", exitCodes.generalError);
+      }
 
-    for (const worktree of worktrees) {
-      const paddedName = worktree.name.padEnd(maxNameLength + 2);
-      const branchInfo = worktree.branch ? `(${worktree.branch})` : "";
-      const status = !worktree.isClean ? " [dirty]" : "";
+      const { worktrees, message } = result.value;
 
-      output.log(`${paddedName} ${branchInfo}${status}`);
+      if (worktrees.length === 0) {
+        output.log(message || "No worktrees found.");
+        process.exit(exitCodes.success);
+      }
+
+      const maxNameLength = Math.max(...worktrees.map((wt) => wt.name.length));
+
+      for (const worktree of worktrees) {
+        const paddedName = worktree.name.padEnd(maxNameLength + 2);
+        const branchInfo = worktree.branch ? `(${worktree.branch})` : "";
+        const status = !worktree.isClean ? " [dirty]" : "";
+
+        output.log(`${paddedName} ${branchInfo}${status}`);
+      }
     }
 
     process.exit(exitCodes.success);
