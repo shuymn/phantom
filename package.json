@@ -32,6 +32,7 @@
     "build": "node build.ts",
     "typecheck": "tsgo --noEmit",
     "test": "node --test --experimental-strip-types --experimental-test-module-mocks \"src/**/*.test.js\"",
+    "test:coverage": "node --experimental-test-coverage --test --experimental-strip-types --experimental-test-module-mocks \"src/**/*.test.js\"",
     "test:file": "node --test --experimental-strip-types --experimental-test-module-mocks",
     "lint": "biome check .",
     "fix": "biome check --write .",
