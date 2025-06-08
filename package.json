@@ -1,7 +1,7 @@
 {
   "name": "@aku11i/phantom",
   "packageManager": "pnpm@10.8.1",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "A powerful CLI tool for managing Git worktrees for parallel development",
   "keywords": [
     "git",
