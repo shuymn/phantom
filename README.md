@@ -98,6 +98,8 @@ phantom shell feature-y --tmux-v
 # Result: Multiple worktrees displayed simultaneously, each allowing independent work
 ```
 
+![Phantom tmux integration](./docs/assets/phantom-tmux.gif)
+
 #### Editor Integration
 
 Phantom works seamlessly with editors like VS Code and Cursor. You can specify an editor to open worktrees.
@@ -113,6 +115,8 @@ phantom exec feature code .
 phantom create feature --exec "cursor ."
 phantom exec feature cursor .
 ```
+
+![Phantom VS Code integration](./docs/assets/phantom-vscode.gif)
 
 #### fzf Integration
 
