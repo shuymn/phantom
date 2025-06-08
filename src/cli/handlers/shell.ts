@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { getGitRoot } from "../../core/git/libs/get-git-root.ts";
-import { getWorktreePath } from "../../core/paths.ts";
+import { getPhantomEnv } from "../../core/process/env.ts";
 import { shellInWorktree as shellInWorktreeCore } from "../../core/process/shell.ts";
 import { executeTmuxCommand, isInsideTmux } from "../../core/process/tmux.ts";
 import { isErr } from "../../core/types/result.ts";
@@ -99,11 +99,8 @@ export async function shellHandler(args: string[]): Promise<void> {
 
     // Get worktree path for display
     const validation = await validateWorktreeExists(gitRoot, worktreeName);
-    if (!validation.exists) {
-      exitWithError(
-        validation.message || `Worktree '${worktreeName}' not found`,
-        exitCodes.generalError,
-      );
+    if (isErr(validation)) {
+      exitWithError(validation.error.message, exitCodes.generalError);
     }
 
     if (tmuxDirection) {
@@ -118,13 +115,8 @@ export async function shellHandler(args: string[]): Promise<void> {
       const tmuxResult = await executeTmuxCommand({
         direction: tmuxDirection,
         command: shell,
-        cwd: validation.path,
-        env: {
-          PHANTOM: "1",
-          PHANTOM_NAME: worktreeName,
-          PHANTOM_PATH:
-            validation.path || getWorktreePath(gitRoot, worktreeName),
-        },
+        cwd: validation.value.path,
+        env: getPhantomEnv(worktreeName, validation.value.path),
         windowName: tmuxDirection === "new" ? worktreeName : undefined,
       });
 
@@ -140,7 +132,9 @@ export async function shellHandler(args: string[]): Promise<void> {
       exitWithSuccess();
     }
 
-    output.log(`Entering worktree '${worktreeName}' at ${validation.path}`);
+    output.log(
+      `Entering worktree '${worktreeName}' at ${validation.value.path}`,
+    );
     output.log("Type 'exit' to return to your original directory\n");
 
     const result = await shellInWorktreeCore(gitRoot, worktreeName);

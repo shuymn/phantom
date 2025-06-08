@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { getGitRoot } from "../../core/git/libs/get-git-root.ts";
-import { getWorktreePath } from "../../core/paths.ts";
+import { getPhantomEnv } from "../../core/process/env.ts";
 import { execInWorktree as execInWorktreeCore } from "../../core/process/exec.ts";
 import { executeTmuxCommand, isInsideTmux } from "../../core/process/tmux.ts";
 import { isErr } from "../../core/types/result.ts";
@@ -105,11 +105,8 @@ export async function execHandler(args: string[]): Promise<void> {
 
     // Validate worktree exists
     const validation = await validateWorktreeExists(gitRoot, worktreeName);
-    if (!validation.exists) {
-      exitWithError(
-        validation.message || `Worktree '${worktreeName}' not found`,
-        exitCodes.generalError,
-      );
+    if (isErr(validation)) {
+      exitWithError(validation.error.message, exitCodes.generalError);
     }
 
     if (tmuxDirection) {
@@ -125,13 +122,8 @@ export async function execHandler(args: string[]): Promise<void> {
         direction: tmuxDirection,
         command,
         args,
-        cwd: validation.path,
-        env: {
-          PHANTOM: "1",
-          PHANTOM_NAME: worktreeName,
-          PHANTOM_PATH:
-            validation.path || getWorktreePath(gitRoot, worktreeName),
-        },
+        cwd: validation.value.path,
+        env: getPhantomEnv(worktreeName, validation.value.path),
         windowName: tmuxDirection === "new" ? worktreeName : undefined,
       });
 
