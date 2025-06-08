@@ -7,6 +7,7 @@ export type TmuxSplitDirection = "new" | "vertical" | "horizontal";
 export interface TmuxOptions {
   direction: TmuxSplitDirection;
   command: string;
+  args?: string[];
   cwd?: string;
   env?: Record<string, string>;
   windowName?: string;
@@ -21,7 +22,7 @@ export async function isInsideTmux(): Promise<boolean> {
 export async function executeTmuxCommand(
   options: TmuxOptions,
 ): Promise<Result<TmuxSuccess, ProcessError>> {
-  const { direction, command, cwd, env, windowName } = options;
+  const { direction, command, args, cwd, env, windowName } = options;
 
   const tmuxArgs: string[] = [];
 
@@ -51,7 +52,11 @@ export async function executeTmuxCommand(
     }
   }
 
+  // Add the command and arguments
   tmuxArgs.push(command);
+  if (args && args.length > 0) {
+    tmuxArgs.push(...args);
+  }
 
   const result = await spawnProcess({
     command: "tmux",
