@@ -10,6 +10,7 @@ Thank you for your interest in contributing to Phantom! This guide will help you
 - [Code Quality](#code-quality)
 - [Pull Request Process](#pull-request-process)
 - [Documentation](#documentation)
+- [Release Process](#release-process)
 - [Additional Resources](#additional-resources)
 
 ## 🛠️ Development Setup
@@ -125,6 +126,84 @@ When contributing documentation:
 - Keep language clear and concise
 - Update the table of contents if adding sections
 - Check for broken links
+
+## 🚀 Release Process
+
+To release a new version of Phantom:
+
+1. **Ensure you're on main branch and up to date**
+   ```bash
+   git checkout main
+   git pull
+   ```
+
+2. **Run all checks**
+   ```bash
+   pnpm ready
+   ```
+
+3. **Bump version**
+   ```bash
+   # For patch releases (bug fixes)
+   npm version patch
+
+   # For minor releases (new features)
+   npm version minor
+
+   # For major releases (breaking changes)
+   npm version major
+   ```
+
+4. **Push the version commit and tag**
+   ```bash
+   git push && git push --tags
+   ```
+
+5. **Publish to npm**
+   ```bash
+   pnpm publish
+   ```
+
+6. **Create GitHub release**
+   ```bash
+   # Create a release with automatically generated notes
+   gh release create v<version> \
+     --title "Phantom v<version>" \
+     --generate-notes \
+     --target main
+
+   # Example for v0.1.3:
+   gh release create v0.1.3 \
+     --title "Phantom v0.1.3" \
+     --generate-notes \
+     --target main
+   ```
+
+7. **Update release notes for clarity**
+   - Review the auto-generated release notes using `gh release view v<version>`
+   - Check PR descriptions for important details using `gh pr view <number>`
+   - Update the release notes to be more user-friendly:
+     - Group changes by category (Features, Bug Fixes, Improvements)
+     - Add usage examples for new features
+     - Explain the impact of changes in plain language
+     - Highlight security fixes and breaking changes
+   
+   ```bash
+   # Edit the release notes
+   gh release edit v<version> --notes "$(cat <<'EOF'
+   ## 🚀 What's New in v<version>
+   
+   ### ✨ New Features
+   - Feature description with usage example
+   
+   ### 🐛 Bug Fixes
+   - Clear description of what was fixed
+   
+   ### 🛠️ Improvements
+   - Performance, security, or other improvements
+   EOF
+   )"
+   ```
 
 ## 🙏 Thank You!
 
