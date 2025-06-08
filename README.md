@@ -52,7 +52,7 @@ Phantom combines worktree and branch creation into a single command, making it e
 
 ```bash
 # Install Phantom
-npm install -g @aku11i/phantom
+brew install aku11i/tap/phantom
 
 # Create a new worktree
 phantom create feature-awesome
@@ -76,19 +76,14 @@ phantom delete feature-awesome
 
 ## 📦 Installation
 
-### Using npm (recommended)
+### Using Homebrew (recommended)
+```bash
+brew install aku11i/tap/phantom
+```
+
+### Using npm
 ```bash
 npm install -g @aku11i/phantom
-```
-
-### Using pnpm
-```bash
-pnpm add -g @aku11i/phantom
-```
-
-### Using yarn
-```bash
-yarn global add @aku11i/phantom
 ```
 
 ### Build from source

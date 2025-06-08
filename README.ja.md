@@ -52,7 +52,7 @@ Phantomは、worktreeとブランチの作成を1つのコマンドにまとめ�
 
 ```bash
 # Phantomをインストール
-npm install -g @aku11i/phantom
+brew install aku11i/tap/phantom
 
 # 新しいworktreeを作成
 phantom create feature-awesome
@@ -76,19 +76,14 @@ phantom delete feature-awesome
 
 ## 📦 インストール
 
-### npmを使用（推奨）
+### Homebrewを使用（推奨）
+```bash
+brew install aku11i/tap/phantom
+```
+
+### npmを使用
 ```bash
 npm install -g @aku11i/phantom
-```
-
-### pnpmを使用
-```bash
-pnpm add -g @aku11i/phantom
-```
-
-### yarnを使用
-```bash
-yarn global add @aku11i/phantom
 ```
 
 ### ソースからビルド
