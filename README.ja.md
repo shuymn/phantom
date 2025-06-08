@@ -98,6 +98,8 @@ phantom shell feature-y --tmux-v
 # 結果: 複数のworktreeが同時に表示され、それぞれで独立した作業が可能
 ```
 
+![Phantom tmux統合](./docs/assets/phantom-tmux.gif)
+
 #### エディタ統合
 
 PhantomはVS CodeやCursorなどのエディタでも快適に使用できます。エディタを指定してワークツリーを開くことができます。
@@ -113,6 +115,8 @@ phantom exec feature code .
 phantom create feature --exec "cursor ."
 phantom exec feature cursor .
 ```
+
+![Phantom VS Code統合](./docs/assets/phantom-vscode.gif)
 
 #### fzf統合
 
