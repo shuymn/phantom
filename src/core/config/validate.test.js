@@ -505,11 +505,11 @@ describe("validateConfig", () => {
   describe("defaultMultiplexer validation", () => {
     test("should accept valid defaultMultiplexer values", () => {
       const validValues = ["tmux", "kitty", "none"];
-      
+
       for (const value of validValues) {
         const config = { defaultMultiplexer: value };
         const result = validateConfig(config);
-        
+
         assert.strictEqual(isOk(result), true);
         if (isOk(result)) {
           assert.deepStrictEqual(result.value, config);
@@ -520,7 +520,7 @@ describe("validateConfig", () => {
     test("should reject invalid defaultMultiplexer values", () => {
       const config = { defaultMultiplexer: "invalid" };
       const result = validateConfig(config);
-      
+
       assert.strictEqual(isErr(result), true);
       if (isErr(result)) {
         assert.ok(result.error instanceof ConfigValidationError);
@@ -534,7 +534,7 @@ describe("validateConfig", () => {
     test("should reject non-string defaultMultiplexer", () => {
       const config = { defaultMultiplexer: 123 };
       const result = validateConfig(config);
-      
+
       assert.strictEqual(isErr(result), true);
       if (isErr(result)) {
         assert.ok(result.error instanceof ConfigValidationError);
@@ -553,9 +553,9 @@ describe("validateConfig", () => {
         },
         defaultMultiplexer: "kitty",
       };
-      
+
       const result = validateConfig(config);
-      
+
       assert.strictEqual(isOk(result), true);
       if (isOk(result)) {
         assert.deepStrictEqual(result.value, config);
