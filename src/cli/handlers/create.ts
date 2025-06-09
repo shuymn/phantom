@@ -8,6 +8,10 @@ import { ConfigValidationError } from "../../core/config/validate.ts";
 import { getGitRoot } from "../../core/git/libs/get-git-root.ts";
 import { getPhantomEnv } from "../../core/process/env.ts";
 import { execInWorktree } from "../../core/process/exec.ts";
+import {
+  executeKittyCommand,
+  isInsideKitty,
+} from "../../core/process/kitty.ts";
 import { shellInWorktree } from "../../core/process/shell.ts";
 import { executeTmuxCommand, isInsideTmux } from "../../core/process/tmux.ts";
 import { isErr, isOk } from "../../core/types/result.ts";
@@ -42,6 +46,22 @@ export async function createHandler(args: string[]): Promise<void> {
         type: "boolean",
       },
       "tmux-h": {
+        type: "boolean",
+      },
+      kitty: {
+        type: "boolean",
+        short: "k",
+      },
+      "kitty-vertical": {
+        type: "boolean",
+      },
+      "kitty-v": {
+        type: "boolean",
+      },
+      "kitty-horizontal": {
+        type: "boolean",
+      },
+      "kitty-h": {
         type: "boolean",
       },
       "copy-file": {
@@ -82,12 +102,30 @@ export async function createHandler(args: string[]): Promise<void> {
     tmuxDirection = "horizontal";
   }
 
+  // Determine kitty option
+  const kittyOption =
+    values.kitty ||
+    values["kitty-vertical"] ||
+    values["kitty-v"] ||
+    values["kitty-horizontal"] ||
+    values["kitty-h"];
+
+  let kittyDirection: "new" | "vertical" | "horizontal" | undefined;
+  if (values.kitty) {
+    kittyDirection = "new";
+  } else if (values["kitty-vertical"] || values["kitty-v"]) {
+    kittyDirection = "vertical";
+  } else if (values["kitty-horizontal"] || values["kitty-h"]) {
+    kittyDirection = "horizontal";
+  }
+
   if (
-    [openShell, execCommand !== undefined, tmuxOption].filter(Boolean).length >
-    1
+    [openShell, execCommand !== undefined, tmuxOption, kittyOption].filter(
+      Boolean,
+    ).length > 1
   ) {
     exitWithError(
-      "Cannot use --shell, --exec, and --tmux options together",
+      "Cannot use --shell, --exec, --tmux, and --kitty options together",
       exitCodes.validationError,
     );
   }
@@ -95,6 +133,13 @@ export async function createHandler(args: string[]): Promise<void> {
   if (tmuxOption && !(await isInsideTmux())) {
     exitWithError(
       "The --tmux option can only be used inside a tmux session",
+      exitCodes.validationError,
+    );
+  }
+
+  if (kittyOption && !(await isInsideKitty())) {
+    exitWithError(
+      "The --kitty option can only be used inside a kitty terminal",
       exitCodes.validationError,
     );
   }
@@ -249,6 +294,33 @@ export async function createHandler(args: string[]): Promise<void> {
         const exitCode =
           "exitCode" in tmuxResult.error
             ? (tmuxResult.error.exitCode ?? exitCodes.generalError)
+            : exitCodes.generalError;
+        exitWithError("", exitCode);
+      }
+    }
+
+    if (kittyDirection && isOk(result)) {
+      output.log(
+        `\nOpening worktree '${worktreeName}' in kitty ${
+          kittyDirection === "new" ? "tab" : "split"
+        }...`,
+      );
+
+      const shell = process.env.SHELL || "/bin/sh";
+
+      const kittyResult = await executeKittyCommand({
+        direction: kittyDirection,
+        command: shell,
+        cwd: result.value.path,
+        env: getPhantomEnv(worktreeName, result.value.path),
+        windowTitle: kittyDirection === "new" ? worktreeName : undefined,
+      });
+
+      if (isErr(kittyResult)) {
+        output.error(kittyResult.error.message);
+        const exitCode =
+          "exitCode" in kittyResult.error
+            ? (kittyResult.error.exitCode ?? exitCodes.generalError)
             : exitCodes.generalError;
         exitWithError("", exitCode);
       }
