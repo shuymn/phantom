@@ -18,12 +18,27 @@ export const shellHelp: CommandHelp = {
     {
       name: "--tmux-vertical, --tmux-v",
       type: "boolean",
-      description: "Open shell in vertical split pane",
+      description: "Open shell in vertical split pane (tmux)",
     },
     {
       name: "--tmux-horizontal, --tmux-h",
       type: "boolean",
-      description: "Open shell in horizontal split pane",
+      description: "Open shell in horizontal split pane (tmux)",
+    },
+    {
+      name: "--kitty, -k",
+      type: "boolean",
+      description: "Open shell in new kitty tab",
+    },
+    {
+      name: "--kitty-vertical, --kitty-v",
+      type: "boolean",
+      description: "Open shell in vertical split (kitty)",
+    },
+    {
+      name: "--kitty-horizontal, --kitty-h",
+      type: "boolean",
+      description: "Open shell in horizontal split (kitty)",
     },
   ],
   examples: [
@@ -44,6 +59,14 @@ export const shellHelp: CommandHelp = {
       command: "phantom shell feature-auth --tmux-v",
     },
     {
+      description: "Open a shell in a new kitty tab",
+      command: "phantom shell feature-auth --kitty",
+    },
+    {
+      description: "Open a shell in a vertical kitty split",
+      command: "phantom shell feature-auth --kitty-v",
+    },
+    {
       description: "Interactive selection with tmux",
       command: "phantom shell --fzf --tmux",
     },
@@ -54,5 +77,7 @@ export const shellHelp: CommandHelp = {
     "Type 'exit' to return to your original directory",
     "With --fzf, you can interactively select the worktree to enter",
     "Tmux options require being inside a tmux session",
+    "Kitty options require being inside a kitty terminal",
+    "Tmux and kitty options cannot be used together",
   ],
 };
