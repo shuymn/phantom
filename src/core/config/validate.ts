@@ -57,5 +57,22 @@ export function validateConfig(
     }
   }
 
+  if (cfg.defaultMultiplexer !== undefined) {
+    if (typeof cfg.defaultMultiplexer !== "string") {
+      return err(
+        new ConfigValidationError("defaultMultiplexer must be a string"),
+      );
+    }
+
+    const validMultiplexers = ["tmux", "kitty", "none"];
+    if (!validMultiplexers.includes(cfg.defaultMultiplexer)) {
+      return err(
+        new ConfigValidationError(
+          `defaultMultiplexer must be one of: ${validMultiplexers.join(", ")}`,
+        ),
+      );
+    }
+  }
+
   return ok(config as PhantomConfig);
 }
