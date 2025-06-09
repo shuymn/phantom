@@ -24,7 +24,7 @@ Phantom is a powerful CLI tool that dramatically boosts your development product
 - 🚀 **Simple worktree management** - Create and manage Git worktrees with intuitive commands
 - 🔄 **True multitasking** - Create separate working directories per branch and run multiple tasks simultaneously
 - 🎯 **Execute commands from anywhere** - Run commands in any worktree with `phantom exec <worktree> <command>`
-- 🪟 **Built-in tmux integration** - Open worktrees in new panes or windows
+- 🪟 **Terminal multiplexer integration** - Built-in support for tmux and kitty terminal
 - 🔍 **Interactive selection with fzf** - Use built-in fzf option for worktree selection
 - 🎮 **Shell completion** - Full autocomplete support for Fish and Zsh
 - ⚡ **Zero dependencies** - Fast and lightweight
@@ -82,10 +82,11 @@ Phantom provides perfect functionality as a command-line tool. Developers feel t
 
 Phantom supports full shell completion for fish and zsh. Use tab key to complete commands and worktree names.
 
-#### tmux Integration
+#### Terminal Multiplexer Integration
 
-When creating worktrees, you can use tmux to open them in new windows or panes. This allows you to manage multiple work environments simultaneously.
+Phantom supports both tmux and kitty terminal for advanced window management. This allows you to manage multiple work environments simultaneously.
 
+**tmux Integration:**
 ```bash
 # Create and open worktree in new window
 phantom create feature-x --tmux
@@ -96,11 +97,21 @@ phantom create feature-z --tmux-horizontal
 # Open existing worktrees in tmux
 phantom shell feature-x --tmux
 phantom shell feature-y --tmux-v
-
-# Result: Multiple worktrees displayed simultaneously, each allowing independent work
 ```
 
 ![Phantom tmux integration](./docs/assets/phantom-tmux.gif)
+
+**Kitty Integration:**
+```bash
+# Open in new tab
+phantom shell feature-xyz --kitty
+
+# Split vertically
+phantom shell feature-xyz --kitty-vertical
+
+# Execute command in horizontal split
+phantom exec feature-xyz --kitty-horizontal npm run dev
+```
 
 #### Editor Integration
 
