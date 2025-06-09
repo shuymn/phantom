@@ -33,6 +33,9 @@ phantom create <name> [options]
 - `--tmux` / `-t` - Create and open in new tmux window
 - `--tmux-vertical` / `--tmux-v` - Create and split tmux pane vertically
 - `--tmux-horizontal` / `--tmux-h` - Create and split tmux pane horizontally
+- `--kitty` / `-k` - Create and open in new kitty tab
+- `--kitty-vertical` / `--kitty-v` - Create and split kitty window vertically
+- `--kitty-horizontal` / `--kitty-h` - Create and split kitty window horizontally
 - `--copy-file <file>` - Copy specific files from current worktree (can be used multiple times)
 - `--base <branch>` - Base branch to create from (default: origin/main)
 
@@ -46,6 +49,9 @@ phantom create feature-auth --shell
 
 # Create in new tmux window
 phantom create feature-auth --tmux
+
+# Create in new kitty tab
+phantom create feature-auth --kitty
 
 # Create and copy environment files
 phantom create feature-auth --copy-file .env --copy-file .env.local
@@ -173,6 +179,9 @@ phantom shell <name> [options]
 - `--tmux`, `-t` - Open shell in new tmux window
 - `--tmux-vertical`, `--tmux-v` - Open shell in vertical split pane
 - `--tmux-horizontal`, `--tmux-h` - Open shell in horizontal split pane
+- `--kitty`, `-k` - Open shell in new kitty tab
+- `--kitty-vertical`, `--kitty-v` - Open shell in vertical kitty split
+- `--kitty-horizontal`, `--kitty-h` - Open shell in horizontal kitty split
 
 **Environment Variables:**
 When in a phantom shell, these environment variables are set:
@@ -197,12 +206,19 @@ phantom shell feature-auth --tmux-v
 # Open in horizontal split pane
 phantom shell feature-auth --tmux-h
 
+# Open in new kitty tab
+phantom shell feature-auth --kitty
+
+# Open in vertical kitty split
+phantom shell feature-auth --kitty-v
+
 # Interactive selection with tmux
 phantom shell --fzf --tmux
 ```
 
 **Notes:**
 - tmux options require being inside a tmux session
+- kitty options require being inside a kitty terminal
 
 ### exec
 
@@ -217,6 +233,9 @@ phantom exec [options] <name> <command> [args...]
 - `--tmux`, `-t` - Execute command in new tmux window
 - `--tmux-vertical`, `--tmux-v` - Execute command in vertical split pane
 - `--tmux-horizontal`, `--tmux-h` - Execute command in horizontal split pane
+- `--kitty`, `-k` - Execute command in new kitty tab
+- `--kitty-vertical`, `--kitty-v` - Execute command in vertical kitty split
+- `--kitty-horizontal`, `--kitty-h` - Execute command in horizontal kitty split
 
 **Examples:**
 ```bash
@@ -243,6 +262,12 @@ phantom exec --tmux-v feature-auth npm test
 
 # Execute in horizontal split pane
 phantom exec --tmux-h feature-auth npm run watch
+
+# Execute in new kitty tab
+phantom exec --kitty feature-auth npm run dev
+
+# Execute in vertical kitty split
+phantom exec --kitty-v feature-auth npm test
 
 # Interactive selection with tmux
 phantom exec --fzf --tmux npm run dev

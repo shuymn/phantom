@@ -6,6 +6,7 @@
 - [Configuration Options](#configuration-options)
   - [postCreate.copyFiles](#postcreatecopyfiles)
   - [postCreate.commands](#postcreatecommands)
+  - [defaultMultiplexer](#defaultmultiplexer)
 
 Phantom supports configuration through a `phantom.config.json` file in your repository root. This allows you to define files to be automatically copied and commands to be executed when creating new worktrees.
 
@@ -25,7 +26,8 @@ Create a `phantom.config.json` file in your repository root:
       "pnpm install",
       "pnpm build"
     ]
-  }
+  },
+  "defaultMultiplexer": "tmux"
 }
 ```
 
@@ -91,4 +93,25 @@ An array of commands to execute after creating a new worktree.
 - Execution stops on the first failed command
 - Commands run in the new worktree's directory
 - Output is displayed in real-time
+
+### defaultMultiplexer
+
+Specifies the default terminal multiplexer to use when no explicit option is provided. This setting affects how shell and exec commands behave when using terminal splitting features.
+
+**Values:**
+- `"tmux"` - Use tmux as the default multiplexer
+- `"kitty"` - Use kitty as the default multiplexer
+- `"none"` - Disable automatic multiplexer usage (default)
+
+**Example:**
+```json
+{
+  "defaultMultiplexer": "kitty"
+}
+```
+
+**Notes:**
+- This setting only provides a default; command-line options override it
+- Users must still be inside the appropriate environment (tmux session or kitty terminal)
+- When set to "none", terminal splitting features are disabled by default
 

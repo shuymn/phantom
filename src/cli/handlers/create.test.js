@@ -11,6 +11,8 @@ const execInWorktreeMock = mock.fn();
 const shellInWorktreeMock = mock.fn();
 const isInsideTmuxMock = mock.fn();
 const executeTmuxCommandMock = mock.fn();
+const isInsideKittyMock = mock.fn();
+const executeKittyCommandMock = mock.fn();
 const exitWithErrorMock = mock.fn((message, code) => {
   if (message) consoleErrorMock(`Error: ${message}`);
   exitMock(code);
@@ -61,6 +63,13 @@ mock.module("../../core/process/tmux.ts", {
   },
 });
 
+mock.module("../../core/process/kitty.ts", {
+  namedExports: {
+    isInsideKitty: isInsideKittyMock,
+    executeKittyCommand: executeKittyCommandMock,
+  },
+});
+
 mock.module("../output.ts", {
   namedExports: {
     output: {
@@ -95,6 +104,8 @@ describe("createHandler", () => {
     shellInWorktreeMock.mock.resetCalls();
     isInsideTmuxMock.mock.resetCalls();
     executeTmuxCommandMock.mock.resetCalls();
+    isInsideKittyMock.mock.resetCalls();
+    executeKittyCommandMock.mock.resetCalls();
     exitWithErrorMock.mock.resetCalls();
     exitWithSuccessMock.mock.resetCalls();
 
@@ -346,8 +357,78 @@ describe("createHandler", () => {
     strictEqual(consoleErrorMock.mock.calls.length, 1);
     strictEqual(
       consoleErrorMock.mock.calls[0].arguments[0],
-      "Error: Cannot use --shell, --exec, and --tmux options together",
+      "Error: Cannot use --shell, --exec, --tmux, and --kitty options together",
     );
     strictEqual(exitMock.mock.calls[0].arguments[0], 2);
+  });
+
+  it("should error when kitty option used outside kitty", async () => {
+    resetMocks();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => false);
+
+    await rejects(
+      async () => await createHandler(["feature", "--kitty"]),
+      /Exit with code 2: The --kitty option can only be used inside a kitty terminal/,
+    );
+
+    strictEqual(isInsideKittyMock.mock.calls.length, 1);
+  });
+
+  it("should create worktree and open in new kitty tab", async () => {
+    resetMocks();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => true);
+    createWorktreeMock.mock.mockImplementation(() =>
+      ok({ path: "/repo/.git/phantom/worktrees/feature" }),
+    );
+    executeKittyCommandMock.mock.mockImplementation(() => ok({ exitCode: 0 }));
+
+    await rejects(
+      async () => await createHandler(["feature", "--kitty"]),
+      /Exit with code 0/,
+    );
+
+    strictEqual(isInsideKittyMock.mock.calls.length, 1);
+    strictEqual(createWorktreeMock.mock.calls.length, 1);
+    strictEqual(executeKittyCommandMock.mock.calls.length, 1);
+
+    const kittyCall = executeKittyCommandMock.mock.calls[0].arguments[0];
+    strictEqual(kittyCall.direction, "new");
+    strictEqual(kittyCall.cwd, "/repo/.git/phantom/worktrees/feature");
+    strictEqual(kittyCall.windowTitle, "feature");
+  });
+
+  it("should create worktree and open in vertical kitty split", async () => {
+    resetMocks();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => true);
+    createWorktreeMock.mock.mockImplementation(() =>
+      ok({ path: "/repo/.git/phantom/worktrees/feature" }),
+    );
+    executeKittyCommandMock.mock.mockImplementation(() => ok({ exitCode: 0 }));
+
+    await rejects(
+      async () => await createHandler(["feature", "--kitty-v"]),
+      /Exit with code 0/,
+    );
+
+    const kittyCall = executeKittyCommandMock.mock.calls[0].arguments[0];
+    strictEqual(kittyCall.direction, "vertical");
+    strictEqual(kittyCall.windowTitle, undefined);
+  });
+
+  it("should error when both tmux and kitty options are used", async () => {
+    resetMocks();
+
+    await rejects(
+      async () => await createHandler(["feature", "--tmux", "--kitty"]),
+      /Exit with code 2: Cannot use --shell, --exec, --tmux, and --kitty options together/,
+    );
+
+    strictEqual(consoleErrorMock.mock.calls.length, 1);
   });
 });

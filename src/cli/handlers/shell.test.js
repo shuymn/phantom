@@ -12,6 +12,8 @@ const validateWorktreeExistsMock = mock.fn();
 const selectWorktreeWithFzfMock = mock.fn();
 const isInsideTmuxMock = mock.fn();
 const executeTmuxCommandMock = mock.fn();
+const isInsideKittyMock = mock.fn();
+const executeKittyCommandMock = mock.fn();
 const exitWithErrorMock = mock.fn((message, code) => {
   consoleErrorMock(`Error: ${message}`);
   exitMock(code);
@@ -44,6 +46,13 @@ mock.module("../../core/process/tmux.ts", {
   namedExports: {
     isInsideTmux: isInsideTmuxMock,
     executeTmuxCommand: executeTmuxCommandMock,
+  },
+});
+
+mock.module("../../core/process/kitty.ts", {
+  namedExports: {
+    isInsideKitty: isInsideKittyMock,
+    executeKittyCommand: executeKittyCommandMock,
   },
 });
 
@@ -451,6 +460,168 @@ describe("shellHandler", () => {
     strictEqual(
       consoleLogMock.mock.calls[0].arguments[0],
       "Opening worktree 'selected-feature' in tmux window...",
+    );
+  });
+
+  it("should error when kitty option used outside kitty", async () => {
+    exitMock.mock.resetCalls();
+    consoleErrorMock.mock.resetCalls();
+    getGitRootMock.mock.resetCalls();
+    isInsideKittyMock.mock.resetCalls();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => false);
+
+    await rejects(
+      async () => await shellHandler(["feature", "--kitty"]),
+      /Exit with code 3: The --kitty option can only be used inside a kitty terminal/,
+    );
+
+    strictEqual(isInsideKittyMock.mock.calls.length, 1);
+    strictEqual(consoleErrorMock.mock.calls.length, 1);
+    strictEqual(
+      consoleErrorMock.mock.calls[0].arguments[0],
+      "Error: The --kitty option can only be used inside a kitty terminal",
+    );
+  });
+
+  it("should open shell in new kitty tab", async () => {
+    exitMock.mock.resetCalls();
+    consoleLogMock.mock.resetCalls();
+    getGitRootMock.mock.resetCalls();
+    validateWorktreeExistsMock.mock.resetCalls();
+    isInsideKittyMock.mock.resetCalls();
+    executeKittyCommandMock.mock.resetCalls();
+    exitWithSuccessMock.mock.resetCalls();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => true);
+    validateWorktreeExistsMock.mock.mockImplementation(() =>
+      ok({ path: "/repo/.git/phantom/worktrees/feature" }),
+    );
+    executeKittyCommandMock.mock.mockImplementation(() => ok({ exitCode: 0 }));
+
+    await rejects(
+      async () => await shellHandler(["feature", "--kitty"]),
+      /Exit with code 0: success/,
+    );
+
+    strictEqual(isInsideKittyMock.mock.calls.length, 1);
+    strictEqual(executeKittyCommandMock.mock.calls.length, 1);
+    const kittyCall = executeKittyCommandMock.mock.calls[0].arguments[0];
+    strictEqual(kittyCall.direction, "new");
+    strictEqual(kittyCall.cwd, "/repo/.git/phantom/worktrees/feature");
+    strictEqual(kittyCall.windowTitle, "feature");
+    strictEqual(kittyCall.env.PHANTOM, "1");
+    strictEqual(kittyCall.env.PHANTOM_NAME, "feature");
+    strictEqual(
+      consoleLogMock.mock.calls[0].arguments[0],
+      "Opening worktree 'feature' in kitty tab...",
+    );
+  });
+
+  it("should open shell in vertical kitty split", async () => {
+    exitMock.mock.resetCalls();
+    consoleLogMock.mock.resetCalls();
+    getGitRootMock.mock.resetCalls();
+    validateWorktreeExistsMock.mock.resetCalls();
+    isInsideKittyMock.mock.resetCalls();
+    executeKittyCommandMock.mock.resetCalls();
+    exitWithSuccessMock.mock.resetCalls();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => true);
+    validateWorktreeExistsMock.mock.mockImplementation(() =>
+      ok({ path: "/repo/.git/phantom/worktrees/feature" }),
+    );
+    executeKittyCommandMock.mock.mockImplementation(() => ok({ exitCode: 0 }));
+
+    await rejects(
+      async () => await shellHandler(["feature", "--kitty-v"]),
+      /Exit with code 0: success/,
+    );
+
+    const kittyCall = executeKittyCommandMock.mock.calls[0].arguments[0];
+    strictEqual(kittyCall.direction, "vertical");
+    strictEqual(kittyCall.windowTitle, undefined);
+    strictEqual(
+      consoleLogMock.mock.calls[0].arguments[0],
+      "Opening worktree 'feature' in kitty split...",
+    );
+  });
+
+  it("should open shell in horizontal kitty split", async () => {
+    exitMock.mock.resetCalls();
+    consoleLogMock.mock.resetCalls();
+    getGitRootMock.mock.resetCalls();
+    validateWorktreeExistsMock.mock.resetCalls();
+    isInsideKittyMock.mock.resetCalls();
+    executeKittyCommandMock.mock.resetCalls();
+    exitWithSuccessMock.mock.resetCalls();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => true);
+    validateWorktreeExistsMock.mock.mockImplementation(() =>
+      ok({ path: "/repo/.git/phantom/worktrees/feature" }),
+    );
+    executeKittyCommandMock.mock.mockImplementation(() => ok({ exitCode: 0 }));
+
+    await rejects(
+      async () => await shellHandler(["feature", "--kitty-horizontal"]),
+      /Exit with code 0: success/,
+    );
+
+    const kittyCall = executeKittyCommandMock.mock.calls[0].arguments[0];
+    strictEqual(kittyCall.direction, "horizontal");
+    strictEqual(kittyCall.windowTitle, undefined);
+    strictEqual(
+      consoleLogMock.mock.calls[0].arguments[0],
+      "Opening worktree 'feature' in kitty split...",
+    );
+  });
+
+  it("should error when both tmux and kitty options are used", async () => {
+    exitMock.mock.resetCalls();
+    consoleErrorMock.mock.resetCalls();
+
+    await rejects(
+      async () => await shellHandler(["feature", "--tmux", "--kitty"]),
+      /Exit with code 3: Cannot use both tmux and kitty options simultaneously/,
+    );
+
+    strictEqual(consoleErrorMock.mock.calls.length, 1);
+    strictEqual(
+      consoleErrorMock.mock.calls[0].arguments[0],
+      "Error: Cannot use both tmux and kitty options simultaneously",
+    );
+  });
+
+  it("should handle kitty command error", async () => {
+    exitMock.mock.resetCalls();
+    consoleErrorMock.mock.resetCalls();
+    getGitRootMock.mock.resetCalls();
+    validateWorktreeExistsMock.mock.resetCalls();
+    isInsideKittyMock.mock.resetCalls();
+    executeKittyCommandMock.mock.resetCalls();
+
+    getGitRootMock.mock.mockImplementation(() => "/repo");
+    isInsideKittyMock.mock.mockImplementation(() => true);
+    validateWorktreeExistsMock.mock.mockImplementation(() =>
+      ok({ path: "/repo/.git/phantom/worktrees/feature" }),
+    );
+    executeKittyCommandMock.mock.mockImplementation(() =>
+      err(new Error("kitty command failed")),
+    );
+
+    await rejects(
+      async () => await shellHandler(["feature", "--kitty"]),
+      /Exit with code 1:/,
+    );
+
+    strictEqual(consoleErrorMock.mock.calls.length, 2);
+    strictEqual(
+      consoleErrorMock.mock.calls[0].arguments[0],
+      "kitty command failed",
     );
   });
 });

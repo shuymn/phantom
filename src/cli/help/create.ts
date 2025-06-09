@@ -39,6 +39,25 @@ export const createHelp: CommandHelp = {
         "Open the worktree in a horizontal tmux pane (requires being inside tmux)",
     },
     {
+      name: "kitty",
+      short: "k",
+      type: "boolean",
+      description:
+        "Open the worktree in a new kitty tab (requires being inside kitty)",
+    },
+    {
+      name: "kitty-vertical",
+      type: "boolean",
+      description:
+        "Open the worktree in a vertical kitty split (requires being inside kitty)",
+    },
+    {
+      name: "kitty-horizontal",
+      type: "boolean",
+      description:
+        "Open the worktree in a horizontal kitty split (requires being inside kitty)",
+    },
+    {
       name: "copy-file",
       type: "string",
       multiple: true,
@@ -65,6 +84,10 @@ export const createHelp: CommandHelp = {
       command: "phantom create experiment --tmux",
     },
     {
+      description: "Create a worktree in a new kitty tab",
+      command: "phantom create experiment --kitty",
+    },
+    {
       description: "Create a worktree and copy environment files",
       command:
         "phantom create staging --copy-file .env --copy-file database.yml",
@@ -72,7 +95,7 @@ export const createHelp: CommandHelp = {
   ],
   notes: [
     "The worktree name will be used as the branch name",
-    "Only one of --shell, --exec, or --tmux options can be used at a time",
+    "Only one of --shell, --exec, --tmux, or --kitty options can be used at a time",
     "File copying can also be configured in phantom.config.json",
   ],
 };

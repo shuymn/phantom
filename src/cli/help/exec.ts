@@ -18,12 +18,27 @@ export const execHelp: CommandHelp = {
     {
       name: "--tmux-vertical, --tmux-v",
       type: "boolean",
-      description: "Execute command in vertical split pane",
+      description: "Execute command in vertical split pane (tmux)",
     },
     {
       name: "--tmux-horizontal, --tmux-h",
       type: "boolean",
-      description: "Execute command in horizontal split pane",
+      description: "Execute command in horizontal split pane (tmux)",
+    },
+    {
+      name: "--kitty, -k",
+      type: "boolean",
+      description: "Execute command in new kitty tab",
+    },
+    {
+      name: "--kitty-vertical, --kitty-v",
+      type: "boolean",
+      description: "Execute command in vertical split (kitty)",
+    },
+    {
+      name: "--kitty-horizontal, --kitty-h",
+      type: "boolean",
+      description: "Execute command in horizontal split (kitty)",
     },
   ],
   examples: [
@@ -52,6 +67,14 @@ export const execHelp: CommandHelp = {
       command: "phantom exec --tmux-v feature-auth npm test",
     },
     {
+      description: "Run dev server in new kitty tab",
+      command: "phantom exec --kitty feature-auth npm run dev",
+    },
+    {
+      description: "Run tests in vertical kitty split",
+      command: "phantom exec --kitty-v feature-auth npm test",
+    },
+    {
       description: "Interactive selection with tmux",
       command: "phantom exec --fzf --tmux npm run dev",
     },
@@ -62,5 +85,7 @@ export const execHelp: CommandHelp = {
     "The exit code of the executed command is preserved",
     "With --fzf, select the worktree interactively before executing the command",
     "Tmux options require being inside a tmux session",
+    "Kitty options require being inside a kitty terminal",
+    "Tmux and kitty options cannot be used together",
   ],
 };

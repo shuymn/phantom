@@ -8,6 +8,7 @@ export interface PhantomConfig {
     copyFiles?: string[];
     commands?: string[];
   };
+  defaultMultiplexer?: "tmux" | "kitty" | "none";
 }
 
 export class ConfigNotFoundError extends Error {
