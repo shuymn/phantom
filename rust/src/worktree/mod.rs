@@ -12,3 +12,9 @@ pub mod validate;
 
 #[cfg(test)]
 mod select_test;
+
+#[cfg(test)]
+mod validate_proptest;
+
+#[cfg(test)]
+mod gitignore_proptest;
