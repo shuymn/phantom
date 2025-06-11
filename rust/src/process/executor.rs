@@ -1,4 +1,5 @@
 /// Process executor
+#[derive(Default)]
 pub struct ProcessExecutor;
 
 impl ProcessExecutor {

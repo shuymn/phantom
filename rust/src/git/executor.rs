@@ -1,4 +1,5 @@
 /// Git command executor
+#[derive(Default)]
 pub struct GitExecutor;
 
 impl GitExecutor {
