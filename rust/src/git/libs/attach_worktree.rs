@@ -84,10 +84,10 @@ mod tests {
         let err_msg = result.unwrap_err().to_string();
         // Git error messages can vary by version, check for common patterns
         assert!(
-            err_msg.contains("already checked out") 
-            || err_msg.contains("is already checked out")
-            || err_msg.contains("is checked out")
-            || err_msg.contains("is already used by worktree")
+            err_msg.contains("already checked out")
+                || err_msg.contains("is already checked out")
+                || err_msg.contains("is checked out")
+                || err_msg.contains("is already used by worktree")
         );
     }
 
@@ -109,7 +109,7 @@ mod tests {
 
         // Should fail when path already exists
         let result = attach_worktree(repo.path(), &worktree_path, "test-branch").await;
-        
+
         // On some systems, git might create the worktree in the existing directory
         // Let's check if it's an error, and if so, check the message
         if result.is_err() {
