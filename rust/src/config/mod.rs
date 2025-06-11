@@ -1,6 +1,7 @@
 pub mod default;
 pub mod errors;
 pub mod loader;
+pub mod migrate;
 pub mod types;
 pub mod validate;
 

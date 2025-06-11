@@ -94,7 +94,7 @@ Tasks are organized by phase according to the migration plan.
 - [x] Implement JSON config loading (maintain compatibility)
 - [x] Add TOML config support (new feature)
 - [x] Implement config validation
-- [ ] Add config migration utility (JSON to TOML)
+- [x] Add config migration utility (JSON to TOML)
 - [x] Create default config generation
 
 ## Phase 4: Process & Terminal Integration (Weeks 8-9)
@@ -103,10 +103,10 @@ Tasks are organized by phase according to the migration plan.
 
 - [x] Implement async process spawning
 - [x] Add Unix-specific shell detection
-- [ ] Implement `spawn_shell` function
+- [x] Implement `spawn_shell` function
 - [x] Add `exec_in_dir` function
-- [ ] Implement proper signal handling
-- [ ] Add process timeout handling
+- [x] Implement proper signal handling
+- [x] Add process timeout handling
 
 ### Terminal Multiplexer Support
 
