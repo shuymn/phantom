@@ -1,0 +1,45 @@
+[package]
+name = "phantom"
+version = "0.1.0"
+edition = "2021"
+authors = ["aku11i <phantom@example.com>"]
+description = "Ephemeral Git worktrees made easy"
+license = "MIT"
+repository = "https://github.com/aku11i/phantom"
+keywords = ["git", "worktree", "cli", "development", "workflow"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+# Core
+clap = { version = "4", features = ["derive", "cargo"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
+
+# Unix-specific
+nix = "0.27"
+termion = "2"
+
+# Utilities
+directories = "5"
+which = "6"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Optional
+git2 = { version = "0.18", optional = true }
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+serial_test = "3"
+proptest = "1"
+insta = "1"
+mockall = "0.12"
+tempfile = "3"
+
+[features]
+default = []
+libgit2 = ["git2"]

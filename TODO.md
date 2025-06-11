@@ -14,12 +14,12 @@ Tasks are organized by phase according to the migration plan.
 
 ### Project Setup
 
-- [ ] Initialize Rust project with `cargo init`
-- [ ] Create `Cargo.toml` with all dependencies
-- [ ] Set up project directory structure
-- [ ] Configure `.gitignore` for Rust
-- [ ] Set up `rust-toolchain.toml` for consistent toolchain version
-- [ ] Configure rustfmt and clippy settings
+- [x] Initialize Rust project with `cargo init`
+- [x] Create `Cargo.toml` with all dependencies
+- [x] Set up project directory structure
+- [x] Configure `.gitignore` for Rust
+- [x] Set up `rust-toolchain.toml` for consistent toolchain version
+- [x] Configure rustfmt and clippy settings
 
 ### Core Implementation
 
