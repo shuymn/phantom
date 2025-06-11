@@ -47,12 +47,12 @@ Tasks are organized by phase according to the migration plan.
 - [x] Implement `GitExecutor` struct
 - [x] Create async `run` method for git commands
 - [x] Add proper error handling for git command failures
-- [ ] Implement command output parsing utilities
-- [ ] Add timeout handling for git operations
+- [x] Implement command output parsing utilities
+- [x] Add timeout handling for git operations
 
 ### Stage 2: Git Operations
 
-- [ ] Port `add_worktree` function
+- [x] Port `add_worktree` function
 - [ ] Port `list_worktrees` function
 - [ ] Port `get_current_branch` function
 - [ ] Port `get_current_worktree` function

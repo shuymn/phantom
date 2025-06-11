@@ -1,25 +1,41 @@
 use crate::{PhantomError, Result};
 use std::path::Path;
+use std::time::Duration;
 use tokio::process::Command;
+use tokio::time::timeout;
 use tracing::{debug, trace};
+
+/// Default timeout for git operations (30 seconds)
+const DEFAULT_GIT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Git command executor
 #[derive(Debug, Clone)]
 pub struct GitExecutor {
     cwd: Option<String>,
+    timeout_duration: Duration,
 }
 
 impl GitExecutor {
     /// Create a new GitExecutor
     pub fn new() -> Self {
-        Self { cwd: None }
+        Self {
+            cwd: None,
+            timeout_duration: DEFAULT_GIT_TIMEOUT,
+        }
     }
 
     /// Create a GitExecutor with a specific working directory
     pub fn with_cwd<P: AsRef<Path>>(cwd: P) -> Self {
         Self {
             cwd: Some(cwd.as_ref().to_string_lossy().to_string()),
+            timeout_duration: DEFAULT_GIT_TIMEOUT,
         }
+    }
+
+    /// Set a custom timeout for git operations
+    pub fn with_timeout(mut self, duration: Duration) -> Self {
+        self.timeout_duration = duration;
+        self
     }
 
     /// Run a git command with arguments
@@ -33,10 +49,21 @@ impl GitExecutor {
             cmd.current_dir(cwd);
         }
 
-        let output = cmd
-            .output()
-            .await
-            .map_err(|e| PhantomError::ProcessExecution(format!("Failed to execute git: {}", e)))?;
+        let output_future = cmd.output();
+        
+        let output = match timeout(self.timeout_duration, output_future).await {
+            Ok(Ok(output)) => output,
+            Ok(Err(e)) => {
+                return Err(PhantomError::ProcessExecution(format!("Failed to execute git: {}", e)));
+            }
+            Err(_) => {
+                return Err(PhantomError::ProcessExecution(format!(
+                    "Git command timed out after {:?}: git {}",
+                    self.timeout_duration,
+                    args.join(" ")
+                )));
+            }
+        };
 
         trace!("Git command stdout: {}", String::from_utf8_lossy(&output.stdout));
         trace!("Git command stderr: {}", String::from_utf8_lossy(&output.stderr));
