@@ -52,7 +52,7 @@ pub fn ensure_absolute_path(path: &Path) -> Result<PathBuf> {
     if path.is_absolute() {
         Ok(path.to_path_buf())
     } else {
-        std::env::current_dir().map(|cwd| cwd.join(path)).map_err(|e| PhantomError::Io(e))
+        std::env::current_dir().map(|cwd| cwd.join(path)).map_err(PhantomError::Io)
     }
 }
 
