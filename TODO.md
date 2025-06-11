@@ -79,32 +79,32 @@ Tasks are organized by phase according to the migration plan.
 - [x] Implement async `list_worktrees` function (completed in Phase 2)
 - [x] Implement `attach_to_branch` function (completed as `attach_worktree` in Phase 2)
 - [x] Port worktree name validation
-- [ ] Add worktree selection with fzf integration
+- [x] Add worktree selection with fzf integration
 
 ### File Operations
 
-- [ ] Implement async file copier
-- [ ] Add `.gitignore` pattern matching
-- [ ] Implement parallel file copying with concurrency limits
+- [x] Implement async file copier
+- [x] Add `.gitignore` pattern matching
+- [x] Implement parallel file copying with concurrency limits
 - [ ] Add progress reporting for file operations
 
 ### Configuration
 
-- [ ] Define configuration structs with serde
-- [ ] Implement JSON config loading (maintain compatibility)
-- [ ] Add TOML config support (new feature)
-- [ ] Implement config validation
+- [x] Define configuration structs with serde
+- [x] Implement JSON config loading (maintain compatibility)
+- [x] Add TOML config support (new feature)
+- [x] Implement config validation
 - [ ] Add config migration utility (JSON to TOML)
-- [ ] Create default config generation
+- [x] Create default config generation
 
 ## Phase 4: Process & Terminal Integration (Weeks 8-9)
 
 ### Process Management
 
-- [ ] Implement async process spawning
-- [ ] Add Unix-specific shell detection
+- [x] Implement async process spawning
+- [x] Add Unix-specific shell detection
 - [ ] Implement `spawn_shell` function
-- [ ] Add `exec_in_dir` function
+- [x] Add `exec_in_dir` function
 - [ ] Implement proper signal handling
 - [ ] Add process timeout handling
 
