@@ -27,7 +27,7 @@ pub async fn create_worktree(
     let worktree_path = get_worktree_path(git_root, name);
 
     // Create phantom directory if it doesn't exist
-    if !fs::metadata(&worktrees_path).await.is_ok() {
+    if fs::metadata(&worktrees_path).await.is_err() {
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
             PhantomError::Io(std::io::Error::new(
@@ -94,7 +94,7 @@ pub async fn create_worktree_with_backend(
     let worktree_path = get_worktree_path(git_root, name);
 
     // Create phantom directory if it doesn't exist
-    if !fs::metadata(&worktrees_path).await.is_ok() {
+    if fs::metadata(&worktrees_path).await.is_err() {
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
             PhantomError::Io(std::io::Error::new(
@@ -142,7 +142,6 @@ pub async fn create_worktree_with_backend(
 
     Ok(result)
 }
-
 
 #[cfg(test)]
 mod tests {

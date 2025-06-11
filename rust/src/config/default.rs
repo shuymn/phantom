@@ -33,10 +33,7 @@ pub fn example_config() -> PhantomConfig {
                 "config.local.json".to_string(),
                 ".vscode/settings.json".to_string(),
             ]),
-            commands: Some(vec![
-                "npm install".to_string(),
-                "npm run prepare".to_string(),
-            ]),
+            commands: Some(vec!["npm install".to_string(), "npm run prepare".to_string()]),
         }),
         default_multiplexer: Some(Multiplexer::Tmux),
     }
@@ -82,10 +79,12 @@ impl ConfigFormat {
 /// Write a configuration to a file
 async fn write_config(path: &Path, config: &PhantomConfig, format: ConfigFormat) -> Result<()> {
     let content = match format {
-        ConfigFormat::Json => serde_json::to_string_pretty(config)
-            .map_err(|e| crate::config::ConfigError::Json(e))?,
-        ConfigFormat::Toml => toml::to_string_pretty(config)
-            .map_err(|e| crate::config::ConfigError::TomlSer(e))?,
+        ConfigFormat::Json => {
+            serde_json::to_string_pretty(config).map_err(crate::config::ConfigError::Json)?
+        }
+        ConfigFormat::Toml => {
+            toml::to_string_pretty(config).map_err(crate::config::ConfigError::TomlSer)?
+        }
     };
 
     fs::write(path, content).await?;
@@ -101,7 +100,7 @@ mod tests {
     fn test_default_config() {
         let config = default_config();
         assert!(config.post_create.is_some());
-        
+
         let post_create = config.post_create.unwrap();
         assert!(post_create.copy_files.is_some());
         assert_eq!(post_create.copy_files.unwrap().len(), 3);
@@ -120,7 +119,7 @@ mod tests {
     fn test_example_config() {
         let config = example_config();
         assert!(config.post_create.is_some());
-        
+
         let post_create = config.post_create.unwrap();
         assert!(post_create.copy_files.is_some());
         assert!(post_create.commands.is_some());
@@ -132,9 +131,9 @@ mod tests {
     async fn test_write_default_config_json() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.json");
-        
+
         write_default_config(&config_path, ConfigFormat::Json).await.unwrap();
-        
+
         let content = fs::read_to_string(&config_path).await.unwrap();
         assert!(content.contains("\"postCreate\""));
         assert!(content.contains("\"copyFiles\""));
@@ -145,9 +144,9 @@ mod tests {
     async fn test_write_default_config_toml() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.toml");
-        
+
         write_default_config(&config_path, ConfigFormat::Toml).await.unwrap();
-        
+
         let content = fs::read_to_string(&config_path).await.unwrap();
         assert!(content.contains("[postCreate]"));
         assert!(content.contains("copyFiles"));
@@ -158,9 +157,9 @@ mod tests {
     async fn test_write_example_config() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.json");
-        
+
         write_example_config(&config_path, ConfigFormat::Json).await.unwrap();
-        
+
         let content = fs::read_to_string(&config_path).await.unwrap();
         assert!(content.contains("\"commands\""));
         assert!(content.contains("\"npm install\""));

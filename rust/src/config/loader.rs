@@ -46,7 +46,7 @@ pub async fn load_config_from_file(path: &Path) -> Result<PhantomConfig> {
 /// Load JSON configuration
 async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
     debug!("Loading JSON configuration from {}", path.display());
-    
+
     let content = fs::read_to_string(path).await.map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
             ConfigError::NotFound(path.display().to_string())
@@ -59,7 +59,7 @@ async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
         .map_err(|e| ConfigError::ParseError(format!("JSON error: {}", e)))?;
 
     validate_config(&config)?;
-    
+
     info!("Loaded configuration from {}", path.display());
     Ok(config)
 }
@@ -67,7 +67,7 @@ async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
 /// Load TOML configuration
 async fn load_toml_config(path: &Path) -> Result<PhantomConfig> {
     debug!("Loading TOML configuration from {}", path.display());
-    
+
     let content = fs::read_to_string(path).await.map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
             ConfigError::NotFound(path.display().to_string())
@@ -80,7 +80,7 @@ async fn load_toml_config(path: &Path) -> Result<PhantomConfig> {
         .map_err(|e| ConfigError::ParseError(format!("TOML error: {}", e)))?;
 
     validate_config(&config)?;
-    
+
     info!("Loaded configuration from {}", path.display());
     Ok(config)
 }
@@ -88,7 +88,7 @@ async fn load_toml_config(path: &Path) -> Result<PhantomConfig> {
 /// Find configuration file in directory hierarchy
 pub async fn find_config_file(start_dir: &Path) -> Option<PathBuf> {
     let mut current = start_dir;
-    
+
     loop {
         // Check for JSON config
         let json_path = current.join(CONFIG_FILE_NAME);
@@ -108,7 +108,7 @@ pub async fn find_config_file(start_dir: &Path) -> Option<PathBuf> {
             None => break,
         }
     }
-    
+
     None
 }
 
@@ -122,7 +122,7 @@ mod tests {
     async fn test_load_json_config() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("phantom.config.json");
-        
+
         let json = r#"{
             "postCreate": {
                 "copyFiles": [".env", "config.json"],
@@ -130,12 +130,12 @@ mod tests {
             },
             "defaultMultiplexer": "tmux"
         }"#;
-        
+
         fs::write(&config_path, json).await.unwrap();
-        
+
         let config = load_json_config(&config_path).await.unwrap();
         assert!(config.post_create.is_some());
-        
+
         let post_create = config.post_create.unwrap();
         assert_eq!(post_create.copy_files.unwrap().len(), 2);
         assert_eq!(post_create.commands.unwrap()[0], "npm install");
@@ -146,7 +146,7 @@ mod tests {
     async fn test_load_toml_config() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("phantom.config.toml");
-        
+
         let toml = r#"
 defaultMultiplexer = "kitty"
 
@@ -154,12 +154,12 @@ defaultMultiplexer = "kitty"
 copyFiles = [".env", "config.toml"]
 commands = ["cargo build"]
 "#;
-        
+
         fs::write(&config_path, toml).await.unwrap();
-        
+
         let config = load_toml_config(&config_path).await.unwrap();
         assert!(config.post_create.is_some());
-        
+
         let post_create = config.post_create.unwrap();
         assert_eq!(post_create.copy_files.unwrap().len(), 2);
         assert_eq!(post_create.commands.unwrap()[0], "cargo build");
@@ -169,14 +169,14 @@ commands = ["cargo build"]
     #[tokio::test]
     async fn test_load_config_json_priority() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Create both JSON and TOML configs
         let json_path = temp_dir.path().join("phantom.config.json");
         let toml_path = temp_dir.path().join("phantom.config.toml");
-        
+
         fs::write(&json_path, r#"{"defaultMultiplexer": "tmux"}"#).await.unwrap();
         fs::write(&toml_path, r#"defaultMultiplexer = "kitty""#).await.unwrap();
-        
+
         // JSON should take priority
         let config = load_config(temp_dir.path()).await.unwrap().unwrap();
         assert_eq!(config.default_multiplexer, Some(Multiplexer::Tmux));
@@ -193,9 +193,9 @@ commands = ["cargo build"]
     async fn test_load_invalid_json() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("phantom.config.json");
-        
+
         fs::write(&config_path, "{ invalid json").await.unwrap();
-        
+
         let result = load_json_config(&config_path).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("JSON error"));
@@ -205,9 +205,9 @@ commands = ["cargo build"]
     async fn test_load_invalid_toml() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("phantom.config.toml");
-        
+
         fs::write(&config_path, "invalid = toml =").await.unwrap();
-        
+
         let result = load_toml_config(&config_path).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("TOML error"));
@@ -217,15 +217,15 @@ commands = ["cargo build"]
     async fn test_load_config_with_validation_error() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("phantom.config.json");
-        
+
         let json = r#"{
             "postCreate": {
                 "copyFiles": ["/etc/passwd"]
             }
         }"#;
-        
+
         fs::write(&config_path, json).await.unwrap();
-        
+
         let result = load_json_config(&config_path).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("absolute paths"));
@@ -236,10 +236,10 @@ commands = ["cargo build"]
         let temp_dir = TempDir::new().unwrap();
         let sub_dir = temp_dir.path().join("sub").join("dir");
         fs::create_dir_all(&sub_dir).await.unwrap();
-        
+
         let config_path = temp_dir.path().join("phantom.config.json");
         fs::write(&config_path, "{}").await.unwrap();
-        
+
         // Should find config in parent directory
         let found = find_config_file(&sub_dir).await;
         assert!(found.is_some());
@@ -256,19 +256,19 @@ commands = ["cargo build"]
     #[tokio::test]
     async fn test_load_config_from_file_by_extension() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Test JSON
         let json_path = temp_dir.path().join("config.json");
         fs::write(&json_path, r#"{"defaultMultiplexer": "tmux"}"#).await.unwrap();
         let config = load_config_from_file(&json_path).await.unwrap();
         assert_eq!(config.default_multiplexer, Some(Multiplexer::Tmux));
-        
+
         // Test TOML
         let toml_path = temp_dir.path().join("config.toml");
         fs::write(&toml_path, r#"defaultMultiplexer = "kitty""#).await.unwrap();
         let config = load_config_from_file(&toml_path).await.unwrap();
         assert_eq!(config.default_multiplexer, Some(Multiplexer::Kitty));
-        
+
         // Test unsupported extension
         let txt_path = temp_dir.path().join("config.txt");
         fs::write(&txt_path, "some content").await.unwrap();

@@ -16,13 +16,13 @@ impl TestRepo {
         let path = dir.path().to_path_buf();
 
         // Initialize git repo
-        Command::new("git").args(&["init"]).current_dir(&path).output().await.map_err(|e| {
+        Command::new("git").args(["init"]).current_dir(&path).output().await.map_err(|e| {
             crate::PhantomError::ProcessExecution(format!("Failed to init git repo: {}", e))
         })?;
 
         // Configure git user for tests
         Command::new("git")
-            .args(&["config", "user.name", "Test User"])
+            .args(["config", "user.name", "Test User"])
             .current_dir(&path)
             .output()
             .await
@@ -31,7 +31,7 @@ impl TestRepo {
             })?;
 
         Command::new("git")
-            .args(&["config", "user.email", "test@example.com"])
+            .args(["config", "user.email", "test@example.com"])
             .current_dir(&path)
             .output()
             .await
@@ -53,7 +53,7 @@ impl TestRepo {
         tokio::fs::write(&file_path, content).await.map_err(crate::PhantomError::Io)?;
 
         Command::new("git")
-            .args(&["add", filename])
+            .args(["add", filename])
             .current_dir(&self.path)
             .output()
             .await
@@ -62,7 +62,7 @@ impl TestRepo {
             })?;
 
         Command::new("git")
-            .args(&["commit", "-m", message])
+            .args(["commit", "-m", message])
             .current_dir(&self.path)
             .output()
             .await
@@ -76,7 +76,7 @@ impl TestRepo {
     /// Create a new branch
     pub async fn create_branch(&self, branch_name: &str) -> Result<()> {
         Command::new("git")
-            .args(&["checkout", "-b", branch_name])
+            .args(["checkout", "-b", branch_name])
             .current_dir(&self.path)
             .output()
             .await
@@ -140,7 +140,7 @@ mod tests {
 
         // Verify branch was created
         let output =
-            Command::new("git").args(&["branch"]).current_dir(&repo.path).output().await.unwrap();
+            Command::new("git").args(["branch"]).current_dir(&repo.path).output().await.unwrap();
 
         let branches = String::from_utf8_lossy(&output.stdout);
         assert!(branches.contains("feature-branch"));

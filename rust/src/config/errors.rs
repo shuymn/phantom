@@ -39,9 +39,7 @@ impl From<ConfigError> for PhantomError {
                 PhantomError::Validation(format!("Invalid configuration: {}", msg))
             }
             ConfigError::Io(err) => PhantomError::Io(err),
-            ConfigError::Json(err) => {
-                PhantomError::Config(format!("JSON error: {}", err))
-            }
+            ConfigError::Json(err) => PhantomError::Config(format!("JSON error: {}", err)),
             ConfigError::TomlDe(err) => {
                 PhantomError::Config(format!("TOML deserialization error: {}", err))
             }

@@ -28,20 +28,22 @@ fn validate_post_create(post_create: &PostCreateConfig) -> Result<()> {
                 )
                 .into());
             }
-            
+
             // Disallow absolute paths for security
             if file.starts_with('/') || file.starts_with('\\') {
-                return Err(ConfigError::ValidationError(
-                    format!("postCreate.copyFiles cannot contain absolute paths: {}", file),
-                )
+                return Err(ConfigError::ValidationError(format!(
+                    "postCreate.copyFiles cannot contain absolute paths: {}",
+                    file
+                ))
                 .into());
             }
 
             // Disallow parent directory references
             if file.contains("..") {
-                return Err(ConfigError::ValidationError(
-                    format!("postCreate.copyFiles cannot contain parent directory references: {}", file),
-                )
+                return Err(ConfigError::ValidationError(format!(
+                    "postCreate.copyFiles cannot contain parent directory references: {}",
+                    file
+                ))
                 .into());
             }
         }
@@ -104,10 +106,7 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("cannot contain empty strings"));
+        assert!(result.unwrap_err().to_string().contains("cannot contain empty strings"));
     }
 
     #[test]
@@ -122,10 +121,7 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("cannot contain absolute paths"));
+        assert!(result.unwrap_err().to_string().contains("cannot contain absolute paths"));
     }
 
     #[test]
@@ -158,19 +154,14 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("cannot contain empty strings"));
+        assert!(result.unwrap_err().to_string().contains("cannot contain empty strings"));
     }
 
     #[test]
     fn test_validate_all_multiplexers() {
         for multiplexer in [Multiplexer::Tmux, Multiplexer::Kitty, Multiplexer::None] {
-            let config = PhantomConfig {
-                post_create: None,
-                default_multiplexer: Some(multiplexer),
-            };
+            let config =
+                PhantomConfig { post_create: None, default_multiplexer: Some(multiplexer) };
             assert!(validate_config(&config).is_ok());
         }
     }

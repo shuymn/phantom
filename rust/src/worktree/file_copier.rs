@@ -1,5 +1,7 @@
 use crate::worktree::errors::WorktreeError;
-use crate::worktree::gitignore::{GitignoreMatcher, default_ignore_patterns, load_gitignore_hierarchy};
+use crate::worktree::gitignore::{
+    default_ignore_patterns, load_gitignore_hierarchy, GitignoreMatcher,
+};
 use crate::Result;
 use std::path::Path;
 use tokio::fs;
@@ -42,16 +44,9 @@ pub async fn copy_files(
         }
     }
 
-    debug!(
-        "Copied {} files, skipped {} files",
-        copied_files.len(),
-        skipped_files.len()
-    );
+    debug!("Copied {} files, skipped {} files", copied_files.len(), skipped_files.len());
 
-    Ok(CopyFileResult {
-        copied_files,
-        skipped_files,
-    })
+    Ok(CopyFileResult { copied_files, skipped_files })
 }
 
 /// Copy a single file, creating parent directories as needed
@@ -107,23 +102,19 @@ pub async fn copy_directory(source_dir: &Path, target_dir: &Path) -> Result<Copy
     )
     .await?;
 
-    debug!(
-        "Copied {} files, skipped {} files",
-        copied_files.len(),
-        skipped_files.len()
-    );
+    debug!("Copied {} files, skipped {} files", copied_files.len(), skipped_files.len());
 
-    Ok(CopyFileResult {
-        copied_files,
-        skipped_files,
-    })
+    Ok(CopyFileResult { copied_files, skipped_files })
 }
 
 /// Copy directory with gitignore pattern matching
-pub async fn copy_directory_with_gitignore(source_dir: &Path, target_dir: &Path) -> Result<CopyFileResult> {
+pub async fn copy_directory_with_gitignore(
+    source_dir: &Path,
+    target_dir: &Path,
+) -> Result<CopyFileResult> {
     // Load gitignore patterns
     let mut matcher = load_gitignore_hierarchy(source_dir).await?;
-    
+
     // Add default patterns
     let defaults = default_ignore_patterns();
     matcher.extend(&defaults);
@@ -147,10 +138,7 @@ pub async fn copy_directory_with_gitignore(source_dir: &Path, target_dir: &Path)
         skipped_files.len()
     );
 
-    Ok(CopyFileResult {
-        copied_files,
-        skipped_files,
-    })
+    Ok(CopyFileResult { copied_files, skipped_files })
 }
 
 /// Recursively copy directory contents
@@ -199,11 +187,8 @@ async fn copy_directory_recursive(
 
         if metadata.is_file() {
             let target_path = target_dir.join(&file_name);
-            let relative_path = path
-                .strip_prefix(base_source_dir)
-                .unwrap_or(&path)
-                .to_string_lossy()
-                .to_string();
+            let relative_path =
+                path.strip_prefix(base_source_dir).unwrap_or(&path).to_string_lossy().to_string();
 
             match fs::copy(&path, &target_path).await {
                 Ok(_) => {
@@ -267,9 +252,7 @@ async fn copy_directory_recursive_with_gitignore(
         };
 
         // Get relative path for gitignore matching
-        let relative_path = path
-            .strip_prefix(base_source_dir)
-            .unwrap_or(&path);
+        let relative_path = path.strip_prefix(base_source_dir).unwrap_or(&path);
 
         let metadata = entry.metadata().await.map_err(|e| {
             WorktreeError::FileOperation(format!("Failed to get metadata for {}: {}", file_name, e))
@@ -455,29 +438,27 @@ mod tests {
         fs::write(source_dir.path().join("keep.txt"), "keep").await.unwrap();
         fs::write(source_dir.path().join("test.log"), "log").await.unwrap();
         fs::write(source_dir.path().join(".env"), "secret").await.unwrap();
-        
+
         let sub_dir = source_dir.path().join("subdir");
         fs::create_dir(&sub_dir).await.unwrap();
         fs::write(sub_dir.join("keep.rs"), "code").await.unwrap();
         fs::write(sub_dir.join("ignore.tmp"), "temp").await.unwrap();
 
         // Create .gitignore
-        fs::write(
-            source_dir.path().join(".gitignore"),
-            "*.log\n*.tmp\n.env\n"
-        ).await.unwrap();
+        fs::write(source_dir.path().join(".gitignore"), "*.log\n*.tmp\n.env\n").await.unwrap();
 
-        let result = copy_directory_with_gitignore(source_dir.path(), target_dir.path()).await.unwrap();
+        let result =
+            copy_directory_with_gitignore(source_dir.path(), target_dir.path()).await.unwrap();
 
         // Should copy only non-ignored files
         assert_eq!(result.copied_files.len(), 3); // keep.txt, subdir/keep.rs, .gitignore
         assert!(result.copied_files.contains(&"keep.txt".to_string()));
         assert!(result.copied_files.contains(&"subdir/keep.rs".to_string()));
         assert!(result.copied_files.contains(&".gitignore".to_string()));
-        
+
         // Should skip ignored files
         assert!(result.skipped_files.len() >= 3); // At least the ignored files
-        
+
         // Verify files were copied correctly
         assert!(target_dir.path().join("keep.txt").exists());
         assert!(target_dir.path().join("subdir/keep.rs").exists());

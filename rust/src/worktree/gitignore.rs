@@ -20,9 +20,7 @@ struct Pattern {
 impl GitignoreMatcher {
     /// Create a new empty matcher
     pub fn new() -> Self {
-        Self {
-            patterns: Vec::new(),
-        }
+        Self { patterns: Vec::new() }
     }
 
     /// Load patterns from a .gitignore file
@@ -37,17 +35,16 @@ impl GitignoreMatcher {
             .lines()
             .filter_map(|line| {
                 let line = line.trim();
-                
+
                 // Skip empty lines and comments
                 if line.is_empty() || line.starts_with('#') {
                     return None;
                 }
 
                 // Check for negation
-                let (is_negation, line) = if line.starts_with('!') {
-                    (true, &line[1..])
-                } else {
-                    (false, line)
+                let (is_negation, line) = match line.strip_prefix('!') {
+                    Some(stripped) => (true, stripped),
+                    None => (false, line),
                 };
 
                 // Check if pattern is for directories only
@@ -61,12 +58,7 @@ impl GitignoreMatcher {
                 let anchored = pattern.starts_with('/');
                 let pattern = pattern.trim_start_matches('/').to_string();
 
-                Some(Pattern {
-                    pattern,
-                    is_negation,
-                    is_directory,
-                    anchored,
-                })
+                Some(Pattern { pattern, is_negation, is_directory, anchored })
             })
             .collect();
 
@@ -90,11 +82,7 @@ impl GitignoreMatcher {
             }
 
             if self.matches_pattern(&path_str, pattern) {
-                if pattern.is_negation {
-                    ignored = false;
-                } else {
-                    ignored = true;
-                }
+                ignored = !pattern.is_negation;
             }
         }
 
@@ -131,7 +119,7 @@ impl GitignoreMatcher {
     fn glob_match(&self, text: &str, pattern: &str) -> bool {
         // This is a simplified glob matcher
         // In production, consider using the `glob` or `globset` crate
-        
+
         if pattern == "*" {
             return true;
         }
@@ -140,13 +128,13 @@ impl GitignoreMatcher {
         if pattern.contains('*') {
             // Convert pattern to regex-like matching
             let parts: Vec<&str> = pattern.split('*').collect();
-            
+
             if parts.is_empty() {
                 return true;
             }
 
             let mut text_pos = 0;
-            
+
             for (i, part) in parts.iter().enumerate() {
                 if part.is_empty() {
                     continue;
@@ -259,13 +247,13 @@ build/
 
         let matcher = GitignoreMatcher::from_content(content);
         assert_eq!(matcher.patterns.len(), 5);
-        
+
         assert_eq!(matcher.patterns[0].pattern, "*.log");
         assert!(!matcher.patterns[0].is_negation);
-        
+
         assert_eq!(matcher.patterns[1].pattern, "important.log");
         assert!(matcher.patterns[1].is_negation);
-        
+
         assert_eq!(matcher.patterns[2].pattern, "src");
         assert!(matcher.patterns[2].is_directory);
         assert!(matcher.patterns[2].anchored);
@@ -274,21 +262,21 @@ build/
     #[test]
     fn test_glob_match() {
         let matcher = GitignoreMatcher::new();
-        
+
         // Exact match
         assert!(matcher.glob_match("test.log", "test.log"));
         assert!(!matcher.glob_match("test.txt", "test.log"));
-        
+
         // Wildcard at end
         assert!(matcher.glob_match("test.log", "*.log"));
         assert!(matcher.glob_match("debug.log", "*.log"));
         assert!(!matcher.glob_match("test.txt", "*.log"));
-        
+
         // Wildcard at beginning
         assert!(matcher.glob_match("test.log", "test.*"));
         assert!(matcher.glob_match("test.txt", "test.*"));
         assert!(!matcher.glob_match("debug.log", "test.*"));
-        
+
         // Multiple wildcards
         assert!(matcher.glob_match("test.backup.log", "*.backup.*"));
         assert!(!matcher.glob_match("test.log", "*.backup.*"));
@@ -304,19 +292,19 @@ build/
 "#;
 
         let matcher = GitignoreMatcher::from_content(content);
-        
+
         // Regular patterns
         assert!(matcher.is_ignored(Path::new("debug.log"), false));
         assert!(matcher.is_ignored(Path::new("path/to/debug.log"), false));
-        
+
         // Negation
         assert!(!matcher.is_ignored(Path::new("important.log"), false));
-        
+
         // Directory patterns
         assert!(matcher.is_ignored(Path::new("build"), true));
         assert!(matcher.is_ignored(Path::new("path/to/build"), true));
         assert!(!matcher.is_ignored(Path::new("build"), false)); // Not a directory
-        
+
         // Anchored patterns
         assert!(matcher.is_ignored(Path::new("src/temp"), true));
         assert!(!matcher.is_ignored(Path::new("other/src/temp"), true));
@@ -325,7 +313,7 @@ build/
     #[test]
     fn test_default_patterns() {
         let matcher = default_ignore_patterns();
-        
+
         assert!(matcher.is_ignored(Path::new(".git"), true));
         assert!(matcher.is_ignored(Path::new("node_modules"), true));
         assert!(matcher.is_ignored(Path::new(".DS_Store"), false));
@@ -335,12 +323,12 @@ build/
     #[tokio::test]
     async fn test_load_from_file() {
         use tempfile::TempDir;
-        
+
         let temp_dir = TempDir::new().unwrap();
         let gitignore_path = temp_dir.path().join(".gitignore");
-        
+
         fs::write(&gitignore_path, "*.log\n!important.log\n").await.unwrap();
-        
+
         let matcher = GitignoreMatcher::load_from_file(&gitignore_path).await.unwrap();
         assert_eq!(matcher.patterns.len(), 2);
     }

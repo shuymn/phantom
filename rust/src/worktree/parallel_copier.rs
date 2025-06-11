@@ -1,5 +1,7 @@
 use crate::worktree::errors::WorktreeError;
-use crate::worktree::gitignore::{GitignoreMatcher, default_ignore_patterns, load_gitignore_hierarchy};
+use crate::worktree::gitignore::{
+    default_ignore_patterns, load_gitignore_hierarchy, GitignoreMatcher,
+};
 use crate::Result;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,11 +23,7 @@ pub struct ParallelCopyConfig {
 
 impl Default for ParallelCopyConfig {
     fn default() -> Self {
-        Self {
-            max_concurrent_ops: 32,
-            use_gitignore: true,
-            channel_buffer_size: 1000,
-        }
+        Self { max_concurrent_ops: 32, use_gitignore: true, channel_buffer_size: 1000 }
     }
 }
 
@@ -70,14 +68,8 @@ pub async fn copy_directory_parallel(
 
     // Collect all files to copy first
     let mut copy_tasks = Vec::new();
-    collect_copy_tasks(
-        source_dir,
-        target_dir,
-        source_dir,
-        gitignore.as_deref(),
-        &mut copy_tasks,
-    )
-    .await?;
+    collect_copy_tasks(source_dir, target_dir, source_dir, gitignore.as_deref(), &mut copy_tasks)
+        .await?;
 
     debug!("Collected {} files to copy", copy_tasks.len());
 
@@ -115,11 +107,7 @@ pub async fn copy_directory_parallel(
         errors.len()
     );
 
-    Ok(ParallelCopyResult {
-        copied_files,
-        skipped_files,
-        errors,
-    })
+    Ok(ParallelCopyResult { copied_files, skipped_files, errors })
 }
 
 /// Result of a single file copy operation
@@ -151,10 +139,7 @@ async fn collect_copy_tasks(
         WorktreeError::FileOperation(format!("Failed to read directory entry: {}", e))
     })? {
         let path = entry.path();
-        let relative_path = path
-            .strip_prefix(base_source_dir)
-            .unwrap_or(&path)
-            .to_path_buf();
+        let relative_path = path.strip_prefix(base_source_dir).unwrap_or(&path).to_path_buf();
 
         let metadata = entry.metadata().await.map_err(|e| {
             WorktreeError::FileOperation(format!(
@@ -192,14 +177,8 @@ async fn collect_copy_tasks(
             })?;
 
             // Recursively collect from subdirectory
-            Box::pin(collect_copy_tasks(
-                &path,
-                target_dir,
-                base_source_dir,
-                gitignore,
-                tasks,
-            ))
-            .await?;
+            Box::pin(collect_copy_tasks(&path, target_dir, base_source_dir, gitignore, tasks))
+                .await?;
         }
     }
 
@@ -243,12 +222,9 @@ mod tests {
 
         // Create test files
         for i in 0..10 {
-            fs::write(
-                source_dir.path().join(format!("file{}.txt", i)),
-                format!("content{}", i),
-            )
-            .await
-            .unwrap();
+            fs::write(source_dir.path().join(format!("file{}.txt", i)), format!("content{}", i))
+                .await
+                .unwrap();
         }
 
         let config = ParallelCopyConfig {
@@ -257,13 +233,8 @@ mod tests {
             channel_buffer_size: 100,
         };
 
-        let result = copy_directory_parallel(
-            source_dir.path(),
-            target_dir.path(),
-            config,
-        )
-        .await
-        .unwrap();
+        let result =
+            copy_directory_parallel(source_dir.path(), target_dir.path(), config).await.unwrap();
 
         assert_eq!(result.copied_files.len(), 10);
         assert_eq!(result.skipped_files.len(), 0);
@@ -298,13 +269,8 @@ mod tests {
             channel_buffer_size: 50,
         };
 
-        let result = copy_directory_parallel(
-            source_dir.path(),
-            target_dir.path(),
-            config,
-        )
-        .await
-        .unwrap();
+        let result =
+            copy_directory_parallel(source_dir.path(), target_dir.path(), config).await.unwrap();
 
         assert_eq!(result.copied_files.len(), 3);
         assert!(target_dir.path().join("root.txt").exists());
@@ -323,22 +289,12 @@ mod tests {
         fs::write(source_dir.path().join(".env"), "secret").await.unwrap();
 
         // Create .gitignore
-        fs::write(
-            source_dir.path().join(".gitignore"),
-            "*.log\n.env\n",
-        )
-        .await
-        .unwrap();
+        fs::write(source_dir.path().join(".gitignore"), "*.log\n.env\n").await.unwrap();
 
         let config = ParallelCopyConfig::default();
 
-        let result = copy_directory_parallel(
-            source_dir.path(),
-            target_dir.path(),
-            config,
-        )
-        .await
-        .unwrap();
+        let result =
+            copy_directory_parallel(source_dir.path(), target_dir.path(), config).await.unwrap();
 
         // Should only copy non-ignored files
         assert!(result.copied_files.contains(&"keep.txt".to_string()));
@@ -360,12 +316,9 @@ mod tests {
         for i in 0..100 {
             let subdir = source_dir.path().join(format!("dir{}", i % 10));
             fs::create_dir_all(&subdir).await.unwrap();
-            fs::write(
-                subdir.join(format!("file{}.txt", i)),
-                format!("content{}", i),
-            )
-            .await
-            .unwrap();
+            fs::write(subdir.join(format!("file{}.txt", i)), format!("content{}", i))
+                .await
+                .unwrap();
         }
 
         let config = ParallelCopyConfig {
@@ -374,13 +327,8 @@ mod tests {
             channel_buffer_size: 200,
         };
 
-        let result = copy_directory_parallel(
-            source_dir.path(),
-            target_dir.path(),
-            config,
-        )
-        .await
-        .unwrap();
+        let result =
+            copy_directory_parallel(source_dir.path(), target_dir.path(), config).await.unwrap();
 
         assert_eq!(result.copied_files.len(), 100);
         assert_eq!(result.errors.len(), 0);
