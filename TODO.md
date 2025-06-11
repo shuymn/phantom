@@ -7,7 +7,7 @@ Tasks are organized by phase according to the migration plan.
 
 - [x] Finalize Unix-only decision with stakeholders
 - [ ] Create migration tracking project board on GitHub
-- [ ] Set up migration branch strategy (e.g., `rust-migration` branch)
+- [x] Set up migration branch strategy (e.g., `rust-migration` branch)
 - [ ] Document current TypeScript version behavior for reference
 
 ## Phase 1: Foundation & Core Types (Weeks 1-2)
@@ -53,13 +53,13 @@ Tasks are organized by phase according to the migration plan.
 ### Stage 2: Git Operations
 
 - [x] Port `add_worktree` function
-- [ ] Port `list_worktrees` function
-- [ ] Port `get_current_branch` function
-- [ ] Port `get_current_worktree` function
-- [ ] Port `get_git_root` function
-- [ ] Port `branch_exists` function
-- [ ] Port `attach_worktree` function
-- [ ] Create unit tests for each operation
+- [x] Port `list_worktrees` function
+- [x] Port `get_current_branch` function
+- [x] Port `get_current_worktree` function
+- [x] Port `get_git_root` function
+- [x] Port `branch_exists` function
+- [x] Port `attach_worktree` function
+- [x] Create unit tests for each operation
 - [ ] Add integration tests with real git repos
 
 ### Stage 3: Git Backend Abstraction
@@ -76,8 +76,8 @@ Tasks are organized by phase according to the migration plan.
 
 - [ ] Implement async `create_worktree` function
 - [ ] Implement async `delete_worktree` function
-- [ ] Implement async `list_worktrees` function
-- [ ] Implement `attach_to_branch` function
+- [x] Implement async `list_worktrees` function (completed in Phase 2)
+- [x] Implement `attach_to_branch` function (completed as `attach_worktree` in Phase 2)
 - [ ] Port worktree name validation
 - [ ] Add worktree selection with fzf integration
 
