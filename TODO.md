@@ -28,15 +28,15 @@ Tasks are organized by phase according to the migration plan.
   - [x] `Worktree` struct
   - [x] `GitConfig` struct
   - [x] `PhantomConfig` struct
-- [ ] Set up async runtime with Tokio
-- [ ] Implement logging with tracing/tracing-subscriber
-- [ ] Create basic error handling utilities
-- [ ] Set up module structure (core, git, worktree, process, cli)
+- [x] Set up async runtime with Tokio
+- [x] Implement logging with tracing/tracing-subscriber
+- [x] Create basic error handling utilities
+- [x] Set up module structure (core, git, worktree, process, cli)
 
 ### Testing Infrastructure
 
-- [ ] Set up test utilities module
-- [ ] Create test fixtures for git repositories
+- [x] Set up test utilities module
+- [x] Create test fixtures for git repositories
 - [ ] Set up property-based testing with proptest
 - [ ] Configure snapshot testing with insta
 
