@@ -19,8 +19,11 @@ pub enum ConfigError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
-    #[error("TOML error: {0}")]
-    Toml(#[from] toml::de::Error),
+    #[error("TOML deserialization error: {0}")]
+    TomlDe(#[from] toml::de::Error),
+
+    #[error("TOML serialization error: {0}")]
+    TomlSer(#[from] toml::ser::Error),
 }
 
 impl From<ConfigError> for PhantomError {
@@ -39,8 +42,11 @@ impl From<ConfigError> for PhantomError {
             ConfigError::Json(err) => {
                 PhantomError::Config(format!("JSON error: {}", err))
             }
-            ConfigError::Toml(err) => {
-                PhantomError::Config(format!("TOML error: {}", err))
+            ConfigError::TomlDe(err) => {
+                PhantomError::Config(format!("TOML deserialization error: {}", err))
+            }
+            ConfigError::TomlSer(err) => {
+                PhantomError::Config(format!("TOML serialization error: {}", err))
             }
         }
     }
