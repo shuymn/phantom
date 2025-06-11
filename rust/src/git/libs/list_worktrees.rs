@@ -49,7 +49,9 @@ mod tests {
         
         // Add a worktree with unique name
         let executor = GitExecutor::with_cwd(repo.path());
-        let unique_name = format!("test-worktree-{}", std::process::id());
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+        let unique_name = format!("test-worktree-{}-{}", std::process::id(), timestamp);
         let worktree_path = repo.path().parent().unwrap().join(&unique_name);
         executor.run(&["worktree", "add", "-b", "test-branch", &worktree_path.to_string_lossy()])
             .await
@@ -88,7 +90,9 @@ mod tests {
         let commit = commit.trim();
         
         // Add a detached worktree with unique name
-        let unique_name = format!("detached-worktree-{}", std::process::id());
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+        let unique_name = format!("detached-worktree-{}-{}", std::process::id(), timestamp);
         let worktree_path = repo.path().parent().unwrap().join(&unique_name);
         executor.run(&["worktree", "add", "--detach", &worktree_path.to_string_lossy(), commit])
             .await
