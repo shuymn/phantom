@@ -38,6 +38,18 @@ pub enum PhantomError {
 
     #[error("Feature not supported: {0}")]
     UnsupportedFeature(String),
+
+    #[error("Worktree error: {0}")]
+    Worktree(String),
+
+    #[error("Validation error: {0}")]
+    Validation(String),
+
+    #[error("File operation error: {0}")]
+    FileOperation(String),
+
+    #[error("Path error: {0}")]
+    Path(String),
 }
 
 #[cfg(test)]

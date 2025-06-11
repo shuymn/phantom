@@ -18,6 +18,10 @@ pub fn error_to_exit_code(error: &PhantomError) -> ExitCode {
         PhantomError::UnsupportedFeature(_) => ExitCode::from(9),
         PhantomError::Io(_) => ExitCode::from(10),
         PhantomError::Json(_) => ExitCode::from(11),
+        PhantomError::Worktree(_) => ExitCode::from(12),
+        PhantomError::Validation(_) => ExitCode::from(13),
+        PhantomError::FileOperation(_) => ExitCode::from(14),
+        PhantomError::Path(_) => ExitCode::from(15),
     }
 }
 
@@ -25,26 +29,34 @@ pub fn error_to_exit_code(error: &PhantomError) -> ExitCode {
 pub fn handle_error(error: PhantomError) -> ! {
     error!("{}", error);
     eprintln!("Error: {}", error);
-    match error {
-        PhantomError::Git { exit_code, .. } => std::process::exit(exit_code),
-        _ => {
-            let code = match error {
-                PhantomError::NotInGitRepository => 128,
-                PhantomError::WorktreeExists { .. } => 2,
-                PhantomError::WorktreeNotFound { .. } => 3,
-                PhantomError::BranchNotFound { .. } => 4,
-                PhantomError::InvalidWorktreeName(_) => 5,
-                PhantomError::Config(_) => 6,
-                PhantomError::MultiplexerNotFound(_) => 7,
-                PhantomError::ProcessExecution(_) => 8,
-                PhantomError::UnsupportedFeature(_) => 9,
-                PhantomError::Io(_) => 10,
-                PhantomError::Json(_) => 11,
-                _ => 1,
-            };
-            std::process::exit(code);
+    let exit_code = error_to_exit_code(&error);
+    std::process::exit(match exit_code {
+        ExitCode::SUCCESS => 0,
+        _code => {
+            // ExitCode doesn't have a direct conversion to u8/i32, so we have to match the error again
+            match &error {
+                PhantomError::Git { exit_code, .. } => *exit_code,
+                _ => match &error {
+                    PhantomError::NotInGitRepository => 128,
+                    PhantomError::WorktreeExists { .. } => 2,
+                    PhantomError::WorktreeNotFound { .. } => 3,
+                    PhantomError::BranchNotFound { .. } => 4,
+                    PhantomError::InvalidWorktreeName(_) => 5,
+                    PhantomError::Config(_) => 6,
+                    PhantomError::MultiplexerNotFound(_) => 7,
+                    PhantomError::ProcessExecution(_) => 8,
+                    PhantomError::UnsupportedFeature(_) => 9,
+                    PhantomError::Io(_) => 10,
+                    PhantomError::Json(_) => 11,
+                    PhantomError::Worktree(_) => 12,
+                    PhantomError::Validation(_) => 13,
+                    PhantomError::FileOperation(_) => 14,
+                    PhantomError::Path(_) => 15,
+                    PhantomError::Git { .. } => unreachable!(),
+                },
+            }
         }
-    }
+    });
 }
 
 /// Ensure a path is absolute

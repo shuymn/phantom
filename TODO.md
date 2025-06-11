@@ -74,11 +74,11 @@ Tasks are organized by phase according to the migration plan.
 
 ### Worktree Operations
 
-- [ ] Implement async `create_worktree` function
-- [ ] Implement async `delete_worktree` function
+- [x] Implement async `create_worktree` function
+- [x] Implement async `delete_worktree` function
 - [x] Implement async `list_worktrees` function (completed in Phase 2)
 - [x] Implement `attach_to_branch` function (completed as `attach_worktree` in Phase 2)
-- [ ] Port worktree name validation
+- [x] Port worktree name validation
 - [ ] Add worktree selection with fzf integration
 
 ### File Operations

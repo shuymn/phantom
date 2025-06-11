@@ -28,6 +28,7 @@ directories = "5"
 which = "6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+regex = "1"
 
 # Optional
 git2 = { version = "0.18", optional = true }
