@@ -37,7 +37,6 @@ phantom create <name> [options]
 - `--kitty-vertical` / `--kitty-v` - Create and split kitty window vertically
 - `--kitty-horizontal` / `--kitty-h` - Create and split kitty window horizontally
 - `--copy-file <file>` - Copy specific files from current worktree (can be used multiple times)
-- `--base <branch>` - Base branch to create from (default: origin/main)
 
 **Examples:**
 ```bash
@@ -55,9 +54,6 @@ phantom create feature-auth --kitty
 
 # Create and copy environment files
 phantom create feature-auth --copy-file .env --copy-file .env.local
-
-# Create from specific branch
-phantom create hotfix --base origin/production
 ```
 
 ### attach
@@ -71,9 +67,6 @@ phantom attach <branch-name> [options]
 **Options:**
 - `--shell` - Attach and enter interactive shell
 - `--exec <command>` - Attach and execute command
-- `--tmux` / `-t` - Attach and open in new tmux window
-- `--tmux-vertical` / `--tmux-v` - Attach and split tmux pane vertically
-- `--tmux-horizontal` / `--tmux-h` - Attach and split tmux pane horizontally
 
 **Examples:**
 ```bash

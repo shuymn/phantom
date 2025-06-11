@@ -14,7 +14,8 @@ Phantom is a CLI tool for managing Git worktrees (called "phantoms") with enhanc
 
 - Use `pnpm test` to run all tests
 - Use `pnpm test:file <file>` to run tests for a specific file
-- Do not create and run tenporary files for testing. Instead, use the existing test files and add new tests as needed.
+- Do not create and run temporary files for testing. Instead, use the existing test files and add new tests as needed
+- To verify that implemented features work correctly, write tests instead of directly executing commands
 
 ## Project Structure
 - `README.md` - Main project documentation
