@@ -17,58 +17,58 @@ pub fn parse_worktree_list(output: &str) -> Vec<Worktree> {
         }
 
         // Handle lines with values (key value) and without values (just key)
-        let (key, value) = if let Some((k, v)) = line.split_once(' ') {
-            (k, Some(v))
-        } else {
-            (line, None)
-        };
-        
+        let (key, value) =
+            if let Some((k, v)) = line.split_once(' ') { (k, Some(v)) } else { (line, None) };
+
         match key {
-                "worktree" => {
-                    if let Some(builder) = current_worktree.take() {
-                        if let Some(worktree) = builder.build() {
-                            worktrees.push(worktree);
-                        }
+            "worktree" => {
+                if let Some(builder) = current_worktree.take() {
+                    if let Some(worktree) = builder.build() {
+                        worktrees.push(worktree);
                     }
+                }
+                if let Some(v) = value {
+                    current_worktree = Some(WorktreeBuilder::new(v));
+                }
+            }
+            "HEAD" => {
+                if let Some(ref mut builder) = current_worktree {
                     if let Some(v) = value {
-                        current_worktree = Some(WorktreeBuilder::new(v));
+                        builder.commit = Some(v.to_string());
                     }
                 }
-                "HEAD" => {
-                    if let Some(ref mut builder) = current_worktree {
-                        if let Some(v) = value {
-                            builder.commit = Some(v.to_string());
-                        }
+            }
+            "branch" => {
+                if let Some(ref mut builder) = current_worktree {
+                    if let Some(v) = value {
+                        // Parse branch format: refs/heads/branch-name
+                        let branch_name = v.strip_prefix("refs/heads/").unwrap_or(v).to_string();
+                        builder.branch = Some(branch_name);
                     }
                 }
-                "branch" => {
-                    if let Some(ref mut builder) = current_worktree {
-                        if let Some(v) = value {
-                            // Parse branch format: refs/heads/branch-name
-                            let branch_name = v.strip_prefix("refs/heads/")
-                                .unwrap_or(v)
-                                .to_string();
-                            builder.branch = Some(branch_name);
-                        }
-                    }
+            }
+            "bare" => {
+                if let Some(ref mut builder) = current_worktree {
+                    builder.is_bare = true;
                 }
-                "bare" => {
-                    if let Some(ref mut builder) = current_worktree {
-                        builder.is_bare = true;
-                    }
+            }
+            "detached" => {
+                if let Some(ref mut builder) = current_worktree {
+                    builder.is_detached = true;
+                    builder.branch = None; // Detached HEAD has no branch
                 }
-                "detached" => {
-                    if let Some(ref mut builder) = current_worktree {
-                        builder.is_detached = true;
-                        builder.branch = None; // Detached HEAD has no branch
-                    }
+            }
+            "locked" => {
+                if let Some(ref mut builder) = current_worktree {
+                    builder.is_locked = true;
                 }
-                "prunable" => {
-                    if let Some(ref mut builder) = current_worktree {
-                        builder.is_prunable = true;
-                    }
+            }
+            "prunable" => {
+                if let Some(ref mut builder) = current_worktree {
+                    builder.is_prunable = true;
                 }
-                _ => {} // Ignore other fields
+            }
+            _ => {} // Ignore other fields
         }
     }
 
@@ -91,9 +91,9 @@ pub fn parse_branch_list(output: &str) -> Vec<(String, bool)> {
             if line.is_empty() {
                 return None;
             }
-            
+
             if let Some(branch) = line.strip_prefix("* ") {
-                Some((branch.to_string(), true))  // Current branch
+                Some((branch.to_string(), true)) // Current branch
             } else {
                 Some((line.trim().to_string(), false))
             }
@@ -109,6 +109,7 @@ struct WorktreeBuilder {
     branch: Option<String>,
     is_bare: bool,
     is_detached: bool,
+    is_locked: bool,
     is_prunable: bool,
 }
 
@@ -120,6 +121,7 @@ impl WorktreeBuilder {
             branch: None,
             is_bare: false,
             is_detached: false,
+            is_locked: false,
             is_prunable: false,
         }
     }
@@ -135,6 +137,7 @@ impl WorktreeBuilder {
             commit,
             is_bare: self.is_bare,
             is_detached: self.is_detached,
+            is_locked: self.is_locked,
             is_prunable: self.is_prunable,
         })
     }
@@ -164,6 +167,7 @@ branch refs/heads/feature-branch
         assert_eq!(worktrees[0].commit, "abc123def456");
         assert!(!worktrees[0].is_bare);
         assert!(!worktrees[0].is_detached);
+        assert!(!worktrees[0].is_locked);
 
         assert_eq!(worktrees[1].name, "feature-branch");
         assert_eq!(worktrees[1].path, PathBuf::from("/path/to/repo/feature-branch"));
@@ -181,6 +185,7 @@ detached
         assert_eq!(worktrees.len(), 1);
         assert!(worktrees[0].is_detached);
         assert!(worktrees[0].branch.is_none());
+        assert!(!worktrees[0].is_locked);
     }
 
     #[test]

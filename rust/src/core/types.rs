@@ -10,6 +10,7 @@ pub struct Worktree {
     pub commit: String,
     pub is_bare: bool,
     pub is_detached: bool,
+    pub is_locked: bool,
     pub is_prunable: bool,
 }
 
@@ -66,6 +67,7 @@ mod tests {
             commit: "abc123".to_string(),
             is_bare: false,
             is_detached: false,
+            is_locked: false,
             is_prunable: false,
         };
 
@@ -75,6 +77,7 @@ mod tests {
         assert_eq!(worktree.commit, "abc123");
         assert!(!worktree.is_bare);
         assert!(!worktree.is_detached);
+        assert!(!worktree.is_locked);
         assert!(!worktree.is_prunable);
     }
 
@@ -87,6 +90,7 @@ mod tests {
             commit: "def456".to_string(),
             is_bare: true,
             is_detached: true,
+            is_locked: false,
             is_prunable: true,
         };
 

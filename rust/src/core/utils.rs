@@ -52,9 +52,7 @@ pub fn ensure_absolute_path(path: &Path) -> Result<PathBuf> {
     if path.is_absolute() {
         Ok(path.to_path_buf())
     } else {
-        std::env::current_dir()
-            .map(|cwd| cwd.join(path))
-            .map_err(|e| PhantomError::Io(e))
+        std::env::current_dir().map(|cwd| cwd.join(path)).map_err(|e| PhantomError::Io(e))
     }
 }
 
@@ -69,18 +67,13 @@ mod tests {
 
     #[test]
     fn test_error_to_exit_code() {
-        let error = PhantomError::Git {
-            message: "test".to_string(),
-            exit_code: 128,
-        };
+        let error = PhantomError::Git { message: "test".to_string(), exit_code: 128 };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(128));
 
         let error = PhantomError::NotInGitRepository;
         assert_eq!(error_to_exit_code(&error), ExitCode::from(128));
 
-        let error = PhantomError::WorktreeExists {
-            name: "test".to_string(),
-        };
+        let error = PhantomError::WorktreeExists { name: "test".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(2));
     }
 
@@ -101,7 +94,7 @@ mod tests {
         // These commands should exist on Unix systems
         assert!(command_exists("ls"));
         assert!(command_exists("echo"));
-        
+
         // This command should not exist
         assert!(!command_exists("this_command_definitely_does_not_exist"));
     }

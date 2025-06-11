@@ -18,10 +18,7 @@ pub struct GitExecutor {
 impl GitExecutor {
     /// Create a new GitExecutor
     pub fn new() -> Self {
-        Self {
-            cwd: None,
-            timeout_duration: DEFAULT_GIT_TIMEOUT,
-        }
+        Self { cwd: None, timeout_duration: DEFAULT_GIT_TIMEOUT }
     }
 
     /// Create a GitExecutor with a specific working directory
@@ -41,7 +38,7 @@ impl GitExecutor {
     /// Run a git command with arguments
     pub async fn run(&self, args: &[&str]) -> Result<String> {
         debug!("Running git command: git {:?}", args);
-        
+
         let mut cmd = Command::new("git");
         cmd.args(args);
 
@@ -50,11 +47,14 @@ impl GitExecutor {
         }
 
         let output_future = cmd.output();
-        
+
         let output = match timeout(self.timeout_duration, output_future).await {
             Ok(Ok(output)) => output,
             Ok(Err(e)) => {
-                return Err(PhantomError::ProcessExecution(format!("Failed to execute git: {}", e)));
+                return Err(PhantomError::ProcessExecution(format!(
+                    "Failed to execute git: {}",
+                    e
+                )));
             }
             Err(_) => {
                 return Err(PhantomError::ProcessExecution(format!(
@@ -73,7 +73,7 @@ impl GitExecutor {
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
             let exit_code = output.status.code().unwrap_or(-1);
-            
+
             Err(PhantomError::Git {
                 message: if stderr.is_empty() {
                     format!("git {} failed with exit code {}", args.join(" "), exit_code)
@@ -88,11 +88,7 @@ impl GitExecutor {
     /// Run a git command and return the output lines
     pub async fn run_lines(&self, args: &[&str]) -> Result<Vec<String>> {
         let output = self.run(args).await?;
-        Ok(output
-            .lines()
-            .filter(|line| !line.is_empty())
-            .map(|s| s.to_string())
-            .collect())
+        Ok(output.lines().filter(|line| !line.is_empty()).map(|s| s.to_string()).collect())
     }
 
     /// Check if we're in a git repository
@@ -136,7 +132,7 @@ mod tests {
         let executor = GitExecutor::new();
         let result = executor.run(&["invalid-command"]).await;
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             PhantomError::Git { message, exit_code } => {
                 assert!(message.contains("invalid-command"));
@@ -150,9 +146,9 @@ mod tests {
     async fn test_is_in_git_repo() {
         let repo = TestRepo::new().await.unwrap();
         let executor = GitExecutor::with_cwd(repo.path());
-        
+
         assert!(executor.is_in_git_repo().await);
-        
+
         // Test outside git repo
         let temp_dir = tempfile::tempdir().unwrap();
         let executor = GitExecutor::with_cwd(temp_dir.path());
@@ -164,7 +160,7 @@ mod tests {
         let executor = GitExecutor::new();
         // Use a command that outputs multiple lines
         let result = executor.run_lines(&["config", "--list", "--local"]).await;
-        
+
         // This might fail if not in a git repo, which is fine for this test
         if let Ok(lines) = result {
             // Just verify it returns a vector
