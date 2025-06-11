@@ -23,11 +23,11 @@ Tasks are organized by phase according to the migration plan.
 
 ### Core Implementation
 
-- [ ] Implement `PhantomError` enum with thiserror
-- [ ] Create core domain types:
-  - [ ] `Worktree` struct
-  - [ ] `GitConfig` struct
-  - [ ] `PhantomConfig` struct
+- [x] Implement `PhantomError` enum with thiserror
+- [x] Create core domain types:
+  - [x] `Worktree` struct
+  - [x] `GitConfig` struct
+  - [x] `PhantomConfig` struct
 - [ ] Set up async runtime with Tokio
 - [ ] Implement logging with tracing/tracing-subscriber
 - [ ] Create basic error handling utilities

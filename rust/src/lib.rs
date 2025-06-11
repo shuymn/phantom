@@ -4,4 +4,5 @@ pub mod git;
 pub mod process;
 pub mod worktree;
 
-pub use core::error::{PhantomError, Result};
+pub use crate::core::error::PhantomError;
+pub use crate::core::result::Result;
