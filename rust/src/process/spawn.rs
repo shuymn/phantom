@@ -82,11 +82,8 @@ pub async fn spawn_process(config: SpawnConfig) -> Result<SpawnSuccess> {
 
     // Handle timeout if specified
     let exit_status = if let Some(timeout_ms) = config.timeout_ms {
-        match tokio::time::timeout(
-            tokio::time::Duration::from_millis(timeout_ms),
-            child.wait(),
-        )
-        .await
+        match tokio::time::timeout(tokio::time::Duration::from_millis(timeout_ms), child.wait())
+            .await
         {
             Ok(Ok(status)) => status,
             Ok(Err(e)) => {
@@ -164,9 +161,10 @@ where
         cmd.current_dir(cwd);
     }
 
-    let output = cmd.output().await.map_err(|e| {
-        PhantomError::ProcessExecution(format!("Failed to execute command: {}", e))
-    })?;
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| PhantomError::ProcessExecution(format!("Failed to execute command: {}", e)))?;
 
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
@@ -183,11 +181,13 @@ where
 pub async fn setup_signal_handlers() -> Result<()> {
     use tokio::signal::unix::{signal, SignalKind};
 
-    let mut sigint = signal(SignalKind::interrupt())
-        .map_err(|e| PhantomError::ProcessExecution(format!("Failed to setup SIGINT handler: {}", e)))?;
-    
-    let mut sigterm = signal(SignalKind::terminate())
-        .map_err(|e| PhantomError::ProcessExecution(format!("Failed to setup SIGTERM handler: {}", e)))?;
+    let mut sigint = signal(SignalKind::interrupt()).map_err(|e| {
+        PhantomError::ProcessExecution(format!("Failed to setup SIGINT handler: {}", e))
+    })?;
+
+    let mut sigterm = signal(SignalKind::terminate()).map_err(|e| {
+        PhantomError::ProcessExecution(format!("Failed to setup SIGTERM handler: {}", e))
+    })?;
 
     tokio::spawn(async move {
         tokio::select! {
@@ -218,7 +218,7 @@ mod tests {
 
         let result = spawn_process(config).await;
         assert!(result.is_ok());
-        
+
         let success = result.unwrap();
         assert_eq!(success.exit_code, 0);
     }
@@ -315,10 +315,10 @@ mod tests {
 
         let result = spawn_detached(config).await;
         assert!(result.is_ok());
-        
+
         let mut child = result.unwrap();
         assert!(child.id().is_some());
-        
+
         // Clean up
         child.kill().await.ok();
     }

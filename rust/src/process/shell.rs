@@ -37,10 +37,10 @@ impl ShellType {
     /// Get shell-specific initialization arguments
     pub fn init_args(&self) -> Vec<&'static str> {
         match self {
-            ShellType::Bash => vec!["-i"],      // Interactive
-            ShellType::Zsh => vec!["-i"],       // Interactive
-            ShellType::Fish => vec!["-i"],      // Interactive
-            ShellType::Sh => vec![],            // No special args for sh
+            ShellType::Bash => vec!["-i"], // Interactive
+            ShellType::Zsh => vec!["-i"],  // Interactive
+            ShellType::Fish => vec!["-i"], // Interactive
+            ShellType::Sh => vec![],       // No special args for sh
             ShellType::Unknown => vec![],
         }
     }
@@ -64,11 +64,7 @@ pub fn detect_shell() -> Result<ShellInfo> {
 
     // Ultimate fallback: use /bin/sh
     info!("Could not detect shell, falling back to /bin/sh");
-    Ok(ShellInfo {
-        name: "sh".to_string(),
-        path: "/bin/sh".to_string(),
-        shell_type: ShellType::Sh,
-    })
+    Ok(ShellInfo { name: "sh".to_string(), path: "/bin/sh".to_string(), shell_type: ShellType::Sh })
 }
 
 /// Analyze a shell path and determine its type
@@ -88,11 +84,7 @@ fn analyze_shell_path(path: &str) -> Option<ShellInfo> {
         ShellType::Unknown
     };
 
-    Some(ShellInfo {
-        name: name.to_string(),
-        path: path.to_string(),
-        shell_type,
-    })
+    Some(ShellInfo { name: name.to_string(), path: path.to_string(), shell_type })
 }
 
 /// Try to detect shell from parent process (Unix-specific)
@@ -102,7 +94,7 @@ fn detect_from_parent_process() -> Option<ShellInfo> {
 
     let ppid = get_parent_pid()?;
     let cmdline_path = format!("/proc/{}/cmdline", ppid);
-    
+
     if let Ok(cmdline) = fs::read_to_string(&cmdline_path) {
         let args: Vec<&str> = cmdline.split('\0').collect();
         if let Some(cmd) = args.first() {
@@ -122,7 +114,7 @@ fn detect_from_parent_process() -> Option<ShellInfo> {
 #[cfg(unix)]
 fn get_parent_pid() -> Option<u32> {
     use std::fs;
-    
+
     let stat_path = format!("/proc/{}/stat", std::process::id());
     if let Ok(stat) = fs::read_to_string(&stat_path) {
         // The parent PID is the 4th field in /proc/PID/stat
@@ -131,25 +123,25 @@ fn get_parent_pid() -> Option<u32> {
             return parts[3].parse().ok();
         }
     }
-    
+
     None
 }
 
 /// Get environment variables for a phantom session
 pub fn get_phantom_env(worktree_name: &str, worktree_path: &str) -> HashMap<String, String> {
     let mut env = HashMap::new();
-    
+
     // Set phantom-specific environment variables
     env.insert("PHANTOM_WORKTREE".to_string(), worktree_name.to_string());
     env.insert("PHANTOM_WORKTREE_PATH".to_string(), worktree_path.to_string());
     env.insert("PHANTOM_ACTIVE".to_string(), "1".to_string());
-    
+
     // Update prompt if PS1 is set
     if let Ok(ps1) = env::var("PS1") {
         let phantom_ps1 = format!("(phantom:{}) {}", worktree_name, ps1);
         env.insert("PS1".to_string(), phantom_ps1);
     }
-    
+
     env
 }
 
@@ -169,26 +161,11 @@ mod tests {
 
     #[test]
     fn test_analyze_shell_path() {
-        assert_eq!(
-            analyze_shell_path("/bin/bash").unwrap().shell_type,
-            ShellType::Bash
-        );
-        assert_eq!(
-            analyze_shell_path("/usr/bin/zsh").unwrap().shell_type,
-            ShellType::Zsh
-        );
-        assert_eq!(
-            analyze_shell_path("/usr/local/bin/fish").unwrap().shell_type,
-            ShellType::Fish
-        );
-        assert_eq!(
-            analyze_shell_path("/bin/sh").unwrap().shell_type,
-            ShellType::Sh
-        );
-        assert_eq!(
-            analyze_shell_path("/usr/bin/ksh").unwrap().shell_type,
-            ShellType::Unknown
-        );
+        assert_eq!(analyze_shell_path("/bin/bash").unwrap().shell_type, ShellType::Bash);
+        assert_eq!(analyze_shell_path("/usr/bin/zsh").unwrap().shell_type, ShellType::Zsh);
+        assert_eq!(analyze_shell_path("/usr/local/bin/fish").unwrap().shell_type, ShellType::Fish);
+        assert_eq!(analyze_shell_path("/bin/sh").unwrap().shell_type, ShellType::Sh);
+        assert_eq!(analyze_shell_path("/usr/bin/ksh").unwrap().shell_type, ShellType::Unknown);
     }
 
     #[test]
@@ -211,7 +188,7 @@ mod tests {
     #[test]
     fn test_get_phantom_env() {
         let env = get_phantom_env("feature-branch", "/path/to/worktree");
-        
+
         assert_eq!(env.get("PHANTOM_WORKTREE").unwrap(), "feature-branch");
         assert_eq!(env.get("PHANTOM_WORKTREE_PATH").unwrap(), "/path/to/worktree");
         assert_eq!(env.get("PHANTOM_ACTIVE").unwrap(), "1");
@@ -222,7 +199,7 @@ mod tests {
         // This test should always pass since we have a fallback
         let result = detect_shell();
         assert!(result.is_ok());
-        
+
         let shell_info = result.unwrap();
         assert!(!shell_info.path.is_empty());
         assert!(!shell_info.name.is_empty());
