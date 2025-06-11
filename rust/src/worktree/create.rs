@@ -1,6 +1,7 @@
 use crate::git::backend::GitBackend;
 use crate::git::libs::add_worktree::add_worktree;
 use crate::worktree::errors::WorktreeError;
+use crate::worktree::file_copier::copy_files;
 use crate::worktree::paths::{get_phantom_directory, get_worktree_path};
 use crate::worktree::types::{CreateWorktreeOptions, CreateWorktreeSuccess};
 use crate::worktree::validate::{validate_worktree_does_not_exist, validate_worktree_name};
@@ -142,15 +143,6 @@ pub async fn create_worktree_with_backend(
     Ok(result)
 }
 
-// Placeholder for file copying - will be implemented later
-async fn copy_files(
-    _source: &Path,
-    _dest: &Path,
-    _files: &[String],
-) -> Result<crate::worktree::types::FileCopyResult> {
-    // TODO: Implement file copying
-    Ok(crate::worktree::types::FileCopyResult { copied_files: vec![], skipped_files: vec![] })
-}
 
 #[cfg(test)]
 mod tests {
