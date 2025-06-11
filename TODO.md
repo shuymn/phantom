@@ -60,15 +60,15 @@ Tasks are organized by phase according to the migration plan.
 - [x] Port `branch_exists` function
 - [x] Port `attach_worktree` function
 - [x] Create unit tests for each operation
-- [ ] Add integration tests with real git repos
+- [x] Add integration tests with real git repos
 
 ### Stage 3: Git Backend Abstraction
 
-- [ ] Define `GitBackend` trait
-- [ ] Implement `CommandBackend` struct
-- [ ] Add feature flag for future libgit2 support
-- [ ] Create backend factory function
-- [ ] Write tests for backend abstraction
+- [x] Define `GitBackend` trait
+- [x] Implement `CommandBackend` struct
+- [x] Add feature flag for future libgit2 support
+- [x] Create backend factory function
+- [x] Write tests for backend abstraction
 
 ## Phase 3: Async File Operations & Worktree Management (Weeks 6-7)
 
