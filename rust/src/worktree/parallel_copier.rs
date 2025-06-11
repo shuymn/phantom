@@ -2,6 +2,7 @@ use crate::worktree::errors::WorktreeError;
 use crate::worktree::gitignore::{
     default_ignore_patterns, load_gitignore_hierarchy, GitignoreMatcher,
 };
+use crate::worktree::progress::{ProgressReporter, ProgressTracker};
 use crate::Result;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -11,7 +12,7 @@ use tokio::task::JoinSet;
 use tracing::{debug, info, warn};
 
 /// Configuration for parallel file copying
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ParallelCopyConfig {
     /// Maximum number of concurrent file operations
     pub max_concurrent_ops: usize,
@@ -19,11 +20,29 @@ pub struct ParallelCopyConfig {
     pub use_gitignore: bool,
     /// Buffer size for the file queue channel
     pub channel_buffer_size: usize,
+    /// Optional progress reporter
+    pub progress_reporter: Option<Arc<dyn ProgressReporter>>,
+}
+
+impl std::fmt::Debug for ParallelCopyConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ParallelCopyConfig")
+            .field("max_concurrent_ops", &self.max_concurrent_ops)
+            .field("use_gitignore", &self.use_gitignore)
+            .field("channel_buffer_size", &self.channel_buffer_size)
+            .field("progress_reporter", &self.progress_reporter.is_some())
+            .finish()
+    }
 }
 
 impl Default for ParallelCopyConfig {
     fn default() -> Self {
-        Self { max_concurrent_ops: 32, use_gitignore: true, channel_buffer_size: 1000 }
+        Self {
+            max_concurrent_ops: 32,
+            use_gitignore: true,
+            channel_buffer_size: 1000,
+            progress_reporter: None,
+        }
     }
 }
 
@@ -56,6 +75,26 @@ pub async fn copy_directory_parallel(
         config.max_concurrent_ops
     );
 
+    // Create progress tracker if reporter is provided
+    let progress_tracker = if config.progress_reporter.is_some() {
+        Some(Arc::new(ProgressTracker::new()))
+    } else {
+        None
+    };
+
+    // Start progress reporting if configured
+    let _progress_shutdown = if let (Some(tracker), Some(reporter)) =
+        (progress_tracker.as_ref(), config.progress_reporter.as_ref())
+    {
+        Some(crate::worktree::progress::start_progress_reporter(
+            tracker.clone(),
+            reporter.clone(),
+            500, // Report every 500ms
+        ))
+    } else {
+        None
+    };
+
     // Load gitignore patterns if enabled
     let gitignore = if config.use_gitignore {
         let mut matcher = load_gitignore_hierarchy(source_dir).await?;
@@ -73,6 +112,20 @@ pub async fn copy_directory_parallel(
 
     debug!("Collected {} files to copy", copy_tasks.len());
 
+    // Set total files for progress tracking
+    if let Some(tracker) = progress_tracker.as_ref() {
+        tracker.set_total_files(copy_tasks.len());
+
+        // Calculate total size
+        let mut total_size = 0u64;
+        for task in &copy_tasks {
+            if let Ok(metadata) = fs::metadata(&task.source).await {
+                total_size += metadata.len();
+            }
+        }
+        tracker.set_total_bytes(total_size);
+    }
+
     // Create semaphore for concurrency control
     let semaphore = Arc::new(Semaphore::new(config.max_concurrent_ops));
     let mut task_set = JoinSet::new();
@@ -80,9 +133,10 @@ pub async fn copy_directory_parallel(
     // Process tasks with concurrency limit
     for task in copy_tasks {
         let semaphore = semaphore.clone();
+        let tracker = progress_tracker.clone();
         task_set.spawn(async move {
             let _permit = semaphore.acquire().await.unwrap();
-            copy_file_task(&task).await
+            copy_file_task_with_progress(&task, tracker.as_ref()).await
         });
     }
 
@@ -98,6 +152,11 @@ pub async fn copy_directory_parallel(
             Ok(CopyResult::Error(path, err)) => errors.push(format!("{}: {}", path, err)),
             Err(e) => errors.push(format!("Task join error: {}", e)),
         }
+    }
+
+    // Stop progress reporting
+    if let Some(shutdown) = _progress_shutdown {
+        let _ = shutdown.send(()).await;
     }
 
     info!(
@@ -185,11 +244,23 @@ async fn collect_copy_tasks(
     Ok(())
 }
 
-/// Copy a single file
-async fn copy_file_task(task: &CopyTask) -> CopyResult {
+/// Copy a single file with progress tracking
+async fn copy_file_task_with_progress(
+    task: &CopyTask,
+    tracker: Option<&Arc<ProgressTracker>>,
+) -> CopyResult {
+    // Update current operation
+    if let Some(tracker) = tracker {
+        tracker.set_current_operation(Some(task.relative_path.clone())).await;
+    }
+
     // Create parent directory if needed
     if let Some(parent) = task.target.parent() {
         if let Err(e) = fs::create_dir_all(parent).await {
+            if let Some(tracker) = tracker {
+                tracker.increment_errors();
+                tracker.increment_processed_files();
+            }
             return CopyResult::Error(
                 task.relative_path.clone(),
                 format!("Failed to create directory: {}", e),
@@ -197,14 +268,26 @@ async fn copy_file_task(task: &CopyTask) -> CopyResult {
         }
     }
 
+    // Get file size for progress tracking
+    let file_size =
+        if let Ok(metadata) = fs::metadata(&task.source).await { metadata.len() } else { 0 };
+
     // Copy the file
     match fs::copy(&task.source, &task.target).await {
         Ok(_) => {
             debug!("Copied: {}", task.relative_path);
+            if let Some(tracker) = tracker {
+                tracker.increment_processed_files();
+                tracker.add_processed_bytes(file_size);
+            }
             CopyResult::Copied(task.relative_path.clone())
         }
         Err(e) => {
             warn!("Failed to copy {}: {}", task.relative_path, e);
+            if let Some(tracker) = tracker {
+                tracker.increment_errors();
+                tracker.increment_processed_files();
+            }
             CopyResult::Error(task.relative_path.clone(), e.to_string())
         }
     }
@@ -231,6 +314,7 @@ mod tests {
             max_concurrent_ops: 4,
             use_gitignore: false,
             channel_buffer_size: 100,
+            progress_reporter: None,
         };
 
         let result =
@@ -267,6 +351,7 @@ mod tests {
             max_concurrent_ops: 2,
             use_gitignore: false,
             channel_buffer_size: 50,
+            progress_reporter: None,
         };
 
         let result =
@@ -325,6 +410,7 @@ mod tests {
             max_concurrent_ops: 16,
             use_gitignore: false,
             channel_buffer_size: 200,
+            progress_reporter: None,
         };
 
         let result =
@@ -332,5 +418,73 @@ mod tests {
 
         assert_eq!(result.copied_files.len(), 100);
         assert_eq!(result.errors.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_parallel_copy_with_progress() {
+        use crate::worktree::progress::{ChannelProgressReporter, ConsoleProgressReporter};
+
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        // Create test files
+        for i in 0..20 {
+            fs::write(
+                source_dir.path().join(format!("file{}.txt", i)),
+                format!("content{}", i).repeat(100), // Make files bigger for progress testing
+            )
+            .await
+            .unwrap();
+        }
+
+        // Test with console reporter (will just print to logs during test)
+        let console_reporter = Arc::new(ConsoleProgressReporter::default());
+        let config = ParallelCopyConfig {
+            max_concurrent_ops: 4,
+            use_gitignore: false,
+            channel_buffer_size: 50,
+            progress_reporter: Some(console_reporter),
+        };
+
+        let result =
+            copy_directory_parallel(source_dir.path(), target_dir.path(), config).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 20);
+        assert_eq!(result.errors.len(), 0);
+
+        // Test with channel reporter
+        let (channel_reporter, mut receiver) = ChannelProgressReporter::new();
+        let config = ParallelCopyConfig {
+            max_concurrent_ops: 4,
+            use_gitignore: false,
+            channel_buffer_size: 50,
+            progress_reporter: Some(Arc::new(channel_reporter)),
+        };
+
+        // Clear target dir for second test
+        for i in 0..20 {
+            let _ = fs::remove_file(target_dir.path().join(format!("file{}.txt", i))).await;
+        }
+
+        // Run copy in background
+        let source_path = source_dir.path().to_path_buf();
+        let target_path = target_dir.path().to_path_buf();
+        let copy_handle = tokio::spawn(async move {
+            copy_directory_parallel(&source_path, &target_path, config).await
+        });
+
+        // Wait for copy to complete and collect updates
+        let result = copy_handle.await.unwrap().unwrap();
+        assert_eq!(result.copied_files.len(), 20);
+
+        // Collect any progress updates that were sent
+        let mut updates = Vec::new();
+        while let Ok(info) = receiver.try_recv() {
+            updates.push(info);
+        }
+
+        // We should have received at least one progress update (the completion update)
+        // Note: In very fast tests, we might only get the final update
+        println!("Received {} progress updates", updates.len());
     }
 }

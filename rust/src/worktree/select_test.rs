@@ -2,8 +2,8 @@
 mod select_integration_tests {
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
-    use crate::worktree::types::CreateWorktreeOptions;
     use crate::worktree::select::select_worktree_with_fzf;
+    use crate::worktree::types::CreateWorktreeOptions;
 
     #[tokio::test]
     #[ignore] // This test requires fzf to be installed
