@@ -12,10 +12,23 @@ async fn test_attach_command_basic() {
 
     // Initialize git repo
     std::process::Command::new("git")
-        .args(&["init"])
+        .args(&["init", "-b", "main"])
         .current_dir(&repo_path)
         .output()
         .expect("Failed to init git repo");
+
+    // Configure git user
+    std::process::Command::new("git")
+        .args(&["config", "user.email", "test@example.com"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git email");
+
+    std::process::Command::new("git")
+        .args(&["config", "user.name", "Test User"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git name");
 
     // Create initial commit
     std::fs::write(repo_path.join("README.md"), "# Test").unwrap();
@@ -69,10 +82,23 @@ async fn test_attach_command_branch_not_found() {
 
     // Initialize git repo
     std::process::Command::new("git")
-        .args(&["init"])
+        .args(&["init", "-b", "main"])
         .current_dir(&repo_path)
         .output()
         .expect("Failed to init git repo");
+
+    // Configure git user
+    std::process::Command::new("git")
+        .args(&["config", "user.email", "test@example.com"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git email");
+
+    std::process::Command::new("git")
+        .args(&["config", "user.name", "Test User"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git name");
 
     // Create initial commit
     std::fs::write(repo_path.join("README.md"), "# Test").unwrap();
@@ -117,10 +143,23 @@ async fn test_attach_command_already_exists() {
 
     // Initialize git repo
     std::process::Command::new("git")
-        .args(&["init"])
+        .args(&["init", "-b", "main"])
         .current_dir(&repo_path)
         .output()
         .expect("Failed to init git repo");
+
+    // Configure git user
+    std::process::Command::new("git")
+        .args(&["config", "user.email", "test@example.com"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git email");
+
+    std::process::Command::new("git")
+        .args(&["config", "user.name", "Test User"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git name");
 
     // Create initial commit
     std::fs::write(repo_path.join("README.md"), "# Test").unwrap();
@@ -182,10 +221,23 @@ async fn test_attach_command_json_output() {
 
     // Initialize git repo
     std::process::Command::new("git")
-        .args(&["init"])
+        .args(&["init", "-b", "main"])
         .current_dir(&repo_path)
         .output()
         .expect("Failed to init git repo");
+
+    // Configure git user
+    std::process::Command::new("git")
+        .args(&["config", "user.email", "test@example.com"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git email");
+
+    std::process::Command::new("git")
+        .args(&["config", "user.name", "Test User"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to set git name");
 
     // Create initial commit
     std::fs::write(repo_path.join("README.md"), "# Test").unwrap();
