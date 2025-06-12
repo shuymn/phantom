@@ -4,6 +4,7 @@ pub mod delete;
 pub mod errors;
 pub mod file_copier;
 pub mod list;
+pub mod locate;
 pub mod paths;
 pub mod select;
 pub mod types;

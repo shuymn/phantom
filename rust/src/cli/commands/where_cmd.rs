@@ -4,7 +4,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Args, Debug)]
 pub struct WhereArgs {
     /// Name of the worktree
-    pub name: String,
+    pub name: Option<String>,
+
+    /// Select worktree interactively with fzf
+    #[arg(long)]
+    pub fzf: bool,
 
     /// Output in JSON format
     #[arg(long)]
