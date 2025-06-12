@@ -305,10 +305,7 @@ mod tests {
     #[tokio::test]
     async fn test_exec_commands_in_dir_complex_args() {
         let temp_dir = TempDir::new().unwrap();
-        let commands = vec![
-            "echo hello world".to_string(),
-            "echo -n test".to_string(),
-        ];
+        let commands = vec!["echo hello world".to_string(), "echo -n test".to_string()];
 
         let results = exec_commands_in_dir(temp_dir.path(), &commands).await;
         assert!(results.is_ok());
@@ -320,12 +317,8 @@ mod tests {
     #[tokio::test]
     async fn test_exec_in_dir_nonexistent_command() {
         let temp_dir = TempDir::new().unwrap();
-        let result = exec_in_dir(
-            temp_dir.path(),
-            "nonexistent-command-xyz123",
-            &["arg".to_string()],
-        )
-        .await;
+        let result =
+            exec_in_dir(temp_dir.path(), "nonexistent-command-xyz123", &["arg".to_string()]).await;
 
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -354,13 +347,8 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Try to execute in a worktree that doesn't exist
-        let result = exec_in_worktree(
-            repo.path(),
-            "does-not-exist",
-            "echo",
-            &["test".to_string()],
-        )
-        .await;
+        let result =
+            exec_in_worktree(repo.path(), "does-not-exist", "echo", &["test".to_string()]).await;
 
         assert!(result.is_err());
         match result.unwrap_err() {
