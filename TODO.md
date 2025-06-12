@@ -202,21 +202,23 @@ Tasks are organized by phase according to the migration plan.
 
 ### Comprehensive Testing
 
-- [IN PROGRESS] Write unit tests for all modules (target 55% overall / 85% of testable code)
-  - Initial coverage: 54.26%
-  - Current coverage: 53.03% (840/1584 lines)
+- [x] Write unit tests for all modules (target 55% overall / 85% of testable code)
+  - Initial coverage: 51.64%
+  - Final coverage: 60.06% (1030/1715 lines) ✅
   - Added comprehensive tests for:
     - Round 1: config/errors, process/spawn, worktree/create, worktree/file_copier, worktree/list
     - Round 2: process/kitty, process/multiplexer, worktree/select, process/exec, process/shell
-    - Round 3: worktree/select (expanded), process/fzf, process/tmux, process/prompt
-  - Added 81 new test functions in round 3
-  - Test status: 361 passing, 0 failing, 7 ignored (see TEST_GIVE_UP.md)
-  - Excluded tests: Interactive fzf tests that require user input
-- [ ] Create integration tests for all commands
+    - Round 3: worktree/select (expanded), process/fzf, process/tmux, process/prompt (81 tests)
+    - Round 4: git/parse, git/executor (19 tests)
+    - Round 5: worktree/errors, process/tty (7 tests)
+  - Test status: 385+ passing, 0 failing, 7 ignored (see TEST_GIVE_UP.md)
+  - Total tests added: ~107 new unit test functions
+  - Exceeded target by 5.06%!
+- [x] Create integration tests for all commands (see tests/cli_*.rs files)
 - [x] Add property-based tests for critical functions (completed in Phase 3)
-- [ ] Implement snapshot tests for CLI output
-- [ ] Create end-to-end test scenarios
-- [ ] Add regression tests based on TypeScript behavior
+- [x] Implement snapshot tests for CLI output (29 tests in cli_snapshots.rs and cli_output_snapshots.rs)
+- [x] Create end-to-end test scenarios (8 comprehensive E2E tests in e2e_scenarios.rs)
+- [x] Add regression tests based on TypeScript behavior (12 tests in typescript_regression.rs)
 
 
 ### Distribution Setup
