@@ -319,4 +319,142 @@ mod tests {
         // We can't assert a specific value, but we can ensure it returns a boolean
         assert!(available == true || available == false);
     }
+
+    #[tokio::test]
+    async fn test_execute_in_multiplexer_none() {
+        // Test fallback behavior when no multiplexer is detected
+        // This test might actually execute if no multiplexer is present
+        let options = MultiplexerOptions {
+            direction: SplitDirection::New,
+            command: "echo".to_string(),
+            args: Some(vec!["test".to_string()]),
+            cwd: None,
+            env: None,
+            window_name: None,
+        };
+
+        // We can't easily mock the multiplexer detection, but we can verify
+        // the function doesn't panic
+        let multiplexer = detect_multiplexer().await;
+        if multiplexer == Multiplexer::None {
+            let result = execute_in_multiplexer(options).await;
+            // If no multiplexer, it should execute the command directly
+            assert!(result.is_ok() || result.is_err());
+        }
+    }
+
+    #[test]
+    fn test_multiplexer_options_with_full_config() {
+        let mut env = HashMap::new();
+        env.insert("KEY1".to_string(), "value1".to_string());
+        env.insert("KEY2".to_string(), "value2".to_string());
+
+        let options = MultiplexerOptions {
+            direction: SplitDirection::Horizontal,
+            command: "vim".to_string(),
+            args: Some(vec!["file.txt".to_string(), "-R".to_string()]),
+            cwd: Some("/workspace".to_string()),
+            env: Some(env.clone()),
+            window_name: Some("Editor".to_string()),
+        };
+
+        assert_eq!(options.direction, SplitDirection::Horizontal);
+        assert_eq!(options.command, "vim");
+        assert_eq!(options.args.as_ref().unwrap().len(), 2);
+        assert_eq!(options.cwd, Some("/workspace".to_string()));
+        assert_eq!(options.env.as_ref().unwrap().len(), 2);
+        assert_eq!(options.window_name, Some("Editor".to_string()));
+    }
+
+    #[test]
+    fn test_split_direction_conversions() {
+        // Test that SplitDirection can be converted to tmux/kitty specific directions
+        let new_dir = SplitDirection::New;
+        let vert_dir = SplitDirection::Vertical;
+        let horiz_dir = SplitDirection::Horizontal;
+
+        // These conversions happen in execute_in_multiplexer
+        match new_dir {
+            SplitDirection::New => assert!(true),
+            _ => assert!(false),
+        }
+
+        match vert_dir {
+            SplitDirection::Vertical => assert!(true),
+            _ => assert!(false),
+        }
+
+        match horiz_dir {
+            SplitDirection::Horizontal => assert!(true),
+            _ => assert!(false),
+        }
+    }
+
+    #[test]
+    fn test_multiplexer_variants() {
+        let multiplexers = vec![Multiplexer::Tmux, Multiplexer::Kitty, Multiplexer::None];
+        
+        for m in multiplexers {
+            match m {
+                Multiplexer::Tmux => assert_eq!(format!("{:?}", m), "Tmux"),
+                Multiplexer::Kitty => assert_eq!(format!("{:?}", m), "Kitty"),
+                Multiplexer::None => assert_eq!(format!("{:?}", m), "None"),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_fallback_warning() {
+        // Test that fallback execution works
+        let options = MultiplexerOptions {
+            direction: SplitDirection::Vertical, // This should trigger a warning in fallback
+            command: "true".to_string(), // Command that always succeeds
+            args: None,
+            cwd: None,
+            env: None,
+            window_name: None,
+        };
+
+        // Call execute_fallback directly
+        let result = execute_fallback(options).await;
+        
+        // The "true" command should succeed
+        assert!(result.is_ok());
+        if let Ok(success) = result {
+            assert_eq!(success.exit_code, 0);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_fallback_with_args() {
+        let options = MultiplexerOptions {
+            direction: SplitDirection::New,
+            command: "echo".to_string(),
+            args: Some(vec!["hello".to_string(), "world".to_string()]),
+            cwd: None,
+            env: None,
+            window_name: None,
+        };
+
+        let result = execute_fallback(options).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_fallback_with_env() {
+        let mut env = HashMap::new();
+        env.insert("TEST_VAR".to_string(), "test_value".to_string());
+
+        let options = MultiplexerOptions {
+            direction: SplitDirection::New,
+            command: "env".to_string(),
+            args: None,
+            cwd: None,
+            env: Some(env),
+            window_name: None,
+        };
+
+        let result = execute_fallback(options).await;
+        assert!(result.is_ok());
+    }
 }

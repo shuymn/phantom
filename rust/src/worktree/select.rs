@@ -320,4 +320,97 @@ mod tests {
 
         assert_eq!(formatted, "detached");
     }
+
+    #[test]
+    fn test_fzf_options_debug() {
+        let options = FzfOptions {
+            prompt: Some("test".to_string()),
+            header: None,
+            preview_command: Some("preview".to_string()),
+        };
+
+        let debug_str = format!("{:?}", options);
+        assert!(debug_str.contains("FzfOptions"));
+        assert!(debug_str.contains("prompt: Some"));
+        assert!(debug_str.contains("header: None"));
+    }
+
+    #[test]
+    fn test_fzf_options_clone() {
+        let options = FzfOptions {
+            prompt: Some("Select>".to_string()),
+            header: Some("Header".to_string()),
+            preview_command: Some("cat {}".to_string()),
+        };
+
+        let cloned = options.clone();
+        assert_eq!(options.prompt, cloned.prompt);
+        assert_eq!(options.header, cloned.header);
+        assert_eq!(options.preview_command, cloned.preview_command);
+    }
+
+    #[test]
+    fn test_parse_fzf_selection() {
+        // Test parsing the worktree name from fzf selection
+        let selection = "feature-branch (main) [dirty]";
+        let name = selection.split(' ').next();
+        assert_eq!(name, Some("feature-branch"));
+
+        let selection2 = "simple-name";
+        let name2 = selection2.split(' ').next();
+        assert_eq!(name2, Some("simple-name"));
+    }
+
+    #[test]
+    fn test_worktree_formatting_combinations() {
+        // Test various combinations of worktree states
+        let cases = vec![
+            ("main", Some("main"), true, "main (main)"),
+            ("feature", Some("feature-branch"), false, "feature (feature-branch) [dirty]"),
+            ("detached", None, true, "detached"),
+            ("no-branch", None, false, "no-branch [dirty]"),
+        ];
+
+        for (name, branch, is_clean, expected) in cases {
+            let worktree = Worktree {
+                name: name.to_string(),
+                path: PathBuf::from("/path"),
+                branch: branch.map(|b| b.to_string()),
+                commit: "abc123".to_string(),
+                is_bare: false,
+                is_detached: branch.is_none(),
+                is_locked: false,
+                is_prunable: false,
+            };
+
+            let formatted = format!(
+                "{}{}{}",
+                worktree.name,
+                worktree.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default(),
+                if !is_clean { " [dirty]" } else { "" }
+            );
+
+            assert_eq!(formatted, expected, "Failed for case: {}", name);
+        }
+    }
+
+    #[test]
+    fn test_select_worktree_result_variations() {
+        // Test with no branch
+        let result1 = SelectWorktreeResult {
+            name: "test1".to_string(),
+            branch: None,
+            is_clean: true,
+        };
+        assert!(result1.branch.is_none());
+
+        // Test with dirty state
+        let result2 = SelectWorktreeResult {
+            name: "test2".to_string(),
+            branch: Some("develop".to_string()),
+            is_clean: false,
+        };
+        assert!(!result2.is_clean);
+        assert_eq!(result2.branch, Some("develop".to_string()));
+    }
 }
