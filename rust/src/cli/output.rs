@@ -165,10 +165,7 @@ mod tests {
 
     #[test]
     fn test_output_json() {
-        let data = TestData {
-            name: "test".to_string(),
-            value: 42,
-        };
+        let data = TestData { name: "test".to_string(), value: 42 };
 
         // JSON mode
         let output = Output::new(false, false, true);
