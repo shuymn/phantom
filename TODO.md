@@ -37,8 +37,8 @@ Tasks are organized by phase according to the migration plan.
 
 - [x] Set up test utilities module
 - [x] Create test fixtures for git repositories
-- [ ] Set up property-based testing with proptest
-- [ ] Configure snapshot testing with insta
+- [x] Set up property-based testing with proptest
+- [x] Configure snapshot testing with insta
 
 ## Phase 2: Git Operations - Command-based (Weeks 3-5)
 
