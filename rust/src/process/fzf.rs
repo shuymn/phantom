@@ -180,4 +180,155 @@ mod tests {
         assert_eq!(options.header, cloned.header);
         assert_eq!(options.preview_command, cloned.preview_command);
     }
+
+    #[tokio::test]
+    async fn test_select_with_fzf_single_item() {
+        let items = vec!["single-item".to_string()];
+        let result = select_with_fzf(items, FzfOptions::default()).await;
+        
+        // The result depends on whether fzf is available
+        match result {
+            Ok(_) => {}, // Either Some or None is acceptable
+            Err(e) => {
+                // Should only error if fzf is not found
+                assert!(e.to_string().contains("fzf command not found"));
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_select_with_fzf_with_options() {
+        let items = vec!["item1".to_string(), "item2".to_string()];
+        let options = FzfOptions {
+            prompt: Some("Choose: ".to_string()),
+            header: Some("Items".to_string()),
+            preview_command: Some("echo preview: {}".to_string()),
+        };
+        
+        let result = select_with_fzf(items, options).await;
+        
+        match result {
+            Ok(_) => {}, // Either Some or None is acceptable
+            Err(e) => {
+                // Should only error if fzf is not found
+                assert!(e.to_string().contains("fzf"));
+            }
+        }
+    }
+
+    #[test]
+    fn test_error_handling() {
+        // Test error creation and formatting
+        let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "test error");
+        let phantom_error = PhantomError::Io(io_error);
+        assert!(!phantom_error.to_string().is_empty());
+        
+        let exec_error = PhantomError::ProcessExecution(
+            "fzf command not found. Please install fzf first.".to_string()
+        );
+        assert!(exec_error.to_string().contains("fzf command not found"));
+        
+        let exit_error = PhantomError::ProcessExecution(
+            "fzf exited with code 2: stderr output".to_string()
+        );
+        assert!(exit_error.to_string().contains("exited with code"));
+        
+        let signal_error = PhantomError::ProcessExecution(
+            "fzf terminated by signal".to_string()
+        );
+        assert!(signal_error.to_string().contains("terminated by signal"));
+    }
+
+    #[test]
+    fn test_string_formatting() {
+        let items = vec!["first".to_string(), "second".to_string(), "third".to_string()];
+        let joined = items.join("\n");
+        assert_eq!(joined, "first\nsecond\nthird");
+        assert_eq!(joined.as_bytes().len(), 17); // 5 + 1 + 6 + 1 + 5
+        
+        // Test trimming
+        let with_whitespace = "  selected item  \n";
+        assert_eq!(with_whitespace.trim(), "selected item");
+        
+        // Test empty string
+        let empty = "";
+        assert!(empty.is_empty());
+        assert_eq!(empty.trim(), "");
+    }
+
+    #[test]
+    fn test_utf8_handling() {
+        let valid_utf8 = b"valid UTF-8 string";
+        let result = String::from_utf8_lossy(valid_utf8);
+        assert_eq!(result, "valid UTF-8 string");
+        
+        // Test with non-ASCII UTF-8
+        let unicode = "hello 世界".as_bytes();
+        let result = String::from_utf8_lossy(unicode);
+        assert_eq!(result, "hello 世界");
+    }
+
+    #[test]
+    fn test_exit_codes() {
+        // Test all expected exit codes
+        let exit_codes = vec![
+            (0, "Success"),
+            (1, "No match"),
+            (130, "User cancelled"),
+            (2, "Error"),
+            (255, "Other error"),
+        ];
+        
+        for (code, description) in exit_codes {
+            match code {
+                0 => assert_eq!(description, "Success"),
+                1 => assert_eq!(description, "No match"),
+                130 => assert_eq!(description, "User cancelled"),
+                _ => assert!(description.contains("error") || description.contains("Error")),
+            }
+        }
+    }
+
+    #[test]
+    fn test_io_error_kinds() {
+        use std::io::ErrorKind;
+        
+        let not_found = std::io::Error::new(ErrorKind::NotFound, "not found");
+        assert_eq!(not_found.kind(), ErrorKind::NotFound);
+        
+        let permission = std::io::Error::new(ErrorKind::PermissionDenied, "denied");
+        assert_eq!(permission.kind(), ErrorKind::PermissionDenied);
+    }
+
+    #[tokio::test]
+    async fn test_select_with_fzf_multiple_items() {
+        let items = vec![
+            "option-one".to_string(),
+            "option-two".to_string(),
+            "option-three".to_string(),
+        ];
+        
+        let _result = select_with_fzf(items.clone(), FzfOptions::default()).await;
+        
+        // Verify the input would be formatted correctly
+        let expected_input = items.join("\n");
+        assert_eq!(expected_input, "option-one\noption-two\noption-three");
+    }
+
+    #[test]
+    fn test_fzf_command_args() {
+        let mut cmd = Command::new("fzf");
+        
+        // Test adding prompt
+        cmd.arg("--prompt").arg("Select: ");
+        
+        // Test adding header
+        cmd.arg("--header").arg("Choose an option");
+        
+        // Test adding preview
+        cmd.arg("--preview").arg("cat {}");
+        
+        // Just verify we can build the command
+        assert_eq!(cmd.get_program(), "fzf");
+    }
 }

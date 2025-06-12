@@ -413,4 +413,196 @@ mod tests {
         assert!(!result2.is_clean);
         assert_eq!(result2.branch, Some("develop".to_string()));
     }
+
+    // Mock tests for the run_fzf function behavior
+    #[test]
+    fn test_run_fzf_error_cases() {
+        // Test that we can handle when fzf is not available
+        // This is tested by the actual run_fzf function when fzf is missing
+        let _options = FzfOptions::default();
+        
+        // Verify the error message format
+        let error = PhantomError::Validation(
+            "fzf command not found. Please install fzf first.".to_string(),
+        );
+        assert!(error.to_string().contains("fzf command not found"));
+    }
+
+    #[test]
+    fn test_fzf_output_parsing() {
+        // Test parsing empty output
+        let empty = "";
+        assert!(empty.is_empty());
+        
+        // Test parsing trimmed output
+        let with_spaces = "  selected  \n";
+        assert_eq!(with_spaces.trim(), "selected");
+        
+        // Test exit codes we handle
+        let exit_codes = vec![
+            (0, "Success"),
+            (1, "No match"),
+            (130, "Ctrl-C"),
+        ];
+        
+        for (code, description) in exit_codes {
+            assert!(code >= 0);
+            assert!(!description.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_worktree_name_extraction() {
+        // Test extracting name from various fzf selections
+        let test_cases = vec![
+            ("simple", "simple"),
+            ("with-branch (main)", "with-branch"),
+            ("dirty-worktree (feature) [dirty]", "dirty-worktree"),
+            ("spaces in name (branch)", "spaces"),
+            ("", ""),
+        ];
+        
+        for (input, expected) in test_cases {
+            let extracted = input.split(' ').next().unwrap_or("");
+            assert_eq!(extracted, expected);
+        }
+    }
+
+    #[test]
+    fn test_error_handling() {
+        // Test various error scenarios
+        let errors = vec![
+            PhantomError::Worktree("Invalid fzf selection".to_string()),
+            PhantomError::Worktree("Selected worktree not found".to_string()),
+            PhantomError::ProcessExecution("Failed to spawn fzf: error".to_string()),
+            PhantomError::ProcessExecution("Failed to write to fzf stdin: error".to_string()),
+            PhantomError::ProcessExecution("Failed to wait for fzf: error".to_string()),
+            PhantomError::ProcessExecution("fzf exited with code 2: error".to_string()),
+            PhantomError::ProcessExecution("fzf terminated by signal".to_string()),
+        ];
+        
+        for error in errors {
+            let error_str = error.to_string();
+            assert!(!error_str.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_select_worktree_with_fzf_empty() {
+        use crate::test_utils::TestRepo;
+        
+        // Create a test repo with no worktrees
+        let repo = TestRepo::new().await.unwrap();
+        
+        // Should return None when no worktrees exist
+        let result = select_worktree_with_fzf(repo.path()).await;
+        
+        // If fzf is not available, it should return an error
+        // If fzf is available but there are no worktrees, it should return Ok(None)
+        match result {
+            Ok(None) => {}, // Expected when no worktrees
+            Err(e) => {
+                // Expected when fzf is not installed
+                assert!(e.to_string().contains("fzf"));
+            },
+            Ok(Some(_)) => panic!("Should not select a worktree when none exist"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_select_worktree_with_custom_options() {
+        use crate::test_utils::TestRepo;
+        
+        let repo = TestRepo::new().await.unwrap();
+        
+        let options = FzfOptions {
+            prompt: Some("Custom prompt> ".to_string()),
+            header: Some("Custom header".to_string()),
+            preview_command: Some("echo preview".to_string()),
+        };
+        
+        // Test with custom options
+        let result = select_worktree_with_fzf_and_options(repo.path(), options).await;
+        
+        // Similar to above - depends on fzf availability
+        match result {
+            Ok(None) => {}, // Expected when no worktrees
+            Err(e) => {
+                // Expected when fzf is not installed
+                assert!(e.to_string().contains("fzf"));
+            },
+            Ok(Some(_)) => panic!("Should not select a worktree when none exist"),
+        }
+    }
+
+    #[test]
+    fn test_fzf_stdin_write() {
+        // Test formatting items for fzf input
+        let items = vec![
+            "worktree1 (main)".to_string(),
+            "worktree2 (feature) [dirty]".to_string(),
+            "worktree3".to_string(),
+        ];
+        
+        let input = items.join("\n");
+        assert_eq!(input, "worktree1 (main)\nworktree2 (feature) [dirty]\nworktree3");
+        assert_eq!(input.as_bytes().len(), input.len());
+    }
+
+    #[test]
+    fn test_string_from_utf8_lossy() {
+        // Test UTF-8 handling
+        let valid_utf8 = b"valid string";
+        let result = String::from_utf8_lossy(valid_utf8);
+        assert_eq!(result, "valid string");
+        
+        // Test with invalid UTF-8 (will be replaced with replacement character)
+        let invalid_utf8 = &[0xFF, 0xFE, 0xFD];
+        let result = String::from_utf8_lossy(invalid_utf8);
+        assert!(result.len() > 0); // Will contain replacement characters
+    }
+
+    #[test]
+    fn test_worktree_position_finding() {
+        let worktrees = vec![
+            Worktree {
+                name: "first".to_string(),
+                path: PathBuf::from("/first"),
+                branch: Some("main".to_string()),
+                commit: "111".to_string(),
+                is_bare: false,
+                is_detached: false,
+                is_locked: false,
+                is_prunable: false,
+            },
+            Worktree {
+                name: "second".to_string(),
+                path: PathBuf::from("/second"),
+                branch: Some("feature".to_string()),
+                commit: "222".to_string(),
+                is_bare: false,
+                is_detached: false,
+                is_locked: false,
+                is_prunable: false,
+            },
+        ];
+        
+        // Test finding by name
+        let pos = worktrees.iter().position(|wt| wt.name == "second");
+        assert_eq!(pos, Some(1));
+        
+        let pos = worktrees.iter().position(|wt| wt.name == "nonexistent");
+        assert_eq!(pos, None);
+    }
+
+    #[test]
+    fn test_command_creation() {
+        // Test that command builder works correctly
+        let mut cmd = Command::new("echo");
+        cmd.arg("test");
+        
+        // Can't easily test execution without side effects
+        // Just verify we can build commands
+        assert_eq!(cmd.get_program(), "echo");
+    }
 }

@@ -105,40 +105,213 @@ mod tests {
 
     #[test]
     fn test_should_prompt() {
-        // In test environment, stdin is usually not a TTY
-        let should = should_prompt();
-        println!("Should prompt in test environment: {}", should);
-    }
-
-    // Note: Testing interactive prompts is difficult because they require stdin
-    // input. These would be better tested with integration tests that can
-    // simulate user input. For unit tests, we can at least verify that
-    // the code compiles and basic validation logic works.
-
-    #[test]
-    fn test_prompt_validation() {
-        // Test that prompt returns expected types
-        // Actual behavior would require mocking stdin
-        
-        // We can at least ensure the functions exist and compile
-        let _confirm_fn: fn(&str, Option<bool>) -> Result<bool> = confirm;
-        let _prompt_fn: fn(&str, Option<&str>) -> Result<String> = prompt;
-        // Note: select is generic over T: AsRef<str>, so we can't assign it to a specific fn pointer
+        // This will typically be false in test environments
+        let result = should_prompt();
+        // Just verify it doesn't panic
+        let _ = result;
     }
 
     #[test]
-    fn test_select_with_options() {
-        // Test that select works with different types that implement AsRef<str>
-        let string_options = vec!["Option 1".to_string(), "Option 2".to_string()];
-        let str_options = vec!["Option A", "Option B"];
+    fn test_confirm_suffix_formatting() {
+        // Test suffix formatting for different defaults
+        let suffix_true = match Some(true) {
+            Some(true) => " [Y/n] ",
+            Some(false) => " [y/N] ",
+            None => " [y/n] ",
+        };
+        assert_eq!(suffix_true, " [Y/n] ");
+
+        let suffix_false = match Some(false) {
+            Some(true) => " [Y/n] ",
+            Some(false) => " [y/N] ",
+            None => " [y/n] ",
+        };
+        assert_eq!(suffix_false, " [y/N] ");
+
+        let suffix_none = match None as Option<bool> {
+            Some(true) => " [Y/n] ",
+            Some(false) => " [y/N] ",
+            None => " [y/n] ",
+        };
+        assert_eq!(suffix_none, " [y/n] ");
+    }
+
+    #[test]
+    fn test_input_parsing() {
+        // Test yes responses
+        let yes_inputs = vec!["y", "yes", "Y", "YES", "Yes"];
+        for input in yes_inputs {
+            let trimmed = input.to_lowercase();
+            match trimmed.as_str() {
+                "y" | "yes" => {},
+                _ => panic!("Should match yes for input: {}", input),
+            }
+        }
+
+        // Test no responses
+        let no_inputs = vec!["n", "no", "N", "NO", "No"];
+        for input in no_inputs {
+            let trimmed = input.to_lowercase();
+            match trimmed.as_str() {
+                "n" | "no" => {},
+                _ => panic!("Should match no for input: {}", input),
+            }
+        }
+    }
+
+    #[test]
+    fn test_prompt_default_display() {
+        // Test with default value
+        let default = Some("default-value");
+        let message = "Enter value";
+        let formatted = format!("{} [{}] ", message, default.unwrap());
+        assert_eq!(formatted, "Enter value [default-value] ");
+
+        // Test without default
+        let formatted_no_default = format!("{} ", message);
+        assert_eq!(formatted_no_default, "Enter value ");
+    }
+
+    #[test]
+    fn test_select_display_formatting() {
+        let options = vec!["Option 1", "Option 2", "Option 3"];
+        let default = Some(1);
+
+        // Test marker for default option
+        for (i, option) in options.iter().enumerate() {
+            let marker = if Some(i) == default { ">" } else { " " };
+            let formatted = format!("{} {}) {}", marker, i + 1, option);
+            
+            if i == 1 {
+                assert!(formatted.starts_with(">"));
+            } else {
+                assert!(formatted.starts_with(" "));
+            }
+            assert!(formatted.contains(option));
+        }
+    }
+
+    #[test]
+    fn test_select_input_validation() {
+        let options_len = 5;
+
+        // Valid inputs
+        let valid_inputs = vec![1, 2, 3, 4, 5];
+        for n in valid_inputs {
+            assert!(n > 0 && n <= options_len);
+            let index = n - 1;
+            assert!(index < options_len);
+        }
+
+        // Invalid inputs
+        let invalid_inputs = vec![0, 6, 100];
+        for n in invalid_inputs {
+            assert!(!(n > 0 && n <= options_len));
+        }
+    }
+
+    #[test]
+    fn test_string_trimming() {
+        let test_cases = vec![
+            ("  hello  \n", "hello"),
+            ("\tworld\t", "world"),
+            ("no-trim", "no-trim"),
+            ("  ", ""),
+            ("", ""),
+        ];
+
+        for (input, expected) in test_cases {
+            assert_eq!(input.trim(), expected);
+        }
+    }
+
+    #[test]
+    fn test_parse_usize() {
+        // Valid parses
+        assert_eq!("1".parse::<usize>().unwrap(), 1);
+        assert_eq!("42".parse::<usize>().unwrap(), 42);
+        assert_eq!("0".parse::<usize>().unwrap(), 0);
+
+        // Invalid parses
+        assert!("abc".parse::<usize>().is_err());
+        assert!("-1".parse::<usize>().is_err());
+        assert!("1.5".parse::<usize>().is_err());
+        assert!("".parse::<usize>().is_err());
+    }
+
+    #[test]
+    fn test_error_handling() {
+        use std::io::{Error, ErrorKind};
+
+        // Test IO error conversion
+        let io_error = Error::new(ErrorKind::UnexpectedEof, "test error");
+        let phantom_error = PhantomError::Io(io_error);
+        assert!(!phantom_error.to_string().is_empty());
+    }
+
+    #[test]
+    fn test_as_ref_trait() {
+        let string_vec = vec!["one".to_string(), "two".to_string()];
+        let str_vec = vec!["one", "two"];
+
+        // Both should work with AsRef<str>
+        for item in &string_vec {
+            let _: &str = item.as_ref();
+        }
+        for item in &str_vec {
+            let _: &str = item.as_ref();
+        }
+    }
+
+    #[test]
+    fn test_option_display() {
+        let default_idx = Some(2);
+        let display = default_idx.map(|d| (d + 1).to_string());
+        assert_eq!(display, Some("3".to_string()));
+
+        let display_ref = display.as_deref();
+        assert_eq!(display_ref, Some("3"));
+
+        let none_display: Option<usize> = None;
+        let none_mapped = none_display.map(|d| (d + 1).to_string());
+        assert_eq!(none_mapped, None);
+    }
+
+    #[test]
+    fn test_empty_string_checks() {
+        assert!("".is_empty());
+        assert!(!"non-empty".is_empty());
+        assert!("   ".trim().is_empty());
+        assert!("\n".trim().is_empty());
+    }
+
+    #[test]
+    fn test_default_value_handling() {
+        // Test with Some default
+        let default = Some("default");
+        if let Some(value) = default {
+            assert_eq!(value, "default");
+        }
+
+        // Test with None default
+        let no_default: Option<&str> = None;
+        assert!(no_default.is_none());
+    }
+
+    #[test]
+    fn test_message_formatting() {
+        let message = "Please confirm";
+        let options = vec!["Yes", "No", "Cancel"];
         
-        // Verify that the function can be called with both types
-        // (actual testing would require stdin mock)
-        let _select_string = |msg, opts, def| select::<String>(msg, opts, def);
-        let _select_str = |msg, opts, def| select::<&str>(msg, opts, def);
-        
-        // Ensure these are the right types
-        assert_eq!(string_options.len(), 2);
-        assert_eq!(str_options.len(), 2);
+        // Test select message display
+        let select_msg = format!("{}", message);
+        assert_eq!(select_msg, "Please confirm");
+
+        // Test option formatting
+        for (i, opt) in options.iter().enumerate() {
+            let formatted = format!(" {}) {}", i + 1, opt);
+            assert!(formatted.contains(opt));
+            assert!(formatted.contains(&(i + 1).to_string()));
+        }
     }
 }

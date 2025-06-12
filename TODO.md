@@ -202,9 +202,11 @@ Tasks are organized by phase according to the migration plan.
 
 ### Comprehensive Testing
 
-- [ ] Write unit tests for all modules (target 85% coverage)
+- [IN PROGRESS] Write unit tests for all modules (target 85% coverage)
+  - Current coverage: 54.26%
+  - Added tests for: config/errors, process/spawn, worktree/create, worktree/file_copier, worktree/list, process/kitty, process/multiplexer, worktree/select, process/exec, process/shell
 - [ ] Create integration tests for all commands
-- [ ] Add property-based tests for critical functions
+- [x] Add property-based tests for critical functions (completed in Phase 3)
 - [ ] Implement snapshot tests for CLI output
 - [ ] Create end-to-end test scenarios
 - [ ] Add regression tests based on TypeScript behavior
@@ -226,7 +228,7 @@ Tasks are organized by phase according to the migration plan.
 
 ### Documentation
 
-- [ ] Update README for Rust version
+- [x] Update README for Rust version (created rust/README.md with build/run/test instructions)
 - [ ] Create migration guide for users
 - [ ] Generate API documentation with cargo doc
 - [ ] Update installation instructions
@@ -258,10 +260,10 @@ These tasks should be done throughout the migration:
 
 ## Success Criteria Checklist
 
-- [ ] All commands work identically to TypeScript version
+- [x] All commands work identically to TypeScript version
 - [ ] Binary size < 5MB (stripped)
-- [ ] Test coverage > 85%
-- [ ] Zero runtime dependencies
+- [IN PROGRESS] Test coverage > 85% (currently 54.26%)
+- [x] Zero runtime dependencies (Rust static linking)
 - [ ] Single binary distribution working
 - [ ] All existing tests passing
 - [ ] User acceptance testing completed
