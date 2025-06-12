@@ -8,6 +8,12 @@ license = "MIT"
 repository = "https://github.com/aku11i/phantom"
 keywords = ["git", "worktree", "cli", "development", "workflow"]
 categories = ["command-line-utilities", "development-tools"]
+readme = "../README.md"
+rust-version = "1.75.0"
+
+[[bin]]
+name = "phantom"
+path = "src/main.rs"
 
 [dependencies]
 # Core

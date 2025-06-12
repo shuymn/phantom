@@ -4,9 +4,24 @@ This is the Rust implementation of phantom, a CLI tool for managing Git worktree
 
 ## Prerequisites
 
-- Rust 1.70 or later
+- Rust 1.75.0 or later
 - Cargo (comes with Rust)
-- Git 2.20 or later
+- Git 2.5 or later
+
+## Installation
+
+### Clone and Build
+```bash
+git clone https://github.com/aku11i/phantom.git
+cd phantom/rust
+cargo build --release
+sudo cp target/release/phantom /usr/local/bin/
+```
+
+### Using Cargo Install
+```bash
+cargo install --git https://github.com/aku11i/phantom --path rust
+```
 
 ## Building
 
