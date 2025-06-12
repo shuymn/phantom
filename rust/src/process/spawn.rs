@@ -338,7 +338,7 @@ mod tests {
     async fn test_spawn_config_debug() {
         let mut env = HashMap::new();
         env.insert("KEY".to_string(), "value".to_string());
-        
+
         let config = SpawnConfig {
             command: "test".to_string(),
             args: vec!["arg1".to_string(), "arg2".to_string()],
@@ -405,7 +405,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_execute_command_failure() {
-        let result = execute_command("ls", vec!["/nonexistent/path/that/should/not/exist"], None).await;
+        let result =
+            execute_command("ls", vec!["/nonexistent/path/that/should/not/exist"], None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             PhantomError::ProcessExecution(msg) => assert!(msg.contains("exit code")),
@@ -418,7 +419,9 @@ mod tests {
         let result = execute_command("nonexistent-command-xyz123", vec![], None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::ProcessExecution(msg) => assert!(msg.contains("Failed to execute command")),
+            PhantomError::ProcessExecution(msg) => {
+                assert!(msg.contains("Failed to execute command"))
+            }
             _ => panic!("Expected ProcessExecution error"),
         }
     }
@@ -455,7 +458,7 @@ mod tests {
 
         let mut child = result.unwrap();
         assert!(child.id().is_some());
-        
+
         // Wait for completion
         let _ = child.wait().await;
     }
