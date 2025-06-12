@@ -156,12 +156,9 @@ mod tests {
 
     #[test]
     fn test_fzf_options_debug() {
-        let options = FzfOptions {
-            prompt: Some("test".to_string()),
-            header: None,
-            preview_command: None,
-        };
-        
+        let options =
+            FzfOptions { prompt: Some("test".to_string()), header: None, preview_command: None };
+
         let debug_str = format!("{:?}", options);
         assert!(debug_str.contains("FzfOptions"));
         assert!(debug_str.contains("prompt: Some"));
@@ -174,7 +171,7 @@ mod tests {
             header: Some("header".to_string()),
             preview_command: Some("preview".to_string()),
         };
-        
+
         let cloned = options.clone();
         assert_eq!(options.prompt, cloned.prompt);
         assert_eq!(options.header, cloned.header);
@@ -186,10 +183,10 @@ mod tests {
     async fn test_select_with_fzf_single_item() {
         let items = vec!["single-item".to_string()];
         let result = select_with_fzf(items, FzfOptions::default()).await;
-        
+
         // The result depends on whether fzf is available
         match result {
-            Ok(_) => {}, // Either Some or None is acceptable
+            Ok(_) => {} // Either Some or None is acceptable
             Err(e) => {
                 // Should only error if fzf is not found
                 assert!(e.to_string().contains("fzf command not found"));
@@ -206,11 +203,11 @@ mod tests {
             header: Some("Items".to_string()),
             preview_command: Some("echo preview: {}".to_string()),
         };
-        
+
         let result = select_with_fzf(items, options).await;
-        
+
         match result {
-            Ok(_) => {}, // Either Some or None is acceptable
+            Ok(_) => {} // Either Some or None is acceptable
             Err(e) => {
                 // Should only error if fzf is not found
                 assert!(e.to_string().contains("fzf"));
@@ -224,20 +221,17 @@ mod tests {
         let io_error = std::io::Error::new(std::io::ErrorKind::NotFound, "test error");
         let phantom_error = PhantomError::Io(io_error);
         assert!(!phantom_error.to_string().is_empty());
-        
+
         let exec_error = PhantomError::ProcessExecution(
-            "fzf command not found. Please install fzf first.".to_string()
+            "fzf command not found. Please install fzf first.".to_string(),
         );
         assert!(exec_error.to_string().contains("fzf command not found"));
-        
-        let exit_error = PhantomError::ProcessExecution(
-            "fzf exited with code 2: stderr output".to_string()
-        );
+
+        let exit_error =
+            PhantomError::ProcessExecution("fzf exited with code 2: stderr output".to_string());
         assert!(exit_error.to_string().contains("exited with code"));
-        
-        let signal_error = PhantomError::ProcessExecution(
-            "fzf terminated by signal".to_string()
-        );
+
+        let signal_error = PhantomError::ProcessExecution("fzf terminated by signal".to_string());
         assert!(signal_error.to_string().contains("terminated by signal"));
     }
 
@@ -247,11 +241,11 @@ mod tests {
         let joined = items.join("\n");
         assert_eq!(joined, "first\nsecond\nthird");
         assert_eq!(joined.as_bytes().len(), 18); // 5 + 1 + 6 + 1 + 5
-        
+
         // Test trimming
         let with_whitespace = "  selected item  \n";
         assert_eq!(with_whitespace.trim(), "selected item");
-        
+
         // Test empty string
         let empty = "";
         assert!(empty.is_empty());
@@ -263,7 +257,7 @@ mod tests {
         let valid_utf8 = b"valid UTF-8 string";
         let result = String::from_utf8_lossy(valid_utf8);
         assert_eq!(result, "valid UTF-8 string");
-        
+
         // Test with non-ASCII UTF-8
         let unicode = "hello 世界".as_bytes();
         let result = String::from_utf8_lossy(unicode);
@@ -280,7 +274,7 @@ mod tests {
             (2, "Error"),
             (255, "Other error"),
         ];
-        
+
         for (code, description) in exit_codes {
             match code {
                 0 => assert_eq!(description, "Success"),
@@ -294,10 +288,10 @@ mod tests {
     #[test]
     fn test_io_error_kinds() {
         use std::io::ErrorKind;
-        
+
         let not_found = std::io::Error::new(ErrorKind::NotFound, "not found");
         assert_eq!(not_found.kind(), ErrorKind::NotFound);
-        
+
         let permission = std::io::Error::new(ErrorKind::PermissionDenied, "denied");
         assert_eq!(permission.kind(), ErrorKind::PermissionDenied);
     }
@@ -305,14 +299,11 @@ mod tests {
     #[tokio::test]
     #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_with_fzf_multiple_items() {
-        let items = vec![
-            "option-one".to_string(),
-            "option-two".to_string(),
-            "option-three".to_string(),
-        ];
-        
+        let items =
+            vec!["option-one".to_string(), "option-two".to_string(), "option-three".to_string()];
+
         let _result = select_with_fzf(items.clone(), FzfOptions::default()).await;
-        
+
         // Verify the input would be formatted correctly
         let expected_input = items.join("\n");
         assert_eq!(expected_input, "option-one\noption-two\noption-three");
@@ -321,16 +312,16 @@ mod tests {
     #[test]
     fn test_fzf_command_args() {
         let mut cmd = Command::new("fzf");
-        
+
         // Test adding prompt
         cmd.arg("--prompt").arg("Select: ");
-        
+
         // Test adding header
         cmd.arg("--header").arg("Choose an option");
-        
+
         // Test adding preview
         cmd.arg("--preview").arg("cat {}");
-        
+
         // Just verify we can build the command
         assert_eq!(cmd.get_program(), "fzf");
     }
