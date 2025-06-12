@@ -229,7 +229,7 @@ mod tests {
         let original = TmuxSplitDirection::Horizontal;
         let copied = original;
         let cloned = original.clone();
-        
+
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
     }
@@ -352,7 +352,7 @@ mod tests {
         // This will fail if tmux is not installed, which is expected in CI
         let result = execute_tmux_command(options).await;
         match result {
-            Ok(_) => {}, // tmux executed successfully
+            Ok(_) => {} // tmux executed successfully
             Err(e) => {
                 // Expected to fail if tmux is not installed
                 assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
@@ -373,7 +373,7 @@ mod tests {
 
         let result = execute_tmux_command(options).await;
         match result {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
             }
@@ -393,7 +393,7 @@ mod tests {
 
         let result = execute_tmux_command(options).await;
         match result {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
             }
@@ -404,7 +404,7 @@ mod tests {
     async fn test_create_tmux_session() {
         let result = create_tmux_session("test-session", None).await;
         match result {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
             }
@@ -416,7 +416,7 @@ mod tests {
         let cwd = Path::new("/tmp");
         let result = create_tmux_session("test-session-cwd", Some(cwd)).await;
         match result {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
             }
@@ -427,7 +427,7 @@ mod tests {
     async fn test_attach_tmux_session() {
         let result = attach_tmux_session("test-session").await;
         match result {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
             }
@@ -481,26 +481,26 @@ mod tests {
 
         // Simulate building tmux args
         let mut tmux_args = Vec::new();
-        
+
         // New window
         tmux_args.push("new-window".to_string());
         tmux_args.push("-n".to_string());
         tmux_args.push("editor".to_string());
-        
+
         // Working directory
         tmux_args.push("-c".to_string());
         tmux_args.push("/workspace".to_string());
-        
+
         // Environment variables
         tmux_args.push("-e".to_string());
         tmux_args.push("VAR1=value1".to_string());
         tmux_args.push("-e".to_string());
         tmux_args.push("VAR2=value2".to_string());
-        
+
         // Command and args
         tmux_args.push("vim".to_string());
         tmux_args.push("file.txt".to_string());
-        
+
         assert!(tmux_args.contains(&"new-window".to_string()));
         assert!(tmux_args.contains(&"-n".to_string()));
         assert!(tmux_args.contains(&"editor".to_string()));
@@ -513,14 +513,9 @@ mod tests {
 
     #[test]
     fn test_session_name_formatting() {
-        let session_names = vec![
-            "simple",
-            "with-dash",
-            "with_underscore",
-            "123numeric",
-            "MixedCase",
-        ];
-        
+        let session_names =
+            vec!["simple", "with-dash", "with_underscore", "123numeric", "MixedCase"];
+
         for name in session_names {
             assert!(!name.is_empty());
             assert!(name.chars().all(|c| c.is_ascii()));
@@ -530,23 +525,19 @@ mod tests {
     #[test]
     fn test_parse_session_list() {
         let output = "session1\nsession2\nsession3\n";
-        let sessions: Vec<String> = output.lines()
-            .map(|s| s.to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
-        
+        let sessions: Vec<String> =
+            output.lines().map(|s| s.to_string()).filter(|s| !s.is_empty()).collect();
+
         assert_eq!(sessions.len(), 3);
         assert_eq!(sessions[0], "session1");
         assert_eq!(sessions[1], "session2");
         assert_eq!(sessions[2], "session3");
-        
+
         // Test with empty lines
         let output_with_empty = "session1\n\nsession2\n\n";
-        let sessions2: Vec<String> = output_with_empty.lines()
-            .map(|s| s.to_string())
-            .filter(|s| !s.is_empty())
-            .collect();
-        
+        let sessions2: Vec<String> =
+            output_with_empty.lines().map(|s| s.to_string()).filter(|s| !s.is_empty()).collect();
+
         assert_eq!(sessions2.len(), 2);
     }
 
@@ -555,10 +546,10 @@ mod tests {
         // Test ProcessExecution error handling
         let exec_error = PhantomError::ProcessExecution("tmux failed".to_string());
         assert!(exec_error.to_string().contains("tmux failed"));
-        
+
         // Test pattern matching for has-session
         match exec_error {
-            PhantomError::ProcessExecution(_) => {},
+            PhantomError::ProcessExecution(_) => {}
             _ => panic!("Expected ProcessExecution error"),
         }
     }
@@ -571,7 +562,7 @@ mod tests {
             Path::new("/path/with spaces"),
             Path::new("/path/with/多/unicode"),
         ];
-        
+
         for path in paths {
             let string = path.to_string_lossy().to_string();
             assert!(!string.is_empty());
@@ -585,7 +576,7 @@ mod tests {
             ("HOME".to_string(), "/home/user".to_string()),
             ("TERM".to_string(), "xterm-256color".to_string()),
         ]);
-        
+
         for (key, value) in env_vars {
             let formatted = format!("{}={}", key, value);
             assert!(formatted.contains('='));
