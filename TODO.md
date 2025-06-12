@@ -148,7 +148,7 @@ Tasks are organized by phase according to the migration plan.
   - [x] `list` command
   - [x] `where` command
   - [x] `delete` command
-  - [ ] `exec` command
+  - [x] `exec` command
   - [ ] `shell` command
   - [x] `version` command
   - [ ] `completion` command
