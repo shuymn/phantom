@@ -129,12 +129,12 @@ mod tests {
         // Test individual width/height functions
         let width = terminal_width();
         let height = terminal_height();
-        
+
         if width.is_some() && height.is_some() {
             assert!(width.unwrap() > 0);
             assert!(height.unwrap() > 0);
         }
-        
+
         // If we can get full size, individual functions should work too
         if let Some((w, h)) = terminal_size() {
             assert_eq!(width, Some(w));
@@ -148,20 +148,20 @@ mod tests {
         let orig_term = env::var("TERM").ok();
         let orig_no_color = env::var("NO_COLOR").ok();
         let orig_force_color = env::var("FORCE_COLOR").ok();
-        
+
         // Clean environment
         env::remove_var("NO_COLOR");
         env::remove_var("FORCE_COLOR");
-        
+
         // Test with dumb terminal
         env::set_var("TERM", "dumb");
         assert!(!should_use_color());
-        
+
         // Test with normal terminal
         env::set_var("TERM", "xterm-256color");
         // Result depends on if stdout is a TTY
         let _ = should_use_color();
-        
+
         // Restore original env vars
         match orig_term {
             Some(val) => env::set_var("TERM", val),

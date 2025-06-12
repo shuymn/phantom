@@ -290,7 +290,7 @@ mod tests {
         // Create file with specific permissions
         let file = source_dir.path().join("executable.sh");
         fs::write(&file, "#!/bin/bash\necho test").await.unwrap();
-        
+
         // Set executable permission
         let mut perms = fs::metadata(&file).await.unwrap().permissions();
         perms.set_mode(0o755);
