@@ -313,15 +313,15 @@ mod tests {
     fn test_get_phantom_env_with_ps1() {
         // Temporarily set PS1
         env::set_var("PS1", "$ ");
-        
+
         let env = get_phantom_env("test-wt", "/path/to/test-wt");
-        
+
         // Should have modified PS1
         if let Some(ps1) = env.get("PS1") {
             assert!(ps1.contains("(phantom:test-wt)"));
             assert!(ps1.contains("$ "));
         }
-        
+
         // Clean up
         env::remove_var("PS1");
     }
@@ -331,7 +331,7 @@ mod tests {
         // Set the environment variable
         env::set_var("PHANTOM_ACTIVE", "1");
         assert!(is_phantom_session());
-        
+
         // Clean up
         env::remove_var("PHANTOM_ACTIVE");
         assert!(!is_phantom_session());
@@ -342,7 +342,7 @@ mod tests {
         // Set the environment variable
         env::set_var("PHANTOM_WORKTREE", "my-feature");
         assert_eq!(current_phantom_worktree(), Some("my-feature".to_string()));
-        
+
         // Clean up
         env::remove_var("PHANTOM_WORKTREE");
         assert!(current_phantom_worktree().is_none());
