@@ -98,29 +98,23 @@ jobs:
       - name: Generate coverage
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
 
-      - name: Install octocov
-        run: |
-          curl -Lo octocov.tar.gz https://github.com/k1LoW/octocov/releases/latest/download/octocov_linux_amd64.tar.gz
-          tar -xzf octocov.tar.gz
-          chmod +x octocov
-          sudo mv octocov /usr/local/bin/
-
-      - name: Generate coverage report
-        run: |
-          cat > .octocov.yml << EOF
-          coverage:
-            paths:
-              - ./lcov.info
-            target: 55%
-          report:
-            datastores:
-              - local://reports
-          comment:
-            enable: true
-          diff:
-            enable: true
-          EOF
-          octocov
+      - name: Generate coverage report with octocov
+        uses: k1LoW/octocov-action@v1
+        with:
+          config: |
+            coverage:
+              paths:
+                - ./lcov.info
+              target: 55%
+            comment:
+              if: is_pull_request
+            report:
+              if: is_default_branch
+              datastores:
+                - artifact://${GITHUB_REPOSITORY}
+            diff:
+              datastores:
+                - artifact://${GITHUB_REPOSITORY}
 
   build:
     name: Build Binaries
