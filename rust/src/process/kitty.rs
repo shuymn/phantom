@@ -163,7 +163,7 @@ mod tests {
         let original = KittySplitDirection::Vertical;
         let copied = original;
         let cloned = original.clone();
-        
+
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
     }
@@ -277,7 +277,7 @@ mod tests {
     fn test_kitty_options_comprehensive() {
         let mut env = HashMap::new();
         env.insert("EDITOR".to_string(), "vim".to_string());
-        
+
         let options = KittyOptions {
             direction: KittySplitDirection::Horizontal,
             command: "bash".to_string(),
@@ -320,19 +320,19 @@ mod tests {
         // In test environment, these env vars are usually not set
         let has_kitty_term = env::var("TERM").map(|t| t == "xterm-kitty").unwrap_or(false);
         let has_kitty_window_id = env::var("KITTY_WINDOW_ID").is_ok();
-        
+
         // The function returns true if either condition is met
         let expected = has_kitty_term || has_kitty_window_id;
-        
+
         // This just verifies the logic, actual test is in test_is_inside_kitty
         assert!(!expected || expected); // Always true, just for logic verification
     }
 
     #[test]
     fn test_kitty_success_type_alias() {
-        use super::KittySuccess;
         use super::super::spawn::SpawnSuccess;
-        
+        use super::KittySuccess;
+
         // Verify that KittySuccess is just an alias for SpawnSuccess
         let success: KittySuccess = SpawnSuccess { exit_code: 0 };
         assert_eq!(success.exit_code, 0);
