@@ -6,9 +6,9 @@ Tasks are organized by phase according to the migration plan.
 ## Pre-Migration Setup
 
 - [x] Finalize Unix-only decision with stakeholders
-- [ ] Create migration tracking project board on GitHub
+- [x] ~~Create migration tracking project board on GitHub~~ (NOT DONE - Using TODO.md instead)
 - [x] Set up migration branch strategy (e.g., `rust-migration` branch)
-- [ ] Document current TypeScript version behavior for reference
+- [x] ~~Document current TypeScript version behavior for reference~~ (NOT DONE - Migration completed without formal docs)
 
 ## Phase 1: Foundation & Core Types (Weeks 1-2)
 
@@ -167,35 +167,36 @@ Tasks are organized by phase according to the migration plan.
 ### CLI Features
 
 - [x] Add verbose/quiet flags
-- [x] Implement dry-run mode (new feature - not in TypeScript version)
-  - [x] Decision: Skip for now to maintain TypeScript parity
-  - [x] Can be added as enhancement after migration is complete
-  - [x] Original subtasks if implementing later:
-    - [ ] Add --dry-run flag to create command
-    - [ ] Add --dry-run flag to delete command  
-    - [ ] Add --dry-run flag to attach command
-    - [ ] Implement dry-run logic to show operations without executing
-    - [ ] Add tests for dry-run mode
+- [x] ~~Implement dry-run mode~~ (NOT IMPLEMENTED - Not in TypeScript version)
+  - [x] Reason: Maintaining TypeScript feature parity for migration
+  - [x] Status: Feature not present in TypeScript, skipped for compatibility
 - [x] Add JSON output format option
   - [x] create command - outputs created worktree info
   - [x] delete command - outputs deletion result
   - [x] where command - outputs worktree path
   - [x] list command - outputs array of worktrees
   - [x] attach command - outputs attachment result
-  - [x] exec command - JSON not applicable
-    - [x] Evaluated: Normal mode replaces process with command's exit code
-    - [x] Tmux/kitty mode could benefit from JSON but breaks TypeScript compatibility
-    - [x] Decision: No JSON output to maintain compatibility
-  - [x] shell command - JSON not applicable
-    - [x] Evaluated: Normal mode replaces process with shell
-    - [x] Tmux/kitty mode could benefit from JSON but breaks TypeScript compatibility
-    - [x] Decision: No JSON output to maintain compatibility
-  - [x] version command - outputs version info
-  - [x] completion command - JSON not applicable
-    - [x] Evaluated: Must output raw shell scripts for direct sourcing
-    - [x] JSON wrapper would break shell's ability to source the script
-    - [x] Decision: No JSON output, maintain raw script output
+  - [x] ~~exec command~~ (NO JSON - Process replacement incompatible)
+    - [x] Reason: Command replaces current process with exit code passthrough
+    - [x] Note: TypeScript version also has no JSON output
+  - [x] ~~shell command~~ (NO JSON - Interactive shell incompatible)
+    - [x] Reason: Opens interactive shell session, replaces process
+    - [x] Note: TypeScript version also has no JSON output
+  - [x] version command - outputs version info (JSON ADDED)
+  - [x] ~~completion command~~ (NO JSON - Shell script sourcing requirement)
+    - [x] Reason: Shell requires raw script output for direct sourcing
+    - [x] Note: JSON wrapper would break functionality
 - [x] Maintain exact CLI compatibility with TypeScript version
+
+### Phase 5 Summary
+- ✅ All 9 CLI commands implemented and functional
+- ✅ All command handlers with async support
+- ✅ Shell completions for Fish, Zsh, and Bash
+- ✅ Error handling with proper exit codes
+- ✅ Verbose/quiet global flags
+- ✅ JSON output added to 6 commands (new feature)
+- ❌ Dry-run mode skipped (not in TypeScript version)
+- ✅ Full CLI compatibility with TypeScript version maintained
 
 ## Phase 6: Testing & Distribution (Weeks 12-13)
 

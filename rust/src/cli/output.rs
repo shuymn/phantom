@@ -93,3 +93,154 @@ pub fn output() -> &'static Output {
         OUTPUT.get().unwrap()
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct TestData {
+        name: String,
+        value: i32,
+    }
+
+    #[test]
+    fn test_output_creation() {
+        let output = Output::new(false, false, false);
+        assert!(!output.quiet);
+        assert!(!output.verbose);
+        assert!(!output.json);
+
+        let output = Output::new(true, true, true);
+        assert!(output.quiet);
+        assert!(output.verbose);
+        assert!(output.json);
+    }
+
+    #[test]
+    fn test_output_log() {
+        // Normal output
+        let output = Output::new(false, false, false);
+        output.log("test message"); // Should print
+
+        // Quiet mode
+        let output = Output::new(true, false, false);
+        output.log("test message"); // Should not print
+
+        // JSON mode
+        let output = Output::new(false, false, true);
+        output.log("test message"); // Should not print
+    }
+
+    #[test]
+    fn test_output_debug() {
+        // Normal output
+        let output = Output::new(false, false, false);
+        output.debug("debug message"); // Should not print
+
+        // Verbose mode
+        let output = Output::new(false, true, false);
+        output.debug("debug message"); // Should print
+
+        // Quiet mode overrides verbose
+        let output = Output::new(true, true, false);
+        output.debug("debug message"); // Should not print
+
+        // JSON mode
+        let output = Output::new(false, true, true);
+        output.debug("debug message"); // Should not print
+    }
+
+    #[test]
+    fn test_output_error() {
+        // Normal output
+        let output = Output::new(false, false, false);
+        output.error("error message"); // Should print to stderr
+
+        // JSON mode
+        let output = Output::new(false, false, true);
+        output.error("error message"); // Should not print
+    }
+
+    #[test]
+    fn test_output_json() {
+        let data = TestData {
+            name: "test".to_string(),
+            value: 42,
+        };
+
+        // JSON mode
+        let output = Output::new(false, false, true);
+        let result = output.json(&data);
+        assert!(result.is_ok());
+
+        // Non-JSON mode
+        let output = Output::new(false, false, false);
+        let result = output.json(&data);
+        assert!(result.is_ok()); // Should succeed but not print
+    }
+
+    #[test]
+    fn test_output_success() {
+        // Normal output
+        let output = Output::new(false, false, false);
+        output.success("success message"); // Should print
+
+        // Quiet mode
+        let output = Output::new(true, false, false);
+        output.success("success message"); // Should not print
+
+        // JSON mode
+        let output = Output::new(false, false, true);
+        output.success("success message"); // Should not print
+    }
+
+    #[test]
+    fn test_output_warn() {
+        // Normal output
+        let output = Output::new(false, false, false);
+        output.warn("warning message"); // Should print to stderr
+
+        // Quiet mode
+        let output = Output::new(true, false, false);
+        output.warn("warning message"); // Should not print
+
+        // JSON mode
+        let output = Output::new(false, false, true);
+        output.warn("warning message"); // Should not print
+    }
+
+    #[test]
+    fn test_output_print() {
+        // Normal output
+        let output = Output::new(false, false, false);
+        output.print("test"); // Should print without newline
+
+        // Quiet mode
+        let output = Output::new(true, false, false);
+        output.print("test"); // Should not print
+
+        // JSON mode
+        let output = Output::new(false, false, true);
+        output.print("test"); // Should not print
+    }
+
+    #[test]
+    fn test_init_output() {
+        // Test initialization
+        init_output(false, true, false);
+        let output = output();
+        assert!(!output.quiet);
+        assert!(output.verbose);
+        assert!(!output.json);
+    }
+
+    #[test]
+    fn test_output_singleton() {
+        // Test that output() returns a singleton
+        let output1 = output();
+        let output2 = output();
+        assert_eq!(output1 as *const _, output2 as *const _);
+    }
+}

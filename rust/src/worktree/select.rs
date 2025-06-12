@@ -235,4 +235,89 @@ mod tests {
 
         assert_eq!(formatted, "feature (feature-branch) [dirty]");
     }
+
+    #[test]
+    fn test_select_worktree_result() {
+        let result = SelectWorktreeResult {
+            name: "test".to_string(),
+            branch: Some("main".to_string()),
+            is_clean: true,
+        };
+
+        assert_eq!(result.name, "test");
+        assert_eq!(result.branch, Some("main".to_string()));
+        assert!(result.is_clean);
+    }
+
+    #[test]
+    fn test_select_worktree_result_clone() {
+        let result = SelectWorktreeResult {
+            name: "test".to_string(),
+            branch: Some("main".to_string()),
+            is_clean: false,
+        };
+
+        let cloned = result.clone();
+        assert_eq!(result.name, cloned.name);
+        assert_eq!(result.branch, cloned.branch);
+        assert_eq!(result.is_clean, cloned.is_clean);
+    }
+
+    #[test]
+    fn test_select_worktree_result_debug() {
+        let result = SelectWorktreeResult {
+            name: "test".to_string(),
+            branch: None,
+            is_clean: true,
+        };
+
+        let debug_str = format!("{:?}", result);
+        assert!(debug_str.contains("SelectWorktreeResult"));
+        assert!(debug_str.contains("name"));
+    }
+
+    #[test]
+    fn test_fzf_options_default() {
+        let options = FzfOptions::default();
+        assert!(options.prompt.is_none());
+        assert!(options.header.is_none());
+        assert!(options.preview_command.is_none());
+    }
+
+    #[test]
+    fn test_fzf_options_with_values() {
+        let options = FzfOptions {
+            prompt: Some("Select:".to_string()),
+            header: Some("Worktrees".to_string()),
+            preview_command: Some("echo {}".to_string()),
+        };
+
+        assert_eq!(options.prompt, Some("Select:".to_string()));
+        assert_eq!(options.header, Some("Worktrees".to_string()));
+        assert_eq!(options.preview_command, Some("echo {}".to_string()));
+    }
+
+    #[test]
+    fn test_format_worktree_no_branch() {
+        let worktree = Worktree {
+            name: "detached".to_string(),
+            path: std::path::PathBuf::from("/path/to/worktree"),
+            branch: None,
+            commit: "abc123".to_string(),
+            is_bare: false,
+            is_detached: true,
+            is_locked: false,
+            is_prunable: false,
+        };
+
+        let is_clean = true;
+        let formatted = format!(
+            "{}{}{}",
+            worktree.name,
+            worktree.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default(),
+            if !is_clean { " [dirty]" } else { "" }
+        );
+
+        assert_eq!(formatted, "detached");
+    }
 }

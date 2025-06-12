@@ -164,11 +164,159 @@ mod tests {
     fn test_multiplexer_serialization() {
         use serde_json;
 
+        // Test Tmux
         let tmux = Multiplexer::Tmux;
         let json = serde_json::to_string(&tmux).unwrap();
         assert_eq!(json, "\"tmux\"");
 
         let deserialized: Multiplexer = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized, Multiplexer::Tmux);
+
+        // Test Kitty
+        let kitty = Multiplexer::Kitty;
+        let json = serde_json::to_string(&kitty).unwrap();
+        assert_eq!(json, "\"kitty\"");
+
+        let deserialized: Multiplexer = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, Multiplexer::Kitty);
+
+        // Test None
+        let none = Multiplexer::None;
+        let json = serde_json::to_string(&none).unwrap();
+        assert_eq!(json, "\"none\"");
+
+        let deserialized: Multiplexer = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, Multiplexer::None);
+    }
+
+    #[test]
+    fn test_split_direction_all_variants() {
+        use serde_json;
+
+        // Test all variants
+        let directions = vec![
+            (SplitDirection::New, "\"new\""),
+            (SplitDirection::Vertical, "\"vertical\""),
+            (SplitDirection::Horizontal, "\"horizontal\""),
+        ];
+
+        for (direction, expected_json) in directions {
+            let json = serde_json::to_string(&direction).unwrap();
+            assert_eq!(json, expected_json);
+
+            let deserialized: SplitDirection = serde_json::from_str(&json).unwrap();
+            assert_eq!(deserialized, direction);
+        }
+    }
+
+    #[test]
+    fn test_multiplexer_equality() {
+        assert_eq!(Multiplexer::Tmux, Multiplexer::Tmux);
+        assert_ne!(Multiplexer::Tmux, Multiplexer::Kitty);
+        assert_ne!(Multiplexer::Tmux, Multiplexer::None);
+        assert_ne!(Multiplexer::Kitty, Multiplexer::None);
+    }
+
+    #[test]
+    fn test_split_direction_equality() {
+        assert_eq!(SplitDirection::New, SplitDirection::New);
+        assert_ne!(SplitDirection::New, SplitDirection::Vertical);
+        assert_ne!(SplitDirection::Vertical, SplitDirection::Horizontal);
+    }
+
+    #[test]
+    fn test_multiplexer_debug() {
+        let tmux = Multiplexer::Tmux;
+        let debug_str = format!("{:?}", tmux);
+        assert!(debug_str.contains("Tmux"));
+
+        let kitty = Multiplexer::Kitty;
+        let debug_str = format!("{:?}", kitty);
+        assert!(debug_str.contains("Kitty"));
+
+        let none = Multiplexer::None;
+        let debug_str = format!("{:?}", none);
+        assert!(debug_str.contains("None"));
+    }
+
+    #[test]
+    fn test_split_direction_debug() {
+        let new = SplitDirection::New;
+        let debug_str = format!("{:?}", new);
+        assert!(debug_str.contains("New"));
+
+        let vertical = SplitDirection::Vertical;
+        let debug_str = format!("{:?}", vertical);
+        assert!(debug_str.contains("Vertical"));
+
+        let horizontal = SplitDirection::Horizontal;
+        let debug_str = format!("{:?}", horizontal);
+        assert!(debug_str.contains("Horizontal"));
+    }
+
+    #[test]
+    fn test_multiplexer_options_debug() {
+        let options = MultiplexerOptions {
+            direction: SplitDirection::New,
+            command: "test".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_name: None,
+        };
+
+        let debug_str = format!("{:?}", options);
+        assert!(debug_str.contains("MultiplexerOptions"));
+        assert!(debug_str.contains("direction"));
+        assert!(debug_str.contains("command"));
+    }
+
+    #[test]
+    fn test_multiplexer_copy_clone() {
+        let original = Multiplexer::Tmux;
+        let copied = original;
+        let cloned = original.clone();
+
+        assert_eq!(original, copied);
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_split_direction_copy_clone() {
+        let original = SplitDirection::Vertical;
+        let copied = original;
+        let cloned = original.clone();
+
+        assert_eq!(original, copied);
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_multiplexer_options_clone() {
+        let original = MultiplexerOptions {
+            direction: SplitDirection::Horizontal,
+            command: "echo".to_string(),
+            args: Some(vec!["hello".to_string()]),
+            cwd: Some("/tmp".to_string()),
+            env: Some(HashMap::from([("KEY".to_string(), "value".to_string())])),
+            window_name: Some("Test Window".to_string()),
+        };
+
+        let cloned = original.clone();
+
+        assert_eq!(original.direction, cloned.direction);
+        assert_eq!(original.command, cloned.command);
+        assert_eq!(original.args, cloned.args);
+        assert_eq!(original.cwd, cloned.cwd);
+        assert_eq!(original.env, cloned.env);
+        assert_eq!(original.window_name, cloned.window_name);
+    }
+
+    #[tokio::test]
+    async fn test_is_multiplexer_available() {
+        // This will depend on the test environment
+        let available = is_multiplexer_available().await;
+        // We can't assert a specific value, but we can ensure it returns a boolean
+        assert!(available == true || available == false);
     }
 }

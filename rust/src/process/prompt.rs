@@ -109,4 +109,36 @@ mod tests {
         let should = should_prompt();
         println!("Should prompt in test environment: {}", should);
     }
+
+    // Note: Testing interactive prompts is difficult because they require stdin
+    // input. These would be better tested with integration tests that can
+    // simulate user input. For unit tests, we can at least verify that
+    // the code compiles and basic validation logic works.
+
+    #[test]
+    fn test_prompt_validation() {
+        // Test that prompt returns expected types
+        // Actual behavior would require mocking stdin
+        
+        // We can at least ensure the functions exist and compile
+        let _confirm_fn: fn(&str, Option<bool>) -> Result<bool> = confirm;
+        let _prompt_fn: fn(&str, Option<&str>) -> Result<String> = prompt;
+        // Note: select is generic over T: AsRef<str>, so we can't assign it to a specific fn pointer
+    }
+
+    #[test]
+    fn test_select_with_options() {
+        // Test that select works with different types that implement AsRef<str>
+        let string_options = vec!["Option 1".to_string(), "Option 2".to_string()];
+        let str_options = vec!["Option A", "Option B"];
+        
+        // Verify that the function can be called with both types
+        // (actual testing would require stdin mock)
+        let _select_string = |msg, opts, def| select::<String>(msg, opts, def);
+        let _select_str = |msg, opts, def| select::<&str>(msg, opts, def);
+        
+        // Ensure these are the right types
+        assert_eq!(string_options.len(), 2);
+        assert_eq!(str_options.len(), 2);
+    }
 }

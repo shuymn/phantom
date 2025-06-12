@@ -197,4 +197,144 @@ mod tests {
         let deserialized: TmuxSplitDirection = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized, TmuxSplitDirection::Vertical);
     }
+
+    #[test]
+    fn test_tmux_split_direction_all_variants() {
+        use serde_json;
+
+        let directions = vec![
+            (TmuxSplitDirection::New, "\"new\""),
+            (TmuxSplitDirection::Vertical, "\"vertical\""),
+            (TmuxSplitDirection::Horizontal, "\"horizontal\""),
+        ];
+
+        for (direction, expected_json) in directions {
+            let json = serde_json::to_string(&direction).unwrap();
+            assert_eq!(json, expected_json);
+
+            let deserialized: TmuxSplitDirection = serde_json::from_str(&json).unwrap();
+            assert_eq!(deserialized, direction);
+        }
+    }
+
+    #[test]
+    fn test_tmux_split_direction_equality() {
+        assert_eq!(TmuxSplitDirection::New, TmuxSplitDirection::New);
+        assert_ne!(TmuxSplitDirection::New, TmuxSplitDirection::Vertical);
+        assert_ne!(TmuxSplitDirection::Vertical, TmuxSplitDirection::Horizontal);
+    }
+
+    #[test]
+    fn test_tmux_split_direction_copy_clone() {
+        let original = TmuxSplitDirection::Horizontal;
+        let copied = original;
+        let cloned = original.clone();
+        
+        assert_eq!(original, copied);
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_tmux_split_direction_debug() {
+        let new = TmuxSplitDirection::New;
+        let debug_str = format!("{:?}", new);
+        assert!(debug_str.contains("New"));
+
+        let vertical = TmuxSplitDirection::Vertical;
+        let debug_str = format!("{:?}", vertical);
+        assert!(debug_str.contains("Vertical"));
+
+        let horizontal = TmuxSplitDirection::Horizontal;
+        let debug_str = format!("{:?}", horizontal);
+        assert!(debug_str.contains("Horizontal"));
+    }
+
+    #[test]
+    fn test_tmux_options_debug() {
+        let options = TmuxOptions {
+            direction: TmuxSplitDirection::New,
+            command: "test".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_name: Some("TestWindow".to_string()),
+        };
+
+        let debug_str = format!("{:?}", options);
+        assert!(debug_str.contains("TmuxOptions"));
+        assert!(debug_str.contains("direction"));
+        assert!(debug_str.contains("command"));
+        assert!(debug_str.contains("window_name"));
+    }
+
+    #[test]
+    fn test_tmux_options_clone() {
+        let options = TmuxOptions {
+            direction: TmuxSplitDirection::Vertical,
+            command: "vim".to_string(),
+            args: Some(vec!["file.txt".to_string()]),
+            cwd: Some("/workspace".to_string()),
+            env: Some(HashMap::from([("EDITOR".to_string(), "vim".to_string())])),
+            window_name: Some("Editor".to_string()),
+        };
+
+        let cloned = options.clone();
+
+        assert_eq!(options.direction, cloned.direction);
+        assert_eq!(options.command, cloned.command);
+        assert_eq!(options.args, cloned.args);
+        assert_eq!(options.cwd, cloned.cwd);
+        assert_eq!(options.env, cloned.env);
+        assert_eq!(options.window_name, cloned.window_name);
+    }
+
+    #[test]
+    fn test_tmux_options_minimal() {
+        let options = TmuxOptions {
+            direction: TmuxSplitDirection::New,
+            command: "sh".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_name: None,
+        };
+
+        assert_eq!(options.command, "sh");
+        assert!(options.args.is_none());
+        assert!(options.cwd.is_none());
+        assert!(options.env.is_none());
+        assert!(options.window_name.is_none());
+    }
+
+    #[test]
+    fn test_tmux_options_with_args() {
+        let options = TmuxOptions {
+            direction: TmuxSplitDirection::Horizontal,
+            command: "python".to_string(),
+            args: Some(vec!["script.py".to_string(), "--verbose".to_string()]),
+            cwd: None,
+            env: None,
+            window_name: None,
+        };
+
+        let args = options.args.unwrap();
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0], "script.py");
+        assert_eq!(args[1], "--verbose");
+    }
+
+    #[test]
+    fn test_tmux_options_with_window_name() {
+        let options = TmuxOptions {
+            direction: TmuxSplitDirection::New,
+            command: "htop".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_name: Some("System Monitor".to_string()),
+        };
+
+        assert_eq!(options.window_name, Some("System Monitor".to_string()));
+        assert_eq!(options.direction, TmuxSplitDirection::New);
+    }
 }

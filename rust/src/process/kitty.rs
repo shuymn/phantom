@@ -131,4 +131,129 @@ mod tests {
         let deserialized: KittySplitDirection = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized, KittySplitDirection::Horizontal);
     }
+
+    #[test]
+    fn test_kitty_split_direction_all_variants() {
+        use serde_json;
+
+        let directions = vec![
+            (KittySplitDirection::New, "\"new\""),
+            (KittySplitDirection::Vertical, "\"vertical\""),
+            (KittySplitDirection::Horizontal, "\"horizontal\""),
+        ];
+
+        for (direction, expected_json) in directions {
+            let json = serde_json::to_string(&direction).unwrap();
+            assert_eq!(json, expected_json);
+
+            let deserialized: KittySplitDirection = serde_json::from_str(&json).unwrap();
+            assert_eq!(deserialized, direction);
+        }
+    }
+
+    #[test]
+    fn test_kitty_split_direction_equality() {
+        assert_eq!(KittySplitDirection::New, KittySplitDirection::New);
+        assert_ne!(KittySplitDirection::New, KittySplitDirection::Vertical);
+        assert_ne!(KittySplitDirection::Vertical, KittySplitDirection::Horizontal);
+    }
+
+    #[test]
+    fn test_kitty_split_direction_copy_clone() {
+        let original = KittySplitDirection::Vertical;
+        let copied = original;
+        let cloned = original.clone();
+        
+        assert_eq!(original, copied);
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn test_kitty_split_direction_debug() {
+        let new = KittySplitDirection::New;
+        let debug_str = format!("{:?}", new);
+        assert!(debug_str.contains("New"));
+
+        let vertical = KittySplitDirection::Vertical;
+        let debug_str = format!("{:?}", vertical);
+        assert!(debug_str.contains("Vertical"));
+
+        let horizontal = KittySplitDirection::Horizontal;
+        let debug_str = format!("{:?}", horizontal);
+        assert!(debug_str.contains("Horizontal"));
+    }
+
+    #[test]
+    fn test_kitty_options_debug() {
+        let options = KittyOptions {
+            direction: KittySplitDirection::New,
+            command: "test".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_title: None,
+        };
+
+        let debug_str = format!("{:?}", options);
+        assert!(debug_str.contains("KittyOptions"));
+        assert!(debug_str.contains("direction"));
+        assert!(debug_str.contains("command"));
+    }
+
+    #[test]
+    fn test_kitty_options_clone() {
+        let options = KittyOptions {
+            direction: KittySplitDirection::Horizontal,
+            command: "ls".to_string(),
+            args: Some(vec!["-la".to_string()]),
+            cwd: Some("/home".to_string()),
+            env: Some(HashMap::from([("VAR".to_string(), "value".to_string())])),
+            window_title: Some("Files".to_string()),
+        };
+
+        let cloned = options.clone();
+
+        assert_eq!(options.direction, cloned.direction);
+        assert_eq!(options.command, cloned.command);
+        assert_eq!(options.args, cloned.args);
+        assert_eq!(options.cwd, cloned.cwd);
+        assert_eq!(options.env, cloned.env);
+        assert_eq!(options.window_title, cloned.window_title);
+    }
+
+    #[test]
+    fn test_kitty_options_minimal() {
+        let options = KittyOptions {
+            direction: KittySplitDirection::New,
+            command: "bash".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_title: None,
+        };
+
+        assert_eq!(options.command, "bash");
+        assert!(options.args.is_none());
+        assert!(options.cwd.is_none());
+        assert!(options.env.is_none());
+        assert!(options.window_title.is_none());
+    }
+
+    #[test]
+    fn test_kitty_options_with_env() {
+        let mut env = HashMap::new();
+        env.insert("PATH".to_string(), "/usr/local/bin".to_string());
+        env.insert("HOME".to_string(), "/home/user".to_string());
+
+        let options = KittyOptions {
+            direction: KittySplitDirection::Vertical,
+            command: "env".to_string(),
+            args: None,
+            cwd: None,
+            env: Some(env.clone()),
+            window_title: None,
+        };
+
+        assert_eq!(options.env.unwrap().len(), 2);
+    }
 }

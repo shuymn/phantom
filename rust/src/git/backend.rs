@@ -101,3 +101,82 @@ impl GitConfig {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_git_config_default() {
+        let config = GitConfig::default();
+        assert!(config.cwd.is_none());
+        assert!(config.env.is_empty());
+        assert_eq!(config.timeout, Some(30));
+    }
+
+    #[test]
+    fn test_git_config_with_cwd() {
+        let config = GitConfig::with_cwd("/tmp/repo");
+        assert_eq!(config.cwd, Some(PathBuf::from("/tmp/repo")));
+        assert!(config.env.is_empty());
+        assert_eq!(config.timeout, Some(30));
+    }
+
+    #[test]
+    fn test_git_config_with_cwd_pathbuf() {
+        let path = PathBuf::from("/home/user/project");
+        let config = GitConfig::with_cwd(path.clone());
+        assert_eq!(config.cwd, Some(path));
+    }
+
+    #[test]
+    fn test_git_config_with_env() {
+        let config = GitConfig::default()
+            .with_env("GIT_AUTHOR_NAME", "Test User")
+            .with_env("GIT_AUTHOR_EMAIL", "test@example.com");
+        
+        assert_eq!(config.env.len(), 2);
+        assert!(config.env.contains(&("GIT_AUTHOR_NAME".to_string(), "Test User".to_string())));
+        assert!(config.env.contains(&("GIT_AUTHOR_EMAIL".to_string(), "test@example.com".to_string())));
+    }
+
+    #[test]
+    fn test_git_config_with_timeout() {
+        let config = GitConfig::default().with_timeout(60);
+        assert_eq!(config.timeout, Some(60));
+    }
+
+    #[test]
+    fn test_git_config_builder_chain() {
+        let config = GitConfig::with_cwd("/tmp/repo")
+            .with_env("KEY1", "value1")
+            .with_env("KEY2", "value2")
+            .with_timeout(120);
+        
+        assert_eq!(config.cwd, Some(PathBuf::from("/tmp/repo")));
+        assert_eq!(config.env.len(), 2);
+        assert_eq!(config.timeout, Some(120));
+    }
+
+    #[test]
+    fn test_git_config_debug() {
+        let config = GitConfig::default();
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.contains("GitConfig"));
+        assert!(debug_str.contains("cwd"));
+        assert!(debug_str.contains("env"));
+        assert!(debug_str.contains("timeout"));
+    }
+
+    #[test]
+    fn test_git_config_clone() {
+        let config = GitConfig::with_cwd("/tmp")
+            .with_env("TEST", "value")
+            .with_timeout(45);
+        
+        let cloned = config.clone();
+        assert_eq!(config.cwd, cloned.cwd);
+        assert_eq!(config.env, cloned.env);
+        assert_eq!(config.timeout, cloned.timeout);
+    }
+}

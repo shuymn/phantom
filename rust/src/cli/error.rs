@@ -41,3 +41,66 @@ pub fn error_to_exit_code(error: &crate::PhantomError) -> i32 {
         _ => ExitCode::GENERAL_ERROR,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::PhantomError;
+
+    #[test]
+    fn test_exit_codes() {
+        assert_eq!(ExitCode::SUCCESS, 0);
+        assert_eq!(ExitCode::GENERAL_ERROR, 1);
+        assert_eq!(ExitCode::VALIDATION_ERROR, 2);
+        assert_eq!(ExitCode::NOT_IN_GIT_REPO, 3);
+        assert_eq!(ExitCode::WORKTREE_EXISTS, 4);
+        assert_eq!(ExitCode::WORKTREE_NOT_FOUND, 5);
+        assert_eq!(ExitCode::BRANCH_NOT_FOUND, 6);
+        assert_eq!(ExitCode::CONFIG_ERROR, 7);
+        assert_eq!(ExitCode::EXEC_ERROR, 8);
+    }
+
+    #[test]
+    fn test_error_to_exit_code() {
+        assert_eq!(
+            error_to_exit_code(&PhantomError::NotInGitRepository),
+            ExitCode::NOT_IN_GIT_REPO
+        );
+        
+        assert_eq!(
+            error_to_exit_code(&PhantomError::WorktreeExists { name: "test".to_string() }),
+            ExitCode::WORKTREE_EXISTS
+        );
+        
+        assert_eq!(
+            error_to_exit_code(&PhantomError::WorktreeNotFound { name: "test".to_string() }),
+            ExitCode::WORKTREE_NOT_FOUND
+        );
+        
+        assert_eq!(
+            error_to_exit_code(&PhantomError::BranchNotFound { branch: "test".to_string() }),
+            ExitCode::BRANCH_NOT_FOUND
+        );
+        
+        assert_eq!(
+            error_to_exit_code(&PhantomError::Config("test error".to_string())),
+            ExitCode::CONFIG_ERROR
+        );
+        
+        assert_eq!(
+            error_to_exit_code(&PhantomError::ProcessExecution("test error".to_string())),
+            ExitCode::EXEC_ERROR
+        );
+        
+        assert_eq!(
+            error_to_exit_code(&PhantomError::Validation("test error".to_string())),
+            ExitCode::VALIDATION_ERROR
+        );
+        
+        // Test general error fallback
+        assert_eq!(
+            error_to_exit_code(&PhantomError::Io(std::io::Error::new(std::io::ErrorKind::Other, "test"))),
+            ExitCode::GENERAL_ERROR
+        );
+    }
+}

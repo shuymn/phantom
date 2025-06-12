@@ -146,4 +146,38 @@ mod tests {
         assert_eq!(options.header.unwrap(), "Available items");
         assert_eq!(options.preview_command.unwrap(), "echo {}");
     }
+
+    #[tokio::test]
+    async fn test_select_with_fzf_empty_items() {
+        let result = select_with_fzf(vec![], FzfOptions::default()).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    #[test]
+    fn test_fzf_options_debug() {
+        let options = FzfOptions {
+            prompt: Some("test".to_string()),
+            header: None,
+            preview_command: None,
+        };
+        
+        let debug_str = format!("{:?}", options);
+        assert!(debug_str.contains("FzfOptions"));
+        assert!(debug_str.contains("prompt: Some"));
+    }
+
+    #[test]
+    fn test_fzf_options_clone() {
+        let options = FzfOptions {
+            prompt: Some("test".to_string()),
+            header: Some("header".to_string()),
+            preview_command: Some("preview".to_string()),
+        };
+        
+        let cloned = options.clone();
+        assert_eq!(options.prompt, cloned.prompt);
+        assert_eq!(options.header, cloned.header);
+        assert_eq!(options.preview_command, cloned.preview_command);
+    }
 }
