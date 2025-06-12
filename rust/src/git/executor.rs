@@ -259,7 +259,7 @@ mod tests {
         let executor = GitExecutor::with_cwd(repo.path());
         
         // Create a file with content that will produce empty lines
-        repo.create_file("test.txt", "line1\n\nline2\n\n").await.unwrap();
+        std::fs::write(repo.path().join("test.txt"), "line1\n\nline2\n\n").unwrap();
         executor.run(&["add", "test.txt"]).await.unwrap();
         
         // Get diff which might have empty lines
