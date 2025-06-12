@@ -7,3 +7,4 @@
 cc 20bf5f2441ded3a463817f82da3b14e4ddadc894ae3e523dfe33a69ee6faf9e9 # shrinks to prefix = "A", suffix = "a", char = "0"
 cc e17bb55fb66c2fd455e46f9208ea04002ae327ebd41c72f61eb092ecc5566721 # shrinks to dir = "A", file = "0"
 cc 874295fd6e193ed6e67d0b3772b25d9e8fb5d3254f26277e4ad496cd6e77d771 # shrinks to prefix = "x", suffix = "A", middle = ""
+cc 458160eebd5a5525b561dfdb09c17b78f2e576fa972e1dfd5c60a11bbb48962f # shrinks to prefix = "xn", suffix = "0", middle = "n"
