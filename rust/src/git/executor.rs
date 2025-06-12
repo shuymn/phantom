@@ -172,7 +172,7 @@ mod tests {
     async fn test_git_executor_with_timeout() {
         let executor = GitExecutor::new().with_timeout(Duration::from_secs(5));
         assert_eq!(executor.timeout_duration, Duration::from_secs(5));
-        
+
         // Test that timeout is applied
         let result = executor.run(&["--version"]).await;
         assert!(result.is_ok()); // Should complete well within 5 seconds
@@ -182,7 +182,7 @@ mod tests {
     async fn test_git_executor_default() {
         let executor1 = GitExecutor::new();
         let executor2 = GitExecutor::default();
-        
+
         assert_eq!(executor1.cwd, executor2.cwd);
         assert_eq!(executor1.timeout_duration, executor2.timeout_duration);
     }
@@ -190,16 +190,16 @@ mod tests {
     #[tokio::test]
     async fn test_run_lines_with_output() {
         let repo = TestRepo::new().await.unwrap();
-        
+
         // Set up some config in the test repo
         let executor = GitExecutor::with_cwd(repo.path());
         executor.run(&["config", "user.name", "Test User"]).await.unwrap();
         executor.run(&["config", "user.email", "test@example.com"]).await.unwrap();
-        
+
         // Now test run_lines
         let lines = executor.run_lines(&["config", "--list", "--local"]).await.unwrap();
         assert!(!lines.is_empty());
-        
+
         // Check that we got the config lines
         let has_name = lines.iter().any(|line| line.contains("user.name=Test User"));
         let has_email = lines.iter().any(|line| line.contains("user.email=test@example.com"));
@@ -211,7 +211,7 @@ mod tests {
     async fn test_run_with_empty_output() {
         let repo = TestRepo::new().await.unwrap();
         let executor = GitExecutor::with_cwd(repo.path());
-        
+
         // Run a command that produces empty output
         let result = executor.run(&["status", "--porcelain"]).await.unwrap();
         assert_eq!(result, ""); // Clean repo has empty status
@@ -220,11 +220,11 @@ mod tests {
     #[tokio::test]
     async fn test_git_error_with_empty_stderr() {
         let executor = GitExecutor::new();
-        
+
         // This should fail with an error
         let result = executor.run(&["log", "--invalid-option"]).await;
         assert!(result.is_err());
-        
+
         match result.unwrap_err() {
             PhantomError::Git { message, exit_code } => {
                 assert!(exit_code != 0);
@@ -245,10 +245,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_git_executor_clone() {
-        let executor = GitExecutor::with_cwd("/test/path")
-            .with_timeout(Duration::from_secs(10));
+        let executor = GitExecutor::with_cwd("/test/path").with_timeout(Duration::from_secs(10));
         let cloned = executor.clone();
-        
+
         assert_eq!(executor.cwd, cloned.cwd);
         assert_eq!(executor.timeout_duration, cloned.timeout_duration);
     }
@@ -257,15 +256,19 @@ mod tests {
     async fn test_run_lines_empty_lines_filtered() {
         let repo = TestRepo::new().await.unwrap();
         let executor = GitExecutor::with_cwd(repo.path());
-        
+
         // Create a file with content that will produce empty lines
         std::fs::write(repo.path().join("test.txt"), "line1\n\nline2\n\n").unwrap();
         executor.run(&["add", "test.txt"]).await.unwrap();
-        
+
         // Get diff which might have empty lines
         let output = executor.run(&["diff", "--cached", "--name-only"]).await.unwrap();
-        let lines = output.lines().filter(|line| !line.is_empty()).map(|s| s.to_string()).collect::<Vec<_>>();
-        
+        let lines = output
+            .lines()
+            .filter(|line| !line.is_empty())
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>();
+
         // Verify no empty lines
         assert!(!lines.iter().any(|line| line.is_empty()));
     }

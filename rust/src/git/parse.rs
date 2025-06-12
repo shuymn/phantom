@@ -304,7 +304,7 @@ another_unknown field
             is_locked: false,
             is_prunable: false,
         };
-        
+
         // This should return None because "/" has no file name
         assert!(builder.build().is_none());
     }
