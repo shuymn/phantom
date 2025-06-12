@@ -143,7 +143,7 @@ mod tests {
         for input in yes_inputs {
             let trimmed = input.to_lowercase();
             match trimmed.as_str() {
-                "y" | "yes" => {},
+                "y" | "yes" => {}
                 _ => panic!("Should match yes for input: {}", input),
             }
         }
@@ -153,7 +153,7 @@ mod tests {
         for input in no_inputs {
             let trimmed = input.to_lowercase();
             match trimmed.as_str() {
-                "n" | "no" => {},
+                "n" | "no" => {}
                 _ => panic!("Should match no for input: {}", input),
             }
         }
@@ -181,7 +181,7 @@ mod tests {
         for (i, option) in options.iter().enumerate() {
             let marker = if Some(i) == default { ">" } else { " " };
             let formatted = format!("{} {}) {}", marker, i + 1, option);
-            
+
             if i == 1 {
                 assert!(formatted.starts_with(">"));
             } else {
@@ -302,7 +302,7 @@ mod tests {
     fn test_message_formatting() {
         let message = "Please confirm";
         let options = vec!["Yes", "No", "Cancel"];
-        
+
         // Test select message display
         let select_msg = format!("{}", message);
         assert_eq!(select_msg, "Please confirm");
