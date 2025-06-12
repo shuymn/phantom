@@ -268,6 +268,9 @@ mod tests {
         tracker.increment_errors();
         tracker.increment_errors();
 
+        // Add small delay to ensure elapsed time is non-zero
+        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
+
         let info = tracker.get_progress_info().await;
         assert_eq!(info.total_files, 100);
         assert_eq!(info.processed_files, 50);

@@ -10,6 +10,10 @@ pub struct CreateWorktreeOptions {
     pub commitish: Option<String>,
     /// Files to copy from the source worktree
     pub copy_files: Option<Vec<String>>,
+    /// Whether to copy entire directory (instead of specific files)
+    pub copy_directory: bool,
+    /// Whether to show progress during file copying
+    pub show_progress: bool,
 }
 
 /// Result of a successful worktree creation
