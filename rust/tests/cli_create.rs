@@ -1,3 +1,5 @@
+mod common;
+
 use phantom::cli::commands::create::CreateArgs;
 use phantom::cli::handlers::create;
 use std::env;
@@ -10,25 +12,9 @@ async fn test_create_command_basic() {
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
 
-    // Initialize git repo
-    std::process::Command::new("git")
-        .args(&["init"])
-        .current_dir(&repo_path)
-        .output()
-        .expect("Failed to init git repo");
-
-    // Create initial commit
-    std::fs::write(repo_path.join("README.md"), "# Test").unwrap();
-    std::process::Command::new("git")
-        .args(&["add", "."])
-        .current_dir(&repo_path)
-        .output()
-        .expect("Failed to add files");
-    std::process::Command::new("git")
-        .args(&["commit", "-m", "Initial commit"])
-        .current_dir(&repo_path)
-        .output()
-        .expect("Failed to commit");
+    // Initialize git repo and create initial commit
+    common::init_test_repo(&repo_path);
+    common::create_initial_commit(&repo_path);
 
     // Change to the repo directory
     env::set_current_dir(&repo_path).unwrap();
@@ -71,11 +57,7 @@ async fn test_create_command_with_copy_files() {
     let repo_path = temp_dir.path();
 
     // Initialize git repo
-    std::process::Command::new("git")
-        .args(&["init"])
-        .current_dir(&repo_path)
-        .output()
-        .expect("Failed to init git repo");
+    common::init_test_repo(&repo_path);
 
     // Create files to copy
     std::fs::write(repo_path.join("config.json"), r#"{"test": true}"#).unwrap();
@@ -140,25 +122,9 @@ async fn test_create_command_json_output() {
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
 
-    // Initialize git repo
-    std::process::Command::new("git")
-        .args(&["init"])
-        .current_dir(&repo_path)
-        .output()
-        .expect("Failed to init git repo");
-
-    // Create initial commit
-    std::fs::write(repo_path.join("README.md"), "# Test").unwrap();
-    std::process::Command::new("git")
-        .args(&["add", "."])
-        .current_dir(&repo_path)
-        .output()
-        .expect("Failed to add files");
-    std::process::Command::new("git")
-        .args(&["commit", "-m", "Initial commit"])
-        .current_dir(&repo_path)
-        .output()
-        .expect("Failed to commit");
+    // Initialize git repo and create initial commit
+    common::init_test_repo(&repo_path);
+    common::create_initial_commit(&repo_path);
 
     // Change to the repo directory
     env::set_current_dir(&repo_path).unwrap();
