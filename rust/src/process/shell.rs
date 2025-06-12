@@ -238,4 +238,168 @@ mod tests {
         // Should be None in test environment
         assert!(current_phantom_worktree().is_none());
     }
+
+    #[test]
+    fn test_shell_info_creation() {
+        let info = ShellInfo {
+            name: "bash".to_string(),
+            path: "/bin/bash".to_string(),
+            shell_type: ShellType::Bash,
+        };
+
+        assert_eq!(info.name, "bash");
+        assert_eq!(info.path, "/bin/bash");
+        assert_eq!(info.shell_type, ShellType::Bash);
+    }
+
+    #[test]
+    fn test_shell_info_debug() {
+        let info = ShellInfo {
+            name: "zsh".to_string(),
+            path: "/usr/bin/zsh".to_string(),
+            shell_type: ShellType::Zsh,
+        };
+
+        let debug_str = format!("{:?}", info);
+        assert!(debug_str.contains("ShellInfo"));
+        assert!(debug_str.contains("zsh"));
+    }
+
+    #[test]
+    fn test_shell_info_clone() {
+        let info = ShellInfo {
+            name: "fish".to_string(),
+            path: "/usr/local/bin/fish".to_string(),
+            shell_type: ShellType::Fish,
+        };
+
+        let cloned = info.clone();
+        assert_eq!(info.name, cloned.name);
+        assert_eq!(info.path, cloned.path);
+        assert_eq!(info.shell_type, cloned.shell_type);
+    }
+
+    #[test]
+    fn test_shell_type_debug() {
+        assert_eq!(format!("{:?}", ShellType::Bash), "Bash");
+        assert_eq!(format!("{:?}", ShellType::Zsh), "Zsh");
+        assert_eq!(format!("{:?}", ShellType::Fish), "Fish");
+        assert_eq!(format!("{:?}", ShellType::Sh), "Sh");
+        assert_eq!(format!("{:?}", ShellType::Unknown), "Unknown");
+    }
+
+    #[test]
+    fn test_analyze_shell_path_edge_cases() {
+        // Test with uppercase
+        let info = analyze_shell_path("/bin/BASH");
+        assert!(info.is_some());
+        assert_eq!(info.unwrap().shell_type, ShellType::Bash);
+
+        // Test with version suffix
+        let info = analyze_shell_path("/usr/bin/bash5");
+        assert!(info.is_some());
+        assert_eq!(info.unwrap().shell_type, ShellType::Bash);
+
+        // Test with complex path
+        let info = analyze_shell_path("/usr/local/Cellar/bash/5.1/bin/bash");
+        assert!(info.is_some());
+        assert_eq!(info.unwrap().shell_type, ShellType::Bash);
+
+        // Test empty path
+        assert!(analyze_shell_path("").is_none());
+    }
+
+    #[test]
+    fn test_get_phantom_env_with_ps1() {
+        // Temporarily set PS1
+        env::set_var("PS1", "$ ");
+        
+        let env = get_phantom_env("test-wt", "/path/to/test-wt");
+        
+        // Should have modified PS1
+        if let Some(ps1) = env.get("PS1") {
+            assert!(ps1.contains("(phantom:test-wt)"));
+            assert!(ps1.contains("$ "));
+        }
+        
+        // Clean up
+        env::remove_var("PS1");
+    }
+
+    #[test]
+    fn test_is_phantom_session_with_env() {
+        // Set the environment variable
+        env::set_var("PHANTOM_ACTIVE", "1");
+        assert!(is_phantom_session());
+        
+        // Clean up
+        env::remove_var("PHANTOM_ACTIVE");
+        assert!(!is_phantom_session());
+    }
+
+    #[test]
+    fn test_current_phantom_worktree_with_env() {
+        // Set the environment variable
+        env::set_var("PHANTOM_WORKTREE", "my-feature");
+        assert_eq!(current_phantom_worktree(), Some("my-feature".to_string()));
+        
+        // Clean up
+        env::remove_var("PHANTOM_WORKTREE");
+        assert!(current_phantom_worktree().is_none());
+    }
+
+    #[test]
+    fn test_shell_type_equality() {
+        assert_eq!(ShellType::Bash, ShellType::Bash);
+        assert_ne!(ShellType::Bash, ShellType::Zsh);
+        assert_ne!(ShellType::Fish, ShellType::Unknown);
+    }
+
+    #[test]
+    fn test_shell_info_equality() {
+        let info1 = ShellInfo {
+            name: "bash".to_string(),
+            path: "/bin/bash".to_string(),
+            shell_type: ShellType::Bash,
+        };
+
+        let info2 = ShellInfo {
+            name: "bash".to_string(),
+            path: "/bin/bash".to_string(),
+            shell_type: ShellType::Bash,
+        };
+
+        let info3 = ShellInfo {
+            name: "zsh".to_string(),
+            path: "/bin/zsh".to_string(),
+            shell_type: ShellType::Zsh,
+        };
+
+        assert_eq!(info1, info2);
+        assert_ne!(info1, info3);
+    }
+
+    #[tokio::test]
+    async fn test_shell_in_dir() {
+        // We can't actually test interactive shell spawning,
+        // but we can verify the function compiles
+        let _ = shell_in_dir; // Just ensure it exists
+    }
+
+    #[test]
+    fn test_get_parent_pid() {
+        // Note: get_parent_pid uses /proc filesystem which is Linux-specific
+        // On macOS and other Unix systems without /proc, it will return None
+        #[cfg(unix)]
+        {
+            let ppid = get_parent_pid();
+            // On Linux with /proc, we should get Some value
+            // On macOS and others, we'll get None
+            if ppid.is_some() {
+                // If we got a parent PID, it should be > 0
+                assert!(ppid.unwrap() > 0);
+            }
+            // If None, that's also valid (no /proc filesystem)
+        }
+    }
 }

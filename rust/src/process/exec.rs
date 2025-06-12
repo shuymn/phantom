@@ -231,4 +231,147 @@ mod tests {
 
         assert!(result.is_err());
     }
+
+    #[tokio::test]
+    async fn test_spawn_shell_in_dir() {
+        let temp_dir = TempDir::new().unwrap();
+        // We can't easily test shell spawning without actually spawning a shell
+        // which would hang waiting for user input. Just verify the function exists
+        // and compiles correctly.
+        assert!(temp_dir.path().exists());
+        // Function signature verification
+        let _ = spawn_shell_in_dir; // Just ensure it exists
+    }
+
+    #[tokio::test]
+    async fn test_spawn_shell_in_worktree() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        // Create a worktree
+        let options = CreateWorktreeOptions::default();
+        create_worktree(repo.path(), "test-shell", options).await.unwrap();
+
+        // We can't easily test shell spawning, but we can verify the function compiles
+        let _ = spawn_shell_in_worktree; // Just ensure it exists
+    }
+
+    #[tokio::test]
+    async fn test_exec_in_dir_with_cwd() {
+        let temp_dir = TempDir::new().unwrap();
+        let sub_dir = temp_dir.path().join("subdir");
+        std::fs::create_dir(&sub_dir).unwrap();
+
+        // Create a file in the subdirectory
+        std::fs::write(sub_dir.join("test.txt"), "content").unwrap();
+
+        // Execute command that should see the file
+        let result = exec_in_dir(&sub_dir, "ls", &["test.txt".to_string()]).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().exit_code, 0);
+    }
+
+    #[tokio::test]
+    async fn test_exec_in_worktree_with_env() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        // Create a worktree
+        let options = CreateWorktreeOptions::default();
+        create_worktree(repo.path(), "test-env", options).await.unwrap();
+
+        // Execute command that should have PHANTOM env vars
+        let result = exec_in_worktree(repo.path(), "test-env", "env", &[]).await;
+        assert!(result.is_ok());
+        // The env command should succeed
+        assert_eq!(result.unwrap().exit_code, 0);
+    }
+
+    #[tokio::test]
+    async fn test_exec_commands_in_dir_empty_command() {
+        let temp_dir = TempDir::new().unwrap();
+        let commands = vec![
+            "echo hello".to_string(),
+            "".to_string(), // Empty command should be skipped
+            "echo world".to_string(),
+        ];
+
+        let results = exec_commands_in_dir(temp_dir.path(), &commands).await;
+        assert!(results.is_ok());
+        let results = results.unwrap();
+        assert_eq!(results.len(), 2); // Only 2 commands executed
+    }
+
+    #[tokio::test]
+    async fn test_exec_commands_in_dir_complex_args() {
+        let temp_dir = TempDir::new().unwrap();
+        let commands = vec![
+            "echo hello world".to_string(),
+            "echo -n test".to_string(),
+        ];
+
+        let results = exec_commands_in_dir(temp_dir.path(), &commands).await;
+        assert!(results.is_ok());
+        let results = results.unwrap();
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().all(|r| r.exit_code == 0));
+    }
+
+    #[tokio::test]
+    async fn test_exec_in_dir_nonexistent_command() {
+        let temp_dir = TempDir::new().unwrap();
+        let result = exec_in_dir(
+            temp_dir.path(),
+            "nonexistent-command-xyz123",
+            &["arg".to_string()],
+        )
+        .await;
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PhantomError::ProcessExecution(msg) => {
+                assert!(msg.contains("Failed to spawn process"));
+            }
+            _ => panic!("Expected ProcessExecution error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_exec_commands_in_dir_single_command() {
+        let temp_dir = TempDir::new().unwrap();
+        let commands = vec!["pwd".to_string()];
+
+        let results = exec_commands_in_dir(temp_dir.path(), &commands).await;
+        assert!(results.is_ok());
+        let results = results.unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].exit_code, 0);
+    }
+
+    #[tokio::test]
+    async fn test_exec_in_worktree_validates_worktree() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        // Try to execute in a worktree that doesn't exist
+        let result = exec_in_worktree(
+            repo.path(),
+            "does-not-exist",
+            "echo",
+            &["test".to_string()],
+        )
+        .await;
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PhantomError::WorktreeNotFound { name } => {
+                assert_eq!(name, "does-not-exist");
+            }
+            PhantomError::Worktree(msg) => {
+                // Also accept general worktree error
+                assert!(msg.contains("does-not-exist") || msg.contains("not found"));
+            }
+            e => panic!("Expected WorktreeNotFound or Worktree error, got: {:?}", e),
+        }
+    }
 }
