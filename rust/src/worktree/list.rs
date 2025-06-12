@@ -171,10 +171,8 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a worktree
-        let options = CreateWorktreeOptions {
-            branch: Some("info-branch".to_string()),
-            ..Default::default()
-        };
+        let options =
+            CreateWorktreeOptions { branch: Some("info-branch".to_string()), ..Default::default() };
         create_worktree(repo.path(), "test-info", options).await.unwrap();
 
         let info = get_worktree_info(repo.path(), "test-info").await.unwrap();
@@ -215,7 +213,7 @@ mod tests {
     async fn test_get_worktree_branch_nonexistent_path() {
         let temp_dir = tempfile::tempdir().unwrap();
         let nonexistent_path = temp_dir.path().join("nonexistent");
-        
+
         let branch = get_worktree_branch(&nonexistent_path).await.unwrap();
         assert_eq!(branch, "unknown");
     }
@@ -224,7 +222,7 @@ mod tests {
     async fn test_get_worktree_status_nonexistent_path() {
         let temp_dir = tempfile::tempdir().unwrap();
         let nonexistent_path = temp_dir.path().join("nonexistent");
-        
+
         let is_clean = get_worktree_status(&nonexistent_path).await.unwrap();
         assert!(is_clean); // Defaults to clean on error
     }

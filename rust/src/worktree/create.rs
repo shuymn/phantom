@@ -283,10 +283,7 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
-        let options = CreateWorktreeOptions {
-            copy_files: Some(vec![]),
-            ..Default::default()
-        };
+        let options = CreateWorktreeOptions { copy_files: Some(vec![]), ..Default::default() };
         let result = create_worktree(repo.path(), "feature-empty", options).await;
 
         assert!(result.is_ok());
@@ -322,7 +319,8 @@ mod tests {
             copy_files: Some(vec!["data.json".to_string()]),
             ..Default::default()
         };
-        let result = create_worktree_with_backend(backend, repo.path(), "backend-copy", options).await;
+        let result =
+            create_worktree_with_backend(backend, repo.path(), "backend-copy", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();

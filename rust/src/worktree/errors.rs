@@ -94,7 +94,9 @@ mod tests {
         let err = WorktreeError::NotFound("test".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Worktree(msg) => assert!(msg.contains("test") && msg.contains("not found")),
+            PhantomError::Worktree(msg) => {
+                assert!(msg.contains("test") && msg.contains("not found"))
+            }
             _ => panic!("Expected PhantomError::Worktree"),
         }
 
@@ -102,7 +104,9 @@ mod tests {
         let err = WorktreeError::AlreadyExists("existing".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Worktree(msg) => assert!(msg.contains("existing") && msg.contains("already exists")),
+            PhantomError::Worktree(msg) => {
+                assert!(msg.contains("existing") && msg.contains("already exists"))
+            }
             _ => panic!("Expected PhantomError::Worktree"),
         }
 
@@ -167,7 +171,7 @@ mod tests {
         let worktree_err = WorktreeError::Io(io_err);
         let phantom_err: PhantomError = worktree_err.into();
         match phantom_err {
-            PhantomError::Io(_) => {},
+            PhantomError::Io(_) => {}
             _ => panic!("Expected PhantomError::Io"),
         }
     }
