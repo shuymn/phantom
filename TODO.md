@@ -141,16 +141,16 @@ Tasks are organized by phase according to the migration plan.
 
 ### CLI Structure
 
-- [ ] Define CLI structs with clap derive
+- [x] Define CLI structs with clap derive
 - [ ] Implement all subcommands:
-  - [ ] `create` command
+  - [x] `create` command
   - [ ] `attach` command
   - [ ] `list` command
   - [ ] `where` command
   - [ ] `delete` command
   - [ ] `exec` command
   - [ ] `shell` command
-  - [ ] `version` command
+  - [x] `version` command
   - [ ] `completion` command
 
 ### Command Handlers

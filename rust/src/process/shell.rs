@@ -155,6 +155,28 @@ pub fn current_phantom_worktree() -> Option<String> {
     env::var("PHANTOM_WORKTREE").ok()
 }
 
+/// Open an interactive shell in a directory
+pub async fn shell_in_dir(dir: &Path) -> Result<()> {
+    let shell_info = detect_shell()?;
+    let worktree_name = dir.file_name().and_then(|n| n.to_str()).unwrap_or("phantom");
+
+    let env_vars = get_phantom_env(worktree_name, &dir.to_string_lossy());
+
+    info!("Opening shell in: {}", dir.display());
+
+    let config = super::spawn::SpawnConfig {
+        command: shell_info.path.clone(),
+        args: shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect(),
+        cwd: Some(dir.to_string_lossy().to_string()),
+        env: Some(env_vars),
+        inherit_stdio: true,
+        timeout_ms: None,
+    };
+
+    super::spawn::spawn_process(config).await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

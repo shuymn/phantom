@@ -1,18 +1,46 @@
+use clap::Parser;
+use phantom::cli::{self, Commands};
 use phantom::{PhantomError, Result};
-use tracing::info;
+use std::process;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    // Initialize tracing
-    init_tracing()?;
+async fn main() {
+    // Parse CLI arguments
+    let cli = cli::Cli::parse();
 
-    info!("Starting phantom...");
+    // Initialize output handler based on flags
+    cli::output::init_output(cli.quiet, cli.verbose, false);
 
-    // TODO: Implement CLI parsing and command handling
-    println!("Phantom - Ephemeral Git worktrees made easy");
+    // Initialize tracing if verbose mode
+    if cli.verbose {
+        if let Err(e) = init_tracing() {
+            eprintln!("Failed to initialize tracing: {}", e);
+        }
+    }
 
-    Ok(())
+    // Handle commands
+    let result = match cli.command {
+        Commands::Create(args) => cli::handlers::create::handle(args).await,
+        Commands::Attach(args) => cli::handlers::attach::handle(args).await,
+        Commands::List(args) => cli::handlers::list::handle(args).await,
+        Commands::Where(args) => cli::handlers::where_cmd::handle(args).await,
+        Commands::Delete(args) => cli::handlers::delete::handle(args).await,
+        Commands::Exec(args) => cli::handlers::exec::handle(args).await,
+        Commands::Shell(args) => cli::handlers::shell::handle(args).await,
+        Commands::Version => {
+            cli::handlers::version::handle();
+            Ok(())
+        }
+        Commands::Completion(args) => cli::handlers::completion::handle(args),
+    };
+
+    // Handle errors
+    if let Err(e) = result {
+        cli::output::output().error(&e.to_string());
+        let exit_code = cli::error::error_to_exit_code(&e);
+        process::exit(exit_code);
+    }
 }
 
 /// Initialize the tracing subscriber with environment filter
