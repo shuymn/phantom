@@ -1,0 +1,19 @@
+coverage:
+  paths:
+    - ./lcov.info
+  target: 55%
+  threshold: 50%
+report:
+  datastores:
+    - artifact://reports
+  if: is_pull_request
+comment:
+  enable: true
+  if: is_pull_request
+diff:
+  enable: true
+  if: is_pull_request
+push:
+  enable: false
+badge:
+  enable: true
