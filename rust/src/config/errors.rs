@@ -95,14 +95,14 @@ mod tests {
             #[serde(serialize_with = "invalid_serializer")]
             field: String,
         }
-        
+
         fn invalid_serializer<S>(_: &String, _: S) -> Result<S::Ok, S::Error>
         where
             S: serde::Serializer,
         {
             Err(serde::ser::Error::custom("test error"))
         }
-        
+
         let invalid = Invalid { field: "test".to_string() };
         let toml_err = toml::to_string(&invalid).unwrap_err();
         let config_error = ConfigError::from(toml_err);
