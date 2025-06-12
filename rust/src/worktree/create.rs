@@ -30,10 +30,10 @@ pub async fn create_worktree(
     if fs::metadata(&worktrees_path).await.is_err() {
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
-            PhantomError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to create phantom directory: {}", e),
-            ))
+            PhantomError::Io(std::io::Error::other(format!(
+                "Failed to create phantom directory: {}",
+                e
+            )))
         })?;
     }
 
@@ -97,10 +97,10 @@ pub async fn create_worktree_with_backend(
     if fs::metadata(&worktrees_path).await.is_err() {
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
-            PhantomError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to create phantom directory: {}", e),
-            ))
+            PhantomError::Io(std::io::Error::other(format!(
+                "Failed to create phantom directory: {}",
+                e
+            )))
         })?;
     }
 

@@ -25,10 +25,10 @@ pub async fn attach_worktree(git_root: &Path, branch_name: &str) -> Result<()> {
 
     if fs::metadata(&phantom_dir).await.is_err() {
         fs::create_dir_all(&phantom_dir).await.map_err(|e| {
-            PhantomError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to create phantom directory: {}", e),
-            ))
+            PhantomError::Io(std::io::Error::other(format!(
+                "Failed to create phantom directory: {}",
+                e
+            )))
         })?;
     }
 
