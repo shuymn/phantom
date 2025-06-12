@@ -1,0 +1,7 @@
+---
+source: src/cli/output_example.rs
+assertion_line: 49
+expression: output
+---
+main                 /home/user/project                                 
+feature-xyz          /home/user/project/.phantom/feature-xyz

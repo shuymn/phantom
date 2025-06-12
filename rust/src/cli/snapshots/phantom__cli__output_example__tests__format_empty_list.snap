@@ -1,0 +1,6 @@
+---
+source: src/cli/output_example.rs
+assertion_line: 56
+expression: output
+---
+
