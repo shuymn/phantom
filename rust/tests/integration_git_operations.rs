@@ -98,7 +98,7 @@ async fn test_worktree_creation_and_management() {
     std::env::set_current_dir(&worktree_path).expect("Failed to change to worktree dir");
     let current_worktree =
         get_current_worktree(repo_path).await.expect("Failed to get current worktree");
-    std::env::set_current_dir(original_dir).expect("Failed to restore dir");
+    let _ = std::env::set_current_dir(&original_dir); // Ignore error if directory was cleaned up
     assert_eq!(current_worktree, Some("feature-branch".to_string()));
 
     // Test branch_exists - feature-branch should now exist
@@ -146,6 +146,9 @@ async fn test_complex_worktree_scenario() {
     let repo = create_real_git_repo().await;
     let repo_path = repo.path();
 
+    // Get original directory at the start of the test
+    let original_dir = std::env::current_dir().unwrap();
+
     // Create multiple branches and worktrees
     let executor = GitExecutor::with_cwd(repo_path);
 
@@ -173,9 +176,6 @@ async fn test_complex_worktree_scenario() {
     let worktrees = list_worktrees(repo_path).await.expect("Failed to list worktrees");
     assert_eq!(worktrees.len(), 4); // main + 3 feature worktrees
 
-    // Get original directory before the loop
-    let original_dir = std::env::current_dir().unwrap();
-
     // Verify each worktree
     for i in 1..=3 {
         let worktree_path =
@@ -193,7 +193,7 @@ async fn test_complex_worktree_scenario() {
     }
 
     // Restore original directory after loop
-    std::env::set_current_dir(original_dir).expect("Failed to restore dir");
+    let _ = std::env::set_current_dir(&original_dir); // Ignore error if directory was cleaned up
 
     // Verify all branches exist
     for i in 1..=3 {
@@ -266,6 +266,6 @@ async fn test_detached_worktree() {
     let original_dir = std::env::current_dir().unwrap();
     std::env::set_current_dir(&worktree_path).expect("Failed to change to worktree dir");
     let current_worktree = get_current_worktree(repo_path).await.expect("Failed to get worktree");
-    std::env::set_current_dir(original_dir).expect("Failed to restore dir");
+    let _ = std::env::set_current_dir(&original_dir); // Ignore error if directory was cleaned up
     assert!(current_worktree.is_none());
 }

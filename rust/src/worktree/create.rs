@@ -2,9 +2,7 @@ use crate::git::backend::GitBackend;
 use crate::git::libs::add_worktree::add_worktree;
 use crate::worktree::errors::WorktreeError;
 use crate::worktree::file_copier::copy_files;
-use crate::worktree::parallel_copier::{copy_directory_parallel, ParallelCopyConfig};
 use crate::worktree::paths::{get_phantom_directory, get_worktree_path};
-use crate::worktree::progress::ConsoleProgressReporter;
 use crate::worktree::types::{CreateWorktreeOptions, CreateWorktreeSuccess};
 use crate::worktree::validate::{validate_worktree_does_not_exist, validate_worktree_name};
 use crate::{PhantomError, Result};
@@ -64,27 +62,7 @@ pub async fn create_worktree(
     };
 
     // Handle file copying if requested
-    if options.copy_directory {
-        // Copy entire directory with optional progress
-        let config = if options.show_progress {
-            ParallelCopyConfig {
-                progress_reporter: Some(Arc::new(ConsoleProgressReporter::default())),
-                ..Default::default()
-            }
-        } else {
-            ParallelCopyConfig::default()
-        };
-
-        match copy_directory_parallel(git_root, &worktree_path, config).await {
-            Ok(copy_result) => {
-                result.copied_files = Some(copy_result.copied_files);
-                result.skipped_files = Some(copy_result.skipped_files);
-            }
-            Err(e) => {
-                result.copy_error = Some(e.to_string());
-            }
-        }
-    } else if let Some(ref files_to_copy) = options.copy_files {
+    if let Some(ref files_to_copy) = options.copy_files {
         if !files_to_copy.is_empty() {
             match copy_files(git_root, &worktree_path, files_to_copy).await {
                 Ok(copy_result) => {
@@ -148,27 +126,7 @@ pub async fn create_worktree_with_backend(
     };
 
     // Handle file copying if requested
-    if options.copy_directory {
-        // Copy entire directory with optional progress
-        let config = if options.show_progress {
-            ParallelCopyConfig {
-                progress_reporter: Some(Arc::new(ConsoleProgressReporter::default())),
-                ..Default::default()
-            }
-        } else {
-            ParallelCopyConfig::default()
-        };
-
-        match copy_directory_parallel(git_root, &worktree_path, config).await {
-            Ok(copy_result) => {
-                result.copied_files = Some(copy_result.copied_files);
-                result.skipped_files = Some(copy_result.skipped_files);
-            }
-            Err(e) => {
-                result.copy_error = Some(e.to_string());
-            }
-        }
-    } else if let Some(ref files_to_copy) = options.copy_files {
+    if let Some(ref files_to_copy) = options.copy_files {
         if !files_to_copy.is_empty() {
             match copy_files(git_root, &worktree_path, files_to_copy).await {
                 Ok(copy_result) => {

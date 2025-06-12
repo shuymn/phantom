@@ -83,9 +83,9 @@ Tasks are organized by phase according to the migration plan.
 ### File Operations
 
 - [x] Implement async file copier
-- [x] Add `.gitignore` pattern matching
-- [x] Implement parallel file copying with concurrency limits
-- [x] Add progress reporting for file operations
+- [x] ~~Add `.gitignore` pattern matching~~ (Removed - not in TypeScript version)
+- [x] ~~Implement parallel file copying with concurrency limits~~ (Removed - not in TypeScript version)
+- [x] ~~Add progress reporting for file operations~~ (Removed - not in TypeScript version)
 
 ### Configuration
 
@@ -95,6 +95,16 @@ Tasks are organized by phase according to the migration plan.
 - [x] Implement config validation
 - [x] Add config migration utility (JSON to TOML)
 - [x] Create default config generation
+
+### Additional Phase 3 Tasks (added during implementation)
+
+- [x] Implement property-based testing with proptest for worktree validation
+- [x] ~~Add snapshot testing with insta~~ (Removed - difficult to maintain)
+- [x] Remove unnecessary complexity not present in TypeScript version:
+  - [x] Remove gitignore support from file copier
+  - [x] Remove parallel_copier module
+  - [x] Remove progress reporting module
+  - [x] Simplify create_worktree to match TypeScript implementation
 
 ## Phase 4: Process & Terminal Integration (Weeks 8-9)
 
