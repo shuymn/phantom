@@ -66,40 +66,43 @@ mod tests {
             error_to_exit_code(&PhantomError::NotInGitRepository),
             ExitCode::NOT_IN_GIT_REPO
         );
-        
+
         assert_eq!(
             error_to_exit_code(&PhantomError::WorktreeExists { name: "test".to_string() }),
             ExitCode::WORKTREE_EXISTS
         );
-        
+
         assert_eq!(
             error_to_exit_code(&PhantomError::WorktreeNotFound { name: "test".to_string() }),
             ExitCode::WORKTREE_NOT_FOUND
         );
-        
+
         assert_eq!(
             error_to_exit_code(&PhantomError::BranchNotFound { branch: "test".to_string() }),
             ExitCode::BRANCH_NOT_FOUND
         );
-        
+
         assert_eq!(
             error_to_exit_code(&PhantomError::Config("test error".to_string())),
             ExitCode::CONFIG_ERROR
         );
-        
+
         assert_eq!(
             error_to_exit_code(&PhantomError::ProcessExecution("test error".to_string())),
             ExitCode::EXEC_ERROR
         );
-        
+
         assert_eq!(
             error_to_exit_code(&PhantomError::Validation("test error".to_string())),
             ExitCode::VALIDATION_ERROR
         );
-        
+
         // Test general error fallback
         assert_eq!(
-            error_to_exit_code(&PhantomError::Io(std::io::Error::new(std::io::ErrorKind::Other, "test"))),
+            error_to_exit_code(&PhantomError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "test"
+            ))),
             ExitCode::GENERAL_ERROR
         );
     }
