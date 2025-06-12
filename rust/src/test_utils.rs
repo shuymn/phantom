@@ -15,8 +15,8 @@ impl TestRepo {
         let dir = tempdir().map_err(crate::PhantomError::Io)?;
         let path = dir.path().to_path_buf();
 
-        // Initialize git repo
-        Command::new("git").args(["init"]).current_dir(&path).output().await.map_err(|e| {
+        // Initialize git repo with explicit main branch
+        Command::new("git").args(["init", "-b", "main"]).current_dir(&path).output().await.map_err(|e| {
             crate::PhantomError::ProcessExecution(format!("Failed to init git repo: {}", e))
         })?;
 
