@@ -40,6 +40,15 @@ jobs:
           rustup toolchain install ${{ matrix.rust }} --component rustfmt,clippy
           rustup default ${{ matrix.rust }}
 
+      - name: Install system dependencies
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y tmux kitty-terminfo
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            brew install tmux
+          fi
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
