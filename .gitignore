@@ -7,3 +7,9 @@ node_modules
 
 # Build output
 dist
+
+# Rust
+rust/target/
+rust/Cargo.lock
+**/*.rs.bk
+*.pdb
