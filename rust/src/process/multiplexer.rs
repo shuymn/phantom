@@ -393,7 +393,7 @@ mod tests {
     #[test]
     fn test_multiplexer_variants() {
         let multiplexers = vec![Multiplexer::Tmux, Multiplexer::Kitty, Multiplexer::None];
-        
+
         for m in multiplexers {
             match m {
                 Multiplexer::Tmux => assert_eq!(format!("{:?}", m), "Tmux"),
@@ -408,7 +408,7 @@ mod tests {
         // Test that fallback execution works
         let options = MultiplexerOptions {
             direction: SplitDirection::Vertical, // This should trigger a warning in fallback
-            command: "true".to_string(), // Command that always succeeds
+            command: "true".to_string(),         // Command that always succeeds
             args: None,
             cwd: None,
             env: None,
@@ -417,7 +417,7 @@ mod tests {
 
         // Call execute_fallback directly
         let result = execute_fallback(options).await;
-        
+
         // The "true" command should succeed
         assert!(result.is_ok());
         if let Ok(success) = result {
