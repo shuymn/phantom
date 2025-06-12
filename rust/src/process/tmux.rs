@@ -451,6 +451,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_tmux_session_exists() {
+        use tokio::process::Command;
+        
+        // Skip this test if tmux is not available
+        if !is_inside_tmux().await {
+            // Try to check if tmux is available
+            let tmux_check = Command::new("which")
+                .arg("tmux")
+                .output()
+                .await;
+            
+            if tmux_check.is_err() || !tmux_check.unwrap().status.success() {
+                // tmux not available, skip test
+                return;
+            }
+        }
+        
         let result = tmux_session_exists("nonexistent-session").await;
         match result {
             Ok(exists) => {

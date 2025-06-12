@@ -271,8 +271,8 @@ mod tests {
         let config = GitConfig::with_cwd(repo.path());
         let backend = CommandBackend::new(config);
 
-        // Test execute with arbitrary command
-        let output = backend.execute(&["config", "--get", "init.defaultBranch"]).await.unwrap();
-        assert!(output.contains("main"));
+        // Test execute with arbitrary command - use a command that always works
+        let output = backend.execute(&["--version"]).await.unwrap();
+        assert!(output.contains("git version"));
     }
 }
