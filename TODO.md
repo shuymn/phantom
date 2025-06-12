@@ -133,7 +133,7 @@ Tasks are organized by phase according to the migration plan.
 
 - [x] Implement fzf integration via subprocess
 - [x] Add TTY detection and handling
-- [ ] Implement interactive prompts
+- [x] Implement interactive prompts
 - [x] Add color output support
 - [x] Handle NO_COLOR and FORCE_COLOR env vars
 
