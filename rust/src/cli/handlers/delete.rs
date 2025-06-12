@@ -1,7 +1,90 @@
-use crate::cli::commands::delete::DeleteArgs;
-use crate::Result;
+use crate::cli::commands::delete::{DeleteArgs, DeleteResult};
+use crate::cli::output::output;
+use crate::git::libs::get_current_worktree::get_current_worktree;
+use crate::git::libs::get_git_root::get_git_root;
+use crate::worktree::delete::delete_worktree;
+use crate::worktree::select::select_worktree_with_fzf;
+use crate::worktree::types::DeleteWorktreeOptions;
+use crate::{PhantomError, Result};
 
-pub async fn handle(_args: DeleteArgs) -> Result<()> {
-    // TODO: Implement delete handler
-    Ok(())
+/// Handle the delete command
+pub async fn handle(args: DeleteArgs) -> Result<()> {
+    // Validate args
+    if args.name.is_none() && !args.current && !args.fzf {
+        return Err(PhantomError::Validation(
+            "Please provide a worktree name to delete, use --current to delete the current worktree, or use --fzf for interactive selection".to_string(),
+        ));
+    }
+
+    if (args.name.is_some() || args.fzf) && args.current {
+        return Err(PhantomError::Validation(
+            "Cannot specify --current with a worktree name or --fzf option".to_string(),
+        ));
+    }
+
+    if args.name.is_some() && args.fzf {
+        return Err(PhantomError::Validation(
+            "Cannot specify both a worktree name and --fzf option".to_string(),
+        ));
+    }
+
+    // Get git root
+    let git_root = get_git_root().await?;
+
+    // Get worktree name
+    let worktree_name = if args.current {
+        let current = get_current_worktree(&git_root).await?;
+        match current {
+            Some(name) => name,
+            None => {
+                return Err(PhantomError::Validation(
+                    "Not in a worktree directory. The --current option can only be used from within a worktree.".to_string(),
+                ));
+            }
+        }
+    } else if args.fzf {
+        match select_worktree_with_fzf(&git_root).await? {
+            Some(worktree) => worktree.name,
+            None => {
+                // User cancelled selection
+                return Ok(());
+            }
+        }
+    } else {
+        args.name.unwrap()
+    };
+
+    // Delete the worktree
+    let options = DeleteWorktreeOptions { force: args.force };
+
+    match delete_worktree(&git_root, &worktree_name, options).await {
+        Ok(result) => {
+            if args.json {
+                let json_result = DeleteResult {
+                    success: true,
+                    name: worktree_name,
+                    message: result.message.clone(),
+                    error: None,
+                };
+                let _ = output().json(&json_result);
+            } else {
+                output().log(&result.message);
+            }
+            Ok(())
+        }
+        Err(e) => {
+            if args.json {
+                let json_result = DeleteResult {
+                    success: false,
+                    name: worktree_name,
+                    message: String::new(),
+                    error: Some(e.to_string()),
+                };
+                let _ = output().json(&json_result);
+                Ok(())
+            } else {
+                Err(e)
+            }
+        }
+    }
 }
