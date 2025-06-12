@@ -49,7 +49,7 @@ pub async fn detect_multiplexer() -> Multiplexer {
 /// Execute a command in the detected multiplexer
 pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<SpawnSuccess> {
     let multiplexer = detect_multiplexer().await;
-    
+
     match multiplexer {
         Multiplexer::Tmux => {
             let tmux_direction = match options.direction {
@@ -57,7 +57,7 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 SplitDirection::Vertical => TmuxSplitDirection::Vertical,
                 SplitDirection::Horizontal => TmuxSplitDirection::Horizontal,
             };
-            
+
             let tmux_options = TmuxOptions {
                 direction: tmux_direction,
                 command: options.command,
@@ -66,7 +66,7 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 env: options.env,
                 window_name: options.window_name,
             };
-            
+
             execute_tmux_command(tmux_options).await
         }
         Multiplexer::Kitty => {
@@ -75,7 +75,7 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 SplitDirection::Vertical => KittySplitDirection::Vertical,
                 SplitDirection::Horizontal => KittySplitDirection::Horizontal,
             };
-            
+
             let kitty_options = KittyOptions {
                 direction: kitty_direction,
                 command: options.command,
@@ -84,7 +84,7 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 env: options.env,
                 window_title: options.window_name,
             };
-            
+
             execute_kitty_command(kitty_options).await
         }
         Multiplexer::None => {
@@ -103,7 +103,7 @@ async fn execute_fallback(options: MultiplexerOptions) -> Result<SpawnSuccess> {
             "No terminal multiplexer detected. Cannot create splits. Running command in current terminal."
         );
     }
-    
+
     let config = SpawnConfig {
         command: options.command,
         args: options.args.unwrap_or_default(),

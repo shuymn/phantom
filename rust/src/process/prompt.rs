@@ -17,7 +17,7 @@ pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
     io::stdin().read_line(&mut input).map_err(PhantomError::Io)?;
 
     let input = input.trim().to_lowercase();
-    
+
     if input.is_empty() {
         if let Some(default_value) = default {
             debug!("Using default value: {}", default_value);
@@ -50,7 +50,7 @@ pub fn prompt(message: &str, default: Option<&str>) -> Result<String> {
     io::stdin().read_line(&mut input).map_err(PhantomError::Io)?;
 
     let input = input.trim();
-    
+
     if input.is_empty() {
         if let Some(default_value) = default {
             debug!("Using default value: {}", default_value);
@@ -64,21 +64,27 @@ pub fn prompt(message: &str, default: Option<&str>) -> Result<String> {
 }
 
 /// Prompt the user to select from a list of options
-pub fn select<T: AsRef<str>>(message: &str, options: &[T], default: Option<usize>) -> Result<usize> {
+pub fn select<T: AsRef<str>>(
+    message: &str,
+    options: &[T],
+    default: Option<usize>,
+) -> Result<usize> {
     println!("{}", message);
-    
+
     for (i, option) in options.iter().enumerate() {
         let marker = if Some(i) == default { ">" } else { " " };
         println!("{} {}) {}", marker, i + 1, option.as_ref());
     }
-    
+
     let default_display = default.map(|d| (d + 1).to_string());
     let input = prompt("Select an option:", default_display.as_deref())?;
-    
-    if input.is_empty() && default.is_some() {
-        return Ok(default.unwrap());
+
+    if input.is_empty() {
+        if let Some(default_idx) = default {
+            return Ok(default_idx);
+        }
     }
-    
+
     match input.parse::<usize>() {
         Ok(n) if n > 0 && n <= options.len() => Ok(n - 1),
         _ => {

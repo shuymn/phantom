@@ -27,33 +27,31 @@ pub fn should_use_color() -> bool {
     if env::var("NO_COLOR").is_ok() {
         return false;
     }
-    
+
     // Check FORCE_COLOR
     if env::var("FORCE_COLOR").is_ok() {
         return true;
     }
-    
+
     // Check TERM
     if let Ok(term) = env::var("TERM") {
         if term == "dumb" {
             return false;
         }
     }
-    
+
     // Default to using color if stdout is a TTY
     is_stdout_tty()
 }
 
 /// Get terminal width
 pub fn terminal_width() -> Option<usize> {
-    terminal_size::terminal_size()
-        .map(|(terminal_size::Width(w), _)| w as usize)
+    terminal_size::terminal_size().map(|(terminal_size::Width(w), _)| w as usize)
 }
 
 /// Get terminal height
 pub fn terminal_height() -> Option<usize> {
-    terminal_size::terminal_size()
-        .map(|(_, terminal_size::Height(h))| h as usize)
+    terminal_size::terminal_size().map(|(_, terminal_size::Height(h))| h as usize)
 }
 
 /// Get terminal size (width, height)
@@ -72,7 +70,7 @@ mod tests {
         let stdin_tty = is_stdin_tty();
         let stdout_tty = is_stdout_tty();
         let stderr_tty = is_stderr_tty();
-        
+
         // In most CI environments, these will be false
         println!("stdin is tty: {}", stdin_tty);
         println!("stdout is tty: {}", stdout_tty);
@@ -91,22 +89,22 @@ mod tests {
         // Save original env vars
         let force_color = env::var("FORCE_COLOR").ok();
         let no_color = env::var("NO_COLOR").ok();
-        
+
         // Test FORCE_COLOR
         env::set_var("FORCE_COLOR", "1");
         assert!(should_use_color());
-        
+
         // Test NO_COLOR (should override FORCE_COLOR)
         env::set_var("NO_COLOR", "1");
         assert!(!should_use_color());
-        
+
         // Restore original env vars
         if let Some(val) = force_color {
             env::set_var("FORCE_COLOR", val);
         } else {
             env::remove_var("FORCE_COLOR");
         }
-        
+
         if let Some(val) = no_color {
             env::set_var("NO_COLOR", val);
         } else {

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 
-use super::spawn::{spawn_process, SpawnConfig, SpawnSuccess, execute_command};
+use super::spawn::{execute_command, spawn_process, SpawnConfig, SpawnSuccess};
 
 /// Direction for tmux split operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,7 +93,12 @@ pub async fn execute_tmux_command(options: TmuxOptions) -> Result<TmuxSuccess> {
 
 /// Create a new tmux session
 pub async fn create_tmux_session(session_name: &str, cwd: Option<&Path>) -> Result<TmuxSuccess> {
-    let mut args = vec!["new-session".to_string(), "-d".to_string(), "-s".to_string(), session_name.to_string()];
+    let mut args = vec![
+        "new-session".to_string(),
+        "-d".to_string(),
+        "-s".to_string(),
+        session_name.to_string(),
+    ];
 
     if let Some(cwd) = cwd {
         args.push("-c".to_string());
@@ -128,18 +133,9 @@ pub async fn attach_tmux_session(session_name: &str) -> Result<TmuxSuccess> {
 /// List tmux sessions
 pub async fn list_tmux_sessions() -> Result<Vec<String>> {
     let args: Vec<&str> = vec!["list-sessions", "-F", "#{session_name}"];
-    let output = execute_command(
-        "tmux",
-        args,
-        None,
-    )
-    .await?;
+    let output = execute_command("tmux", args, None).await?;
 
-    let sessions = output
-        .lines()
-        .map(|s| s.to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
+    let sessions = output.lines().map(|s| s.to_string()).filter(|s| !s.is_empty()).collect();
 
     Ok(sessions)
 }
@@ -154,7 +150,7 @@ pub async fn tmux_session_exists(session_name: &str) -> Result<bool> {
         inherit_stdio: false,
         timeout_ms: None,
     };
-    
+
     match spawn_process(config).await {
         Ok(_) => Ok(true),
         Err(PhantomError::ProcessExecution(_)) => Ok(false),

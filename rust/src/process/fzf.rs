@@ -36,15 +36,13 @@ pub async fn select_with_fzf(items: Vec<String>, options: FzfOptions) -> Result<
     }
 
     // Configure stdio
-    cmd.stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
 
     // Spawn the process
     let mut child = cmd.spawn().map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
             PhantomError::ProcessExecution(
-                "fzf command not found. Please install fzf first.".to_string()
+                "fzf command not found. Please install fzf first.".to_string(),
             )
         } else {
             PhantomError::Io(e)
@@ -91,15 +89,14 @@ pub async fn select_with_fzf(items: Vec<String>, options: FzfOptions) -> Result<
         Some(code) => {
             // Other error
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(PhantomError::ProcessExecution(
-                format!("fzf exited with code {}: {}", code, stderr)
-            ))
+            Err(PhantomError::ProcessExecution(format!(
+                "fzf exited with code {}: {}",
+                code, stderr
+            )))
         }
         None => {
             // Process terminated by signal
-            Err(PhantomError::ProcessExecution(
-                "fzf terminated by signal".to_string()
-            ))
+            Err(PhantomError::ProcessExecution("fzf terminated by signal".to_string()))
         }
     }
 }
@@ -144,7 +141,7 @@ mod tests {
             header: Some("Available items".to_string()),
             preview_command: Some("echo {}".to_string()),
         };
-        
+
         assert_eq!(options.prompt.unwrap(), "Select an item: ");
         assert_eq!(options.header.unwrap(), "Available items");
         assert_eq!(options.preview_command.unwrap(), "echo {}");
