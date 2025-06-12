@@ -119,23 +119,23 @@ Tasks are organized by phase according to the migration plan.
 
 ### Terminal Multiplexer Support
 
-- [ ] Implement tmux integration:
-  - [ ] Session creation
-  - [ ] Window management
-  - [ ] Pane splitting
-- [ ] Implement Kitty integration:
-  - [ ] OSC sequence support
-  - [ ] Tab/window creation
-- [ ] Add multiplexer detection
-- [ ] Create fallback for unsupported terminals
+- [x] Implement tmux integration:
+  - [x] Session creation
+  - [x] Window management
+  - [x] Pane splitting
+- [x] Implement Kitty integration:
+  - [x] OSC sequence support
+  - [x] Tab/window creation
+- [x] Add multiplexer detection
+- [x] Create fallback for unsupported terminals
 
 ### Interactive Features
 
-- [ ] Implement fzf integration via subprocess
-- [ ] Add TTY detection and handling
+- [x] Implement fzf integration via subprocess
+- [x] Add TTY detection and handling
 - [ ] Implement interactive prompts
-- [ ] Add color output support
-- [ ] Handle NO_COLOR and FORCE_COLOR env vars
+- [x] Add color output support
+- [x] Handle NO_COLOR and FORCE_COLOR env vars
 
 ## Phase 5: CLI Implementation (Weeks 10-11)
 
