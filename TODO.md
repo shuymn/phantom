@@ -144,8 +144,8 @@ Tasks are organized by phase according to the migration plan.
 - [x] Define CLI structs with clap derive
 - [ ] Implement all subcommands:
   - [x] `create` command
-  - [ ] `attach` command
-  - [ ] `list` command
+  - [x] `attach` command
+  - [x] `list` command
   - [ ] `where` command
   - [ ] `delete` command
   - [ ] `exec` command
