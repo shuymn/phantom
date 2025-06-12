@@ -2,13 +2,15 @@
 name = "phantom"
 version = "0.1.0"
 edition = "2021"
-authors = ["aku11i <phantom@example.com>"]
-description = "Ephemeral Git worktrees made easy"
+authors = ["shuymn <mail@shuymn.me>"]
+description = "Ephemeral Git worktrees made easy - Rust implementation"
 license = "MIT"
-repository = "https://github.com/aku11i/phantom"
+repository = "https://github.com/shuymn/phantom"
+homepage = "https://github.com/shuymn/phantom"
+documentation = "https://docs.rs/phantom"
 keywords = ["git", "worktree", "cli", "development", "workflow"]
 categories = ["command-line-utilities", "development-tools"]
-readme = "../README.md"
+readme = "README.md"
 rust-version = "1.75.0"
 
 [[bin]]

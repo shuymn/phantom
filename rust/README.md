@@ -1,16 +1,37 @@
-# Phantom Rust Implementation
+# 👻 Phantom (Rust)
 
-This is the Rust implementation of phantom, a CLI tool for managing Git worktrees.
+<div align="center">
 
-## Prerequisites
+**A powerful CLI tool for seamless parallel development with Git worktrees**
 
-- Rust 1.75.0 or later
-- Cargo (comes with Rust)
-- Git 2.5 or later
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust Version](https://img.shields.io/badge/rust-1.75.0+-orange.svg)](https://www.rust-lang.org)
 
-## Installation
+[Installation](#-installation) • [Why Phantom?](#-why-phantom) • [Basic Usage](#-basic-usage) • [Documentation](#-documentation)
 
-### Clone and Build
+</div>
+
+> **Note**: This is the Rust implementation of Phantom. For the original TypeScript version, see the [parent directory](../README.md).
+
+## ✨ What is Phantom?
+
+Phantom is a powerful CLI tool that dramatically boosts your development productivity by making Git worktrees simple and intuitive. Run multiple tasks in isolated environments simultaneously and achieve true multitask development.
+
+### Key Features
+
+- 🚀 **Simple worktree management** - Create and manage Git worktrees with intuitive commands
+- 🔄 **True multitasking** - Create separate working directories per branch and run multiple tasks simultaneously
+- 🎯 **Execute commands from anywhere** - Run commands in any worktree with `phantom exec <worktree> <command>`
+- 🪟 **Terminal multiplexer integration** - Built-in support for tmux and kitty terminal
+- 🔍 **Interactive selection with fzf** - Use built-in fzf option for worktree selection
+- 🎮 **Shell completion** - Full autocomplete support for Fish, Zsh, and Bash
+- ⚡ **Zero runtime dependencies** - Single static binary
+- 🦀 **Memory safe** - Written in Rust for reliability and performance
+
+## 🚀 Installation
+
+### From Source (Clone and Build)
+
 ```bash
 git clone https://github.com/aku11i/phantom.git
 cd phantom/rust
@@ -19,6 +40,7 @@ sudo cp target/release/phantom /usr/local/bin/
 ```
 
 ### Using Cargo Install
+
 ```bash
 cargo install --git https://github.com/aku11i/phantom --path rust
 ```
@@ -44,25 +66,92 @@ cargo run -- <command>
 ./target/release/phantom <command>  # for release build
 ```
 
-## Available Commands
+## 🤔 Why Phantom?
 
-### Core Commands
-- `create <name>` - Create a new worktree
-- `delete <name>` - Delete a worktree
-- `list` - List all worktrees
-- `where <name>` - Get the path of a worktree
-- `exec <name> -- <command>` - Execute a command in a worktree
-- `shell <name>` - Open a shell in a worktree
+Git worktrees are powerful but require manual management of paths and branches. Phantom eliminates these problems:
 
-### Utility Commands
-- `completion <shell>` - Generate shell completions
-- `version` - Show version information
+```bash
+# Without Phantom
+git worktree add -b feature-awesome ../project-feature-awesome origin/main
+cd ../project-feature-awesome
 
-### Command Options
-Most commands support:
-- `--fzf` - Use fzf for interactive selection
-- `--json` - Output in JSON format
-- `-h, --help` - Show help for a command
+# With Phantom
+phantom create feature-awesome --shell
+```
+
+## 🔍 Basic Usage
+
+### Create a new worktree
+
+```bash
+phantom create feature-awesome
+
+# Create and open a shell
+phantom create feature-awesome --shell
+
+# Create from specific branch/commit
+phantom create hotfix --from main
+```
+
+### List worktrees
+
+```bash
+phantom list
+
+# JSON output for scripting
+phantom list --json
+```
+
+### Open a shell in a worktree
+
+```bash
+phantom shell feature-awesome
+
+# With tmux integration
+phantom shell feature-awesome --tmux
+```
+
+### Execute commands in a worktree
+
+```bash
+phantom exec feature-awesome cargo build
+phantom exec feature-awesome --json cargo test
+```
+
+### Delete a worktree
+
+```bash
+phantom delete feature-awesome
+
+# Force delete (removes uncommitted changes)
+phantom delete feature-awesome --force
+
+# Interactive selection with fzf
+phantom delete --fzf
+```
+
+### Find worktree path
+
+```bash
+phantom where feature-awesome
+# Output: /path/to/repo/.git/phantom/worktrees/feature-awesome
+```
+
+## 📦 Shell Completion
+
+Generate shell completions for your shell:
+
+```bash
+# Fish
+phantom completion fish > ~/.config/fish/completions/phantom.fish
+
+# Zsh
+phantom completion zsh > ~/.zfunc/_phantom
+echo "fpath=(~/.zfunc $fpath)" >> ~/.zshrc
+
+# Bash
+phantom completion bash > /etc/bash_completion.d/phantom
+```
 
 ## Testing
 
@@ -194,24 +283,42 @@ cargo install flamegraph
 cargo flamegraph -- list
 ```
 
-## Integration with Shell
 
-### Bash/Zsh
-```bash
-# Generate completions
-./target/release/phantom completion bash > phantom.bash
-source phantom.bash
-```
+## 🔄 Migration from TypeScript Version
 
-### Fish
-```fish
-./target/release/phantom completion fish > ~/.config/fish/completions/phantom.fish
-```
+If you're migrating from the TypeScript version of Phantom:
 
-## Contributing
+1. The command-line interface remains the same
+2. Configuration files (`.phantom.json`) are compatible
+3. All existing worktrees continue to work
+4. Shell completions need to be regenerated
+
+See [MIGRATION.md](../MIGRATION.md) for detailed migration instructions.
+
+## 📚 Documentation
+
+- **[Commands Reference](../docs/commands.md)** - All commands and options
+- **[Configuration](../docs/configuration.md)** - Set up automatic file copying and post-create commands
+- **[Architecture](ARCHITECTURE.md)** - Technical details of the Rust implementation
+
+## 🤝 Contributing
+
+Contributions are welcome! See our [Contributing Guide](../CONTRIBUTING.md) for:
+- Development setup
+- Code style guidelines  
+- Testing requirements
+- Pull request process
 
 When making changes:
 1. Run `cargo fmt` to format code
 2. Run `cargo clippy` to check for issues
 3. Run `cargo test` to ensure tests pass
 4. Update tests for new functionality
+
+## 📄 License
+
+MIT License - see [LICENSE](../LICENSE)
+
+## 🙏 Acknowledgments
+
+Built with 👻 by [@aku11i](https://github.com/aku11i) and [Claude](https://claude.ai)

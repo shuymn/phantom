@@ -15,6 +15,8 @@
 
 </div>
 
+> **🦀 Rust Version Available**: A Rust implementation of Phantom is now available in the [`rust/`](./rust/) directory. See [Migration Guide](./MIGRATION.md) for details.
+
 ## ✨ What is Phantom?
 
 Phantom is a powerful CLI tool that dramatically boosts your development productivity by making Git worktrees simple and intuitive. Run multiple tasks in isolated environments simultaneously and achieve true multitask development. Built for the next generation of parallel development workflows, including AI-powered coding with multiple agents.

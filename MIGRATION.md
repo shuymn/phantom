@@ -9,9 +9,9 @@ The Rust version of Phantom maintains full compatibility with the TypeScript ver
 ## Key Benefits of the Rust Version
 
 - **Single Binary**: No runtime dependencies (Node.js/npm not required)
-- **Better Performance**: Faster execution and lower memory usage
 - **Native Integration**: Better terminal multiplexer support
-- **Cross-platform**: Pre-built binaries for Linux and macOS (x86_64 and ARM64)
+- **Cross-platform**: Works on Linux and macOS (x86_64 and ARM64)
+- **Memory Safety**: Written in Rust for reliability
 
 ## Installation
 
@@ -19,7 +19,7 @@ The Rust version of Phantom maintains full compatibility with the TypeScript ver
 
 Clone the repository and build from source:
 ```bash
-git clone https://github.com/aku11i/phantom.git
+git clone https://github.com/shuymn/phantom.git
 cd phantom/rust
 cargo build --release
 sudo cp target/release/phantom /usr/local/bin/
@@ -29,7 +29,7 @@ sudo cp target/release/phantom /usr/local/bin/
 
 If you have Rust installed, you can install directly with cargo:
 ```bash
-cargo install --git https://github.com/aku11i/phantom --path rust
+cargo install --git https://github.com/shuymn/phantom --path rust
 ```
 
 ## Compatibility
