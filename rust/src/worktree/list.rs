@@ -164,4 +164,129 @@ mod tests {
         let is_clean = get_worktree_status(&worktree_path).await.unwrap();
         assert!(!is_clean);
     }
+
+    #[tokio::test]
+    async fn test_get_worktree_info() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        // Create a worktree
+        let options = CreateWorktreeOptions {
+            branch: Some("info-branch".to_string()),
+            ..Default::default()
+        };
+        create_worktree(repo.path(), "test-info", options).await.unwrap();
+
+        let info = get_worktree_info(repo.path(), "test-info").await.unwrap();
+        assert_eq!(info.name, "test-info");
+        assert!(info.path.contains("test-info"));
+        assert_eq!(info.branch, Some("info-branch".to_string()));
+        assert!(info.is_clean);
+    }
+
+    #[tokio::test]
+    async fn test_get_worktree_branch_detached_head() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        // Get the current commit hash using Command directly
+        let output = tokio::process::Command::new("git")
+            .args(&["rev-parse", "HEAD"])
+            .current_dir(repo.path())
+            .output()
+            .await
+            .unwrap();
+        let commit_hash = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+        // Create a worktree at a specific commit (detached HEAD)
+        let worktree_path = get_phantom_directory(repo.path()).join("detached");
+        tokio::process::Command::new("git")
+            .args(&["worktree", "add", "-d", worktree_path.to_str().unwrap(), &commit_hash])
+            .current_dir(repo.path())
+            .output()
+            .await
+            .unwrap();
+
+        let branch = get_worktree_branch(&worktree_path).await.unwrap();
+        assert_eq!(branch, "(detached HEAD)");
+    }
+
+    #[tokio::test]
+    async fn test_get_worktree_branch_nonexistent_path() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let nonexistent_path = temp_dir.path().join("nonexistent");
+        
+        let branch = get_worktree_branch(&nonexistent_path).await.unwrap();
+        assert_eq!(branch, "unknown");
+    }
+
+    #[tokio::test]
+    async fn test_get_worktree_status_nonexistent_path() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let nonexistent_path = temp_dir.path().join("nonexistent");
+        
+        let is_clean = get_worktree_status(&nonexistent_path).await.unwrap();
+        assert!(is_clean); // Defaults to clean on error
+    }
+
+    #[tokio::test]
+    async fn test_worktree_info_serialization() {
+        let info = WorktreeInfo {
+            name: "test".to_string(),
+            path: "/path/to/test".to_string(),
+            branch: Some("main".to_string()),
+            is_clean: true,
+        };
+
+        // Test JSON serialization
+        let json = serde_json::to_string(&info).unwrap();
+        assert!(json.contains("\"name\":\"test\""));
+        assert!(json.contains("\"is_clean\":true"));
+
+        // Test deserialization
+        let deserialized: WorktreeInfo = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.name, info.name);
+        assert_eq!(deserialized.path, info.path);
+        assert_eq!(deserialized.branch, info.branch);
+        assert_eq!(deserialized.is_clean, info.is_clean);
+    }
+
+    #[tokio::test]
+    async fn test_list_worktrees_success_serialization() {
+        let success = ListWorktreesSuccess {
+            worktrees: vec![
+                WorktreeInfo {
+                    name: "feature1".to_string(),
+                    path: "/path/to/feature1".to_string(),
+                    branch: Some("feature1".to_string()),
+                    is_clean: true,
+                },
+                WorktreeInfo {
+                    name: "feature2".to_string(),
+                    path: "/path/to/feature2".to_string(),
+                    branch: Some("feature2".to_string()),
+                    is_clean: false,
+                },
+            ],
+            message: None,
+        };
+
+        let json = serde_json::to_string(&success).unwrap();
+        let deserialized: ListWorktreesSuccess = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.worktrees.len(), 2);
+        assert_eq!(deserialized.worktrees[0].name, "feature1");
+        assert_eq!(deserialized.worktrees[1].name, "feature2");
+        assert!(deserialized.message.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_list_worktrees_with_message() {
+        let success = ListWorktreesSuccess {
+            worktrees: vec![],
+            message: Some("No worktrees found".to_string()),
+        };
+
+        let json = serde_json::to_string(&success).unwrap();
+        assert!(json.contains("\"message\":\"No worktrees found\""));
+    }
 }

@@ -322,4 +322,186 @@ mod tests {
         // Clean up
         child.kill().await.ok();
     }
+
+    #[tokio::test]
+    async fn test_spawn_config_default() {
+        let config = SpawnConfig::default();
+        assert!(config.command.is_empty());
+        assert!(config.args.is_empty());
+        assert!(config.cwd.is_none());
+        assert!(config.env.is_none());
+        assert!(config.inherit_stdio);
+        assert!(config.timeout_ms.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_spawn_config_debug() {
+        let mut env = HashMap::new();
+        env.insert("KEY".to_string(), "value".to_string());
+        
+        let config = SpawnConfig {
+            command: "test".to_string(),
+            args: vec!["arg1".to_string(), "arg2".to_string()],
+            cwd: Some("/tmp".to_string()),
+            env: Some(env),
+            inherit_stdio: false,
+            timeout_ms: Some(5000),
+        };
+
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.contains("SpawnConfig"));
+        assert!(debug_str.contains("command"));
+        assert!(debug_str.contains("test"));
+        assert!(debug_str.contains("args"));
+        assert!(debug_str.contains("arg1"));
+    }
+
+    #[tokio::test]
+    async fn test_spawn_config_clone() {
+        let config = SpawnConfig {
+            command: "test".to_string(),
+            args: vec!["arg".to_string()],
+            cwd: Some("/home".to_string()),
+            env: Some(HashMap::from([("VAR".to_string(), "val".to_string())])),
+            inherit_stdio: false,
+            timeout_ms: Some(1000),
+        };
+
+        let cloned = config.clone();
+        assert_eq!(config.command, cloned.command);
+        assert_eq!(config.args, cloned.args);
+        assert_eq!(config.cwd, cloned.cwd);
+        assert_eq!(config.env, cloned.env);
+        assert_eq!(config.inherit_stdio, cloned.inherit_stdio);
+        assert_eq!(config.timeout_ms, cloned.timeout_ms);
+    }
+
+    #[tokio::test]
+    async fn test_spawn_success_debug() {
+        let success = SpawnSuccess { exit_code: 0 };
+        let debug_str = format!("{:?}", success);
+        assert!(debug_str.contains("SpawnSuccess"));
+        assert!(debug_str.contains("exit_code"));
+        assert!(debug_str.contains("0"));
+    }
+
+    #[tokio::test]
+    async fn test_spawn_success_clone() {
+        let success = SpawnSuccess { exit_code: 42 };
+        let cloned = success.clone();
+        assert_eq!(success.exit_code, cloned.exit_code);
+    }
+
+    #[tokio::test]
+    async fn test_execute_command_with_cwd() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let file_path = temp_dir.path().join("test.txt");
+        std::fs::write(&file_path, "test content").unwrap();
+
+        let result = execute_command("ls", vec![], Some(temp_dir.path())).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().contains("test.txt"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_command_failure() {
+        let result = execute_command("ls", vec!["/nonexistent/path/that/should/not/exist"], None).await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PhantomError::ProcessExecution(msg) => assert!(msg.contains("exit code")),
+            _ => panic!("Expected ProcessExecution error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_command_nonexistent() {
+        let result = execute_command("nonexistent-command-xyz123", vec![], None).await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PhantomError::ProcessExecution(msg) => assert!(msg.contains("Failed to execute command")),
+            _ => panic!("Expected ProcessExecution error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_spawn_process_exit_code_non_zero() {
+        let config = SpawnConfig {
+            command: "false".to_string(), // Command that always returns 1
+            args: vec![],
+            inherit_stdio: false,
+            ..Default::default()
+        };
+
+        let result = spawn_process(config).await;
+        assert!(result.is_ok());
+        let success = result.unwrap();
+        assert_eq!(success.exit_code, 1);
+    }
+
+    #[tokio::test]
+    async fn test_spawn_detached_with_env() {
+        let mut env = HashMap::new();
+        env.insert("TEST_DETACHED".to_string(), "yes".to_string());
+
+        let config = SpawnConfig {
+            command: "sleep".to_string(),
+            args: vec!["0.1".to_string()],
+            env: Some(env),
+            ..Default::default()
+        };
+
+        let result = spawn_detached(config).await;
+        assert!(result.is_ok());
+
+        let mut child = result.unwrap();
+        assert!(child.id().is_some());
+        
+        // Wait for completion
+        let _ = child.wait().await;
+    }
+
+    #[tokio::test]
+    async fn test_spawn_detached_with_cwd() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let cwd = temp_dir.path().to_string_lossy().to_string();
+
+        let config = SpawnConfig {
+            command: "pwd".to_string(),
+            args: vec![],
+            cwd: Some(cwd),
+            ..Default::default()
+        };
+
+        let result = spawn_detached(config).await;
+        assert!(result.is_ok());
+
+        let mut child = result.unwrap();
+        let _ = child.wait().await;
+    }
+
+    #[tokio::test]
+    async fn test_spawn_detached_failure() {
+        let config = SpawnConfig {
+            command: "command-that-does-not-exist-xyz".to_string(),
+            args: vec![],
+            ..Default::default()
+        };
+
+        let result = spawn_detached(config).await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            PhantomError::ProcessExecution(msg) => {
+                assert!(msg.contains("Failed to spawn detached process"));
+            }
+            _ => panic!("Expected ProcessExecution error"),
+        }
+    }
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn test_setup_signal_handlers() {
+        // Just test that signal handlers can be setup without panicking
+        let result = setup_signal_handlers().await;
+        assert!(result.is_ok());
+    }
 }

@@ -229,4 +229,142 @@ mod tests {
         assert!(success.message.contains("Created worktree 'feature'"));
         assert!(Path::new(&success.path).exists());
     }
+
+    #[tokio::test]
+    async fn test_create_worktree_with_copy_files() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+        repo.create_file_and_commit("config.json", "{}", "Add config").await.unwrap();
+        repo.create_file_and_commit(".env", "KEY=value", "Add env").await.unwrap();
+
+        let options = CreateWorktreeOptions {
+            copy_files: Some(vec!["config.json".to_string(), ".env".to_string()]),
+            ..Default::default()
+        };
+        let result = create_worktree(repo.path(), "feature", options).await;
+
+        assert!(result.is_ok());
+        let success = result.unwrap();
+        assert!(success.copied_files.is_some());
+        assert_eq!(success.copied_files.unwrap().len(), 2);
+        assert!(success.skipped_files.is_some());
+        assert_eq!(success.skipped_files.unwrap().len(), 0);
+        assert!(success.copy_error.is_none());
+
+        // Verify files were copied
+        let worktree_path = Path::new(&success.path);
+        assert!(worktree_path.join("config.json").exists());
+        assert!(worktree_path.join(".env").exists());
+    }
+
+    #[tokio::test]
+    async fn test_create_worktree_with_copy_files_some_missing() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+        repo.create_file_and_commit("config.json", "{}", "Add config").await.unwrap();
+
+        let options = CreateWorktreeOptions {
+            copy_files: Some(vec!["config.json".to_string(), "missing.txt".to_string()]),
+            ..Default::default()
+        };
+        let result = create_worktree(repo.path(), "feature-missing", options).await;
+
+        assert!(result.is_ok());
+        let success = result.unwrap();
+        assert!(success.copied_files.is_some());
+        assert_eq!(success.copied_files.unwrap().len(), 1);
+        assert!(success.skipped_files.is_some());
+        assert_eq!(success.skipped_files.unwrap().len(), 1);
+        assert!(success.copy_error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_create_worktree_with_empty_copy_files() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        let options = CreateWorktreeOptions {
+            copy_files: Some(vec![]),
+            ..Default::default()
+        };
+        let result = create_worktree(repo.path(), "feature-empty", options).await;
+
+        assert!(result.is_ok());
+        let success = result.unwrap();
+        assert!(success.copied_files.is_none());
+        assert!(success.skipped_files.is_none());
+        assert!(success.copy_error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_create_worktree_success_fields() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        let options = CreateWorktreeOptions::default();
+        let result = create_worktree(repo.path(), "verify-fields", options).await.unwrap();
+
+        assert!(result.message.contains("Created worktree 'verify-fields'"));
+        assert!(result.path.ends_with("verify-fields"));
+        assert!(result.copied_files.is_none());
+        assert!(result.skipped_files.is_none());
+        assert!(result.copy_error.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_create_worktree_with_backend_and_copy_files() {
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+        repo.create_file_and_commit("data.json", "[]", "Add data").await.unwrap();
+
+        let backend = create_backend_for_dir(repo.path());
+        let options = CreateWorktreeOptions {
+            copy_files: Some(vec!["data.json".to_string()]),
+            ..Default::default()
+        };
+        let result = create_worktree_with_backend(backend, repo.path(), "backend-copy", options).await;
+
+        assert!(result.is_ok());
+        let success = result.unwrap();
+        assert!(success.copied_files.is_some());
+        assert_eq!(success.copied_files.unwrap().len(), 1);
+
+        // Verify file was copied
+        let worktree_path = Path::new(&success.path);
+        assert!(worktree_path.join("data.json").exists());
+    }
+
+    #[tokio::test]
+    async fn test_create_worktree_success_serialization() {
+        use crate::worktree::types::CreateWorktreeSuccess;
+
+        // Test CreateWorktreeSuccess serialization
+        let success = CreateWorktreeSuccess {
+            message: "Created".to_string(),
+            path: "/path/to/worktree".to_string(),
+            copied_files: Some(vec!["file1".to_string()]),
+            skipped_files: Some(vec!["file2".to_string()]),
+            copy_error: Some("Error".to_string()),
+        };
+        let json = serde_json::to_string(&success).unwrap();
+        let deserialized: CreateWorktreeSuccess = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.message, success.message);
+        assert_eq!(deserialized.path, success.path);
+        assert_eq!(deserialized.copied_files, success.copied_files);
+        assert_eq!(deserialized.skipped_files, success.skipped_files);
+        assert_eq!(deserialized.copy_error, success.copy_error);
+
+        // Test with skip_serializing_if
+        let success_minimal = CreateWorktreeSuccess {
+            message: "Created".to_string(),
+            path: "/path".to_string(),
+            copied_files: None,
+            skipped_files: None,
+            copy_error: None,
+        };
+        let json = serde_json::to_string(&success_minimal).unwrap();
+        assert!(!json.contains("copied_files"));
+        assert!(!json.contains("skipped_files"));
+        assert!(!json.contains("copy_error"));
+    }
 }

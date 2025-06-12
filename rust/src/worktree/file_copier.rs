@@ -176,4 +176,134 @@ mod tests {
         assert_eq!(result.copied_files.len(), 0);
         assert_eq!(result.skipped_files.len(), 1);
     }
+
+    #[tokio::test]
+    async fn test_copy_files_empty_list() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        let files = vec![];
+        let result = copy_files(source_dir.path(), target_dir.path(), &files).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 0);
+        assert_eq!(result.skipped_files.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_copy_files_overwrite_existing() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        // Create source file
+        let file = source_dir.path().join("file.txt");
+        fs::write(&file, "new content").await.unwrap();
+
+        // Create existing target file
+        let target_file = target_dir.path().join("file.txt");
+        fs::write(&target_file, "old content").await.unwrap();
+
+        let files = vec!["file.txt".to_string()];
+        let result = copy_files(source_dir.path(), target_dir.path(), &files).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 1);
+        assert_eq!(result.skipped_files.len(), 0);
+
+        // Verify file was overwritten
+        assert_eq!(fs::read_to_string(target_file).await.unwrap(), "new content");
+    }
+
+    #[tokio::test]
+    async fn test_copy_files_nested_directory_creation() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        // Create deeply nested file
+        let nested_dir = source_dir.path().join("a/b/c");
+        fs::create_dir_all(&nested_dir).await.unwrap();
+        let file = nested_dir.join("file.txt");
+        fs::write(&file, "nested content").await.unwrap();
+
+        let files = vec!["a/b/c/file.txt".to_string()];
+        let result = copy_files(source_dir.path(), target_dir.path(), &files).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 1);
+        assert_eq!(result.skipped_files.len(), 0);
+
+        // Verify nested structure was created
+        let target_file = target_dir.path().join("a/b/c/file.txt");
+        assert!(target_file.exists());
+        assert_eq!(fs::read_to_string(target_file).await.unwrap(), "nested content");
+    }
+
+    #[tokio::test]
+    async fn test_copy_file_result_debug() {
+        let result = CopyFileResult {
+            copied_files: vec!["file1.txt".to_string(), "file2.txt".to_string()],
+            skipped_files: vec!["skip.txt".to_string()],
+        };
+
+        let debug_str = format!("{:?}", result);
+        assert!(debug_str.contains("CopyFileResult"));
+        assert!(debug_str.contains("copied_files"));
+        assert!(debug_str.contains("file1.txt"));
+        assert!(debug_str.contains("skipped_files"));
+    }
+
+    #[tokio::test]
+    async fn test_copy_file_result_clone() {
+        let result = CopyFileResult {
+            copied_files: vec!["file1.txt".to_string()],
+            skipped_files: vec!["file2.txt".to_string()],
+        };
+
+        let cloned = result.clone();
+        assert_eq!(result.copied_files, cloned.copied_files);
+        assert_eq!(result.skipped_files, cloned.skipped_files);
+    }
+
+    #[tokio::test]
+    async fn test_copy_files_with_special_characters() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        // Create file with special characters in name
+        let file = source_dir.path().join("file-with-dashes.txt");
+        fs::write(&file, "content").await.unwrap();
+
+        let files = vec!["file-with-dashes.txt".to_string()];
+        let result = copy_files(source_dir.path(), target_dir.path(), &files).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 1);
+        assert_eq!(result.copied_files[0], "file-with-dashes.txt");
+
+        let target_file = target_dir.path().join("file-with-dashes.txt");
+        assert!(target_file.exists());
+    }
+
+    #[tokio::test]
+    async fn test_copy_files_permission_preserved() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        // Create file with specific permissions
+        let file = source_dir.path().join("executable.sh");
+        fs::write(&file, "#!/bin/bash\necho test").await.unwrap();
+        
+        // Set executable permission
+        let mut perms = fs::metadata(&file).await.unwrap().permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&file, perms).await.unwrap();
+
+        let files = vec!["executable.sh".to_string()];
+        let result = copy_files(source_dir.path(), target_dir.path(), &files).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 1);
+
+        // Note: fs::copy preserves permissions on Unix systems
+        let target_file = target_dir.path().join("executable.sh");
+        let target_perms = fs::metadata(&target_file).await.unwrap().permissions();
+        assert_eq!(target_perms.mode() & 0o777, 0o755);
+    }
 }
