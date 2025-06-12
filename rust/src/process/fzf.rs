@@ -182,6 +182,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_with_fzf_single_item() {
         let items = vec!["single-item".to_string()];
         let result = select_with_fzf(items, FzfOptions::default()).await;
@@ -197,6 +198,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_with_fzf_with_options() {
         let items = vec!["item1".to_string(), "item2".to_string()];
         let options = FzfOptions {
@@ -244,7 +246,7 @@ mod tests {
         let items = vec!["first".to_string(), "second".to_string(), "third".to_string()];
         let joined = items.join("\n");
         assert_eq!(joined, "first\nsecond\nthird");
-        assert_eq!(joined.as_bytes().len(), 17); // 5 + 1 + 6 + 1 + 5
+        assert_eq!(joined.as_bytes().len(), 18); // 5 + 1 + 6 + 1 + 5
         
         // Test trimming
         let with_whitespace = "  selected item  \n";
@@ -301,6 +303,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_with_fzf_multiple_items() {
         let items = vec![
             "option-one".to_string(),

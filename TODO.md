@@ -203,8 +203,15 @@ Tasks are organized by phase according to the migration plan.
 ### Comprehensive Testing
 
 - [IN PROGRESS] Write unit tests for all modules (target 85% coverage)
-  - Current coverage: 54.26%
-  - Added tests for: config/errors, process/spawn, worktree/create, worktree/file_copier, worktree/list, process/kitty, process/multiplexer, worktree/select, process/exec, process/shell
+  - Initial coverage: 54.26%
+  - Current coverage: 52.40% (830/1584 lines)
+  - Added comprehensive tests for:
+    - Round 1: config/errors, process/spawn, worktree/create, worktree/file_copier, worktree/list
+    - Round 2: process/kitty, process/multiplexer, worktree/select, process/exec, process/shell
+    - Round 3: worktree/select (expanded), process/fzf, process/tmux, process/prompt
+  - Added 81 new test functions in round 3
+  - Test status: 361 passing, 0 failing, 7 ignored (see TEST_GIVE_UP.md)
+  - Excluded tests: Interactive fzf tests that require user input
 - [ ] Create integration tests for all commands
 - [x] Add property-based tests for critical functions (completed in Phase 3)
 - [ ] Implement snapshot tests for CLI output
@@ -267,6 +274,49 @@ These tasks should be done throughout the migration:
 - [ ] Single binary distribution working
 - [ ] All existing tests passing
 - [ ] User acceptance testing completed
+
+## Testing Guidelines
+
+### Test Exclusion Criteria
+
+Tests may be marked with `#[ignore]` ONLY under the following conditions:
+
+1. **Interactive Input Required**
+   - Test requires real user input (stdin) that cannot be mocked
+   - Test spawns interactive processes (e.g., fzf, vim, less)
+   - Example: FZF tests that wait for user selection
+
+2. **External Dependencies**
+   - Test requires external services not guaranteed in CI (e.g., specific terminal emulators)
+   - Test requires specific system configuration
+   - BUT: Tests should handle missing dependencies gracefully, not be excluded
+
+3. **Platform-Specific Behavior**
+   - Test has fundamentally different behavior across platforms
+   - Use `#[cfg(target_os = "...")]` instead of `#[ignore]` when possible
+
+4. **Performance/Resource Intensive**
+   - Test takes >30 seconds to run
+   - Test requires excessive system resources
+   - Mark with clear reason: `#[ignore = "Performance: takes >60s"]`
+
+### Documentation Requirements
+
+When excluding tests:
+1. Add `#[ignore = "Clear reason"]` attribute with specific explanation
+2. Document in TEST_GIVE_UP.md with:
+   - Test name and location
+   - Detailed reason for exclusion
+   - How to run the test manually
+   - Impact on coverage
+3. Consider creating integration tests as alternatives
+
+### Best Practices
+
+- Prefer mocking over exclusion
+- Write non-interactive unit tests for core logic
+- Keep interactive tests as integration tests
+- Regularly review and try to reduce excluded tests
 
 ## Notes
 

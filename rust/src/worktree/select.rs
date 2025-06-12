@@ -488,6 +488,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_worktree_with_fzf_empty() {
         use crate::test_utils::TestRepo;
         
@@ -510,6 +511,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_worktree_with_custom_options() {
         use crate::test_utils::TestRepo;
         
