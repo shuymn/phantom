@@ -447,8 +447,8 @@ mod tests {
 
         let options = MultiplexerOptions {
             direction: SplitDirection::New,
-            command: "env".to_string(),
-            args: None,
+            command: "printenv".to_string(),
+            args: Some(vec!["TEST_VAR".to_string()]),
             cwd: None,
             env: Some(env),
             window_name: None,

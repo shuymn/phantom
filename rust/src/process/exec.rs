@@ -280,10 +280,10 @@ mod tests {
         let options = CreateWorktreeOptions::default();
         create_worktree(repo.path(), "test-env", options).await.unwrap();
 
-        // Execute command that should have PHANTOM env vars
-        let result = exec_in_worktree(repo.path(), "test-env", "env", &[]).await;
+        // Execute a safe command that verifies env vars are set without exposing them
+        // Use printenv to check specific PHANTOM vars only
+        let result = exec_in_worktree(repo.path(), "test-env", "printenv", &["PHANTOM_WORKTREE".to_string()]).await;
         assert!(result.is_ok());
-        // The env command should succeed
         assert_eq!(result.unwrap().exit_code, 0);
     }
 
