@@ -134,10 +134,12 @@ mod tests {
         let config = GitConfig::default()
             .with_env("GIT_AUTHOR_NAME", "Test User")
             .with_env("GIT_AUTHOR_EMAIL", "test@example.com");
-        
+
         assert_eq!(config.env.len(), 2);
         assert!(config.env.contains(&("GIT_AUTHOR_NAME".to_string(), "Test User".to_string())));
-        assert!(config.env.contains(&("GIT_AUTHOR_EMAIL".to_string(), "test@example.com".to_string())));
+        assert!(config
+            .env
+            .contains(&("GIT_AUTHOR_EMAIL".to_string(), "test@example.com".to_string())));
     }
 
     #[test]
@@ -152,7 +154,7 @@ mod tests {
             .with_env("KEY1", "value1")
             .with_env("KEY2", "value2")
             .with_timeout(120);
-        
+
         assert_eq!(config.cwd, Some(PathBuf::from("/tmp/repo")));
         assert_eq!(config.env.len(), 2);
         assert_eq!(config.timeout, Some(120));
@@ -170,10 +172,8 @@ mod tests {
 
     #[test]
     fn test_git_config_clone() {
-        let config = GitConfig::with_cwd("/tmp")
-            .with_env("TEST", "value")
-            .with_timeout(45);
-        
+        let config = GitConfig::with_cwd("/tmp").with_env("TEST", "value").with_timeout(45);
+
         let cloned = config.clone();
         assert_eq!(config.cwd, cloned.cwd);
         assert_eq!(config.env, cloned.env);
