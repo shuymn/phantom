@@ -8,14 +8,10 @@ pub struct CompletionArgs {
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum Shell {
-    /// Bash shell
-    Bash,
     /// Fish shell
     Fish,
     /// Zsh shell
     Zsh,
-    /// PowerShell
-    PowerShell,
-    /// Elvish shell
-    Elvish,
+    /// Bash shell
+    Bash,
 }

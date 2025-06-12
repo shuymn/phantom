@@ -151,7 +151,7 @@ Tasks are organized by phase according to the migration plan.
   - [x] `exec` command
   - [x] `shell` command
   - [x] `version` command
-  - [ ] `completion` command
+  - [x] `completion` command
 
 ### Command Handlers
 
