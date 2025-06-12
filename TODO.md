@@ -142,7 +142,7 @@ Tasks are organized by phase according to the migration plan.
 ### CLI Structure
 
 - [x] Define CLI structs with clap derive
-- [ ] Implement all subcommands:
+- [x] Implement all subcommands:
   - [x] `create` command
   - [x] `attach` command
   - [x] `list` command
@@ -155,21 +155,30 @@ Tasks are organized by phase according to the migration plan.
 
 ### Command Handlers
 
-- [ ] Implement async handler for each command
-- [ ] Port output formatting (maintain compatibility)
-- [ ] Add error handling with proper exit codes
-- [ ] Implement help text generation
-- [ ] Add shell completion generation:
-  - [ ] Fish completion
-  - [ ] Zsh completion
-  - [ ] Bash completion
+- [x] Implement async handler for each command
+- [x] Port output formatting (maintain compatibility)
+- [x] Add error handling with proper exit codes
+- [x] Implement help text generation
+- [x] Add shell completion generation:
+  - [x] Fish completion
+  - [x] Zsh completion
+  - [x] Bash completion
 
 ### CLI Features
 
-- [ ] Add verbose/quiet flags
+- [x] Add verbose/quiet flags
 - [ ] Implement dry-run mode
 - [ ] Add JSON output format option
-- [ ] Maintain exact CLI compatibility with TypeScript version
+  - [x] create command
+  - [x] delete command
+  - [x] where command
+  - [ ] list command
+  - [ ] attach command
+  - [ ] exec command
+  - [ ] shell command
+  - [ ] version command
+  - [ ] completion command
+- [x] Maintain exact CLI compatibility with TypeScript version
 
 ## Phase 6: Testing & Distribution (Weeks 12-13)
 
