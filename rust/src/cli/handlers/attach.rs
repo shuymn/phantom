@@ -8,7 +8,16 @@ use crate::worktree::attach::attach_worktree;
 use crate::worktree::paths::get_worktree_path;
 use crate::worktree::validate::validate_worktree_name;
 use crate::{PhantomError, Result};
+use serde::Serialize;
 use tokio::fs;
+
+#[derive(Serialize)]
+struct AttachJsonOutput {
+    success: bool,
+    message: String,
+    worktree: String,
+    path: String,
+}
 
 /// Handle the attach command
 pub async fn handle(args: AttachArgs) -> Result<()> {
@@ -32,7 +41,17 @@ pub async fn handle(args: AttachArgs) -> Result<()> {
     // Attach the worktree
     attach_worktree(&git_root, &args.branch).await?;
 
-    output().success(&format!("Attached phantom: {}", args.branch));
+    if args.json {
+        let json_output = AttachJsonOutput {
+            success: true,
+            message: format!("Attached phantom: {}", args.branch),
+            worktree: args.branch.clone(),
+            path: worktree_path.to_string_lossy().to_string(),
+        };
+        output().log(&serde_json::to_string_pretty(&json_output)?);
+    } else {
+        output().success(&format!("Attached phantom: {}", args.branch));
+    }
 
     // Handle post-attach actions
     if args.shell {

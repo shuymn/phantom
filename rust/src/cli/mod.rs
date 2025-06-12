@@ -52,7 +52,7 @@ pub enum Commands {
     Shell(commands::shell::ShellArgs),
 
     /// Display phantom version information
-    Version,
+    Version(commands::version::VersionArgs),
 
     /// Generate shell completion scripts
     Completion(commands::completion::CompletionArgs),

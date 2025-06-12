@@ -12,4 +12,8 @@ pub struct AttachArgs {
     /// Open a shell in the attached worktree
     #[arg(short = 's', long)]
     pub shell: bool,
+
+    /// Output in JSON format
+    #[arg(long)]
+    pub json: bool,
 }

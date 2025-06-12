@@ -28,8 +28,8 @@ async fn main() {
         Commands::Delete(args) => cli::handlers::delete::handle(args).await,
         Commands::Exec(args) => cli::handlers::exec::handle(args).await,
         Commands::Shell(args) => cli::handlers::shell::handle(args).await,
-        Commands::Version => {
-            cli::handlers::version::handle();
+        Commands::Version(args) => {
+            cli::handlers::version::handle(args);
             Ok(())
         }
         Commands::Completion(args) => cli::handlers::completion::handle(args),

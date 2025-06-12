@@ -9,4 +9,8 @@ pub struct ListArgs {
     /// Show only names (no formatting)
     #[arg(long)]
     pub names: bool,
+
+    /// Output in JSON format
+    #[arg(long)]
+    pub json: bool,
 }

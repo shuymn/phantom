@@ -167,17 +167,34 @@ Tasks are organized by phase according to the migration plan.
 ### CLI Features
 
 - [x] Add verbose/quiet flags
-- [ ] Implement dry-run mode
-- [ ] Add JSON output format option
-  - [x] create command
-  - [x] delete command
-  - [x] where command
-  - [ ] list command
-  - [ ] attach command
-  - [ ] exec command
-  - [ ] shell command
-  - [ ] version command
-  - [ ] completion command
+- [x] Implement dry-run mode (new feature - not in TypeScript version)
+  - [x] Decision: Skip for now to maintain TypeScript parity
+  - [x] Can be added as enhancement after migration is complete
+  - [x] Original subtasks if implementing later:
+    - [ ] Add --dry-run flag to create command
+    - [ ] Add --dry-run flag to delete command  
+    - [ ] Add --dry-run flag to attach command
+    - [ ] Implement dry-run logic to show operations without executing
+    - [ ] Add tests for dry-run mode
+- [x] Add JSON output format option
+  - [x] create command - outputs created worktree info
+  - [x] delete command - outputs deletion result
+  - [x] where command - outputs worktree path
+  - [x] list command - outputs array of worktrees
+  - [x] attach command - outputs attachment result
+  - [x] exec command - JSON not applicable
+    - [x] Evaluated: Normal mode replaces process with command's exit code
+    - [x] Tmux/kitty mode could benefit from JSON but breaks TypeScript compatibility
+    - [x] Decision: No JSON output to maintain compatibility
+  - [x] shell command - JSON not applicable
+    - [x] Evaluated: Normal mode replaces process with shell
+    - [x] Tmux/kitty mode could benefit from JSON but breaks TypeScript compatibility
+    - [x] Decision: No JSON output to maintain compatibility
+  - [x] version command - outputs version info
+  - [x] completion command - JSON not applicable
+    - [x] Evaluated: Must output raw shell scripts for direct sourcing
+    - [x] JSON wrapper would break shell's ability to source the script
+    - [x] Decision: No JSON output, maintain raw script output
 - [x] Maintain exact CLI compatibility with TypeScript version
 
 ## Phase 6: Testing & Distribution (Weeks 12-13)

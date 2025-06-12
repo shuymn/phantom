@@ -4,6 +4,20 @@ use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::list::list_worktrees;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::Result;
+use serde::Serialize;
+
+#[derive(Serialize)]
+struct ListJsonOutput {
+    worktrees: Vec<WorktreeJsonItem>,
+}
+
+#[derive(Serialize)]
+struct WorktreeJsonItem {
+    name: String,
+    branch: Option<String>,
+    is_clean: bool,
+    path: String,
+}
 
 /// Handle the list command
 pub async fn handle(args: ListArgs) -> Result<()> {
@@ -24,13 +38,32 @@ pub async fn handle(args: ListArgs) -> Result<()> {
         let result = list_worktrees(&git_root).await?;
 
         if result.worktrees.is_empty() {
-            if !args.names {
+            if args.json {
+                let json_output = ListJsonOutput { worktrees: vec![] };
+                output().log(&serde_json::to_string_pretty(&json_output)?);
+            } else if !args.names {
                 output().log(result.message.as_deref().unwrap_or("No worktrees found."));
             }
             return Ok(());
         }
 
-        if args.names {
+        if args.json {
+            // Output as JSON
+            let json_worktrees: Vec<WorktreeJsonItem> = result
+                .worktrees
+                .iter()
+                .map(|w| WorktreeJsonItem {
+                    name: w.name.clone(),
+                    branch: w.branch.clone(),
+                    is_clean: w.is_clean,
+                    path: w.path.clone(),
+                })
+                .collect();
+
+            let json_output = ListJsonOutput { worktrees: json_worktrees };
+
+            output().log(&serde_json::to_string_pretty(&json_output)?);
+        } else if args.names {
             // Output only names
             for worktree in &result.worktrees {
                 output().log(&worktree.name);
