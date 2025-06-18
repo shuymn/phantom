@@ -86,6 +86,11 @@ jobs:
           rustup toolchain install stable
           rustup default stable
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tmux
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -174,7 +179,7 @@ jobs:
 
       - name: Install cross-compilation tools
         if: matrix.use_cross == true
-        run: cargo install cross --git https://github.com/cross-rs/cross
+        run: cargo install --force cross --git https://github.com/cross-rs/cross
 
       - name: Build binary
         run: |
