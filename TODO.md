@@ -22,6 +22,10 @@ throughout all handlers.
 
 ### Remaining from Immediate Tasks
 - [ ] Move validation logic from integration tests to unit tests
+- [ ] Remove serial test execution from get_git_root tests
+  - Currently using `#[serial]` as a workaround for tests that change working directory
+  - Should refactor to avoid changing global state or use a different approach
+  - Tests should be able to run in parallel for better performance
 
 ### Ready to Start: Architecture Refactoring
 The test cleanup and safety implementation are complete. We can now proceed with
