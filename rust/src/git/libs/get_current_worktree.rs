@@ -46,6 +46,7 @@ mod tests {
     use super::*;
     use crate::git::executor::GitExecutor;
     use crate::test_utils::TestRepo;
+    use serial_test::serial;
     use std::env;
 
     #[tokio::test]
@@ -61,6 +62,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_get_current_worktree_in_worktree() {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
@@ -84,6 +86,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_get_current_worktree_detached() {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();

@@ -26,6 +26,11 @@ throughout all handlers.
   - Currently using `#[serial]` as a workaround for tests that change working directory
   - Should refactor to avoid changing global state or use a different approach
   - Tests should be able to run in parallel for better performance
+- [ ] Implement proper tmux testing approach
+  - Extract command building logic from execution
+  - Test command construction without actual execution
+  - Use dependency injection for tmux operations
+  - Mock tmux process execution in tests
 
 ### Ready to Start: Architecture Refactoring
 The test cleanup and safety implementation are complete. We can now proceed with

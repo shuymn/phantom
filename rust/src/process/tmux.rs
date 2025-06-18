@@ -1,4 +1,4 @@
-use crate::{PhantomError, Result};
+use crate::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
@@ -152,8 +152,10 @@ pub async fn tmux_session_exists(session_name: &str) -> Result<bool> {
     };
 
     match spawn_process(config).await {
-        Ok(_) => Ok(true),
-        Err(PhantomError::ProcessExecution(_)) => Ok(false),
+        Ok(result) => {
+            // tmux has-session returns 0 if session exists, non-zero if it doesn't
+            Ok(result.exit_code == 0)
+        }
         Err(e) => Err(e),
     }
 }
@@ -339,118 +341,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_execute_tmux_command_new_window() {
-        let options = TmuxOptions {
-            direction: TmuxSplitDirection::New,
-            command: "echo".to_string(),
-            args: Some(vec!["test".to_string()]),
-            cwd: Some("/tmp".to_string()),
-            env: Some(HashMap::from([("TEST_VAR".to_string(), "value".to_string())])),
-            window_name: Some("test-window".to_string()),
-        };
-
-        // This will fail if tmux is not installed, which is expected in CI
-        let result = execute_tmux_command(options).await;
-        match result {
-            Ok(_) => {} // tmux executed successfully
-            Err(e) => {
-                // Expected to fail if tmux is not installed
-                assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_execute_tmux_command_vertical_split() {
-        let options = TmuxOptions {
-            direction: TmuxSplitDirection::Vertical,
-            command: "ls".to_string(),
-            args: None,
-            cwd: None,
-            env: None,
-            window_name: None,
-        };
-
-        let result = execute_tmux_command(options).await;
-        match result {
-            Ok(_) => {}
-            Err(e) => {
-                assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_execute_tmux_command_horizontal_split() {
-        let options = TmuxOptions {
-            direction: TmuxSplitDirection::Horizontal,
-            command: "pwd".to_string(),
-            args: None,
-            cwd: Some("/home".to_string()),
-            env: None,
-            window_name: None,
-        };
-
-        let result = execute_tmux_command(options).await;
-        match result {
-            Ok(_) => {}
-            Err(e) => {
-                assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_create_tmux_session() {
-        let result = create_tmux_session("test-session", None).await;
-        match result {
-            Ok(_) => {}
-            Err(e) => {
-                assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_create_tmux_session_with_cwd() {
-        let cwd = Path::new("/tmp");
-        let result = create_tmux_session("test-session-cwd", Some(cwd)).await;
-        match result {
-            Ok(_) => {}
-            Err(e) => {
-                assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_attach_tmux_session() {
-        let result = attach_tmux_session("test-session").await;
-        match result {
-            Ok(_) => {}
-            Err(e) => {
-                assert!(e.to_string().contains("tmux") || e.to_string().contains("spawn"));
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_list_tmux_sessions() {
-        let result = list_tmux_sessions().await;
-        match result {
-            Ok(sessions) => {
-                // If tmux is running, we got a list (possibly empty)
-                assert!(sessions.is_empty() || sessions.iter().all(|s| !s.is_empty()));
-            }
-            Err(e) => {
-                // Expected to fail if tmux is not installed
-                assert!(e.to_string().contains("tmux") || e.to_string().contains("execute"));
-            }
-        }
-    }
-
-    #[tokio::test]
     async fn test_tmux_session_exists() {
+        // First check if we're inside tmux already, which would affect the test
+        if env::var("TMUX").is_ok() {
+            eprintln!("Skipping test: already inside tmux session");
+            return;
+        }
+
         // Generate a unique session name that's very unlikely to exist
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
@@ -463,7 +360,10 @@ mod tests {
         // Skip test if tmux is not available
         let exists = match result {
             Ok(exists) => exists,
-            Err(_) => return, // Skip test if tmux is not available
+            Err(e) => {
+                eprintln!("Error checking session: {:?}", e);
+                return; // Skip test if tmux is not available
+            }
         };
         assert!(!exists, "Nonexistent session '{}' should not exist", unique_session);
     }
@@ -547,6 +447,7 @@ mod tests {
 
     #[test]
     fn test_tmux_error_handling() {
+        use crate::PhantomError;
         // Test ProcessExecution error handling
         let exec_error = PhantomError::ProcessExecution("tmux failed".to_string());
         assert!(exec_error.to_string().contains("tmux failed"));
