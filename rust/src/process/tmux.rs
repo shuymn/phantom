@@ -453,7 +453,7 @@ mod tests {
     async fn test_tmux_session_exists() {
         // Test with a session that should not exist
         let result = tmux_session_exists("nonexistent-session-test-123456").await;
-        
+
         // Skip test if tmux is not available
         let exists = match result {
             Ok(exists) => exists,

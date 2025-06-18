@@ -282,7 +282,13 @@ mod tests {
 
         // Execute a safe command that verifies env vars are set without exposing them
         // Use printenv to check specific PHANTOM vars only
-        let result = exec_in_worktree(repo.path(), "test-env", "printenv", &["PHANTOM_WORKTREE".to_string()]).await;
+        let result = exec_in_worktree(
+            repo.path(),
+            "test-env",
+            "printenv",
+            &["PHANTOM_WORKTREE".to_string()],
+        )
+        .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().exit_code, 0);
     }

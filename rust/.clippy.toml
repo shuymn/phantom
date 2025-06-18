@@ -1,1 +1,8 @@
-msrv = "1.75.0"
+# Clippy configuration for phantom
+
+# Disallow potentially problematic functions
+disallowed-methods = [
+    # Prevent modifying global environment variables in tests
+    { path = "std::env::set_var", reason = "Use Command::env() instead to avoid global state changes" },
+    { path = "std::env::remove_var", reason = "Use Command::env_remove() instead to avoid global state changes" },
+]

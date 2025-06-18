@@ -3,10 +3,15 @@ use std::path::{Path, PathBuf};
 use tempfile::{tempdir, TempDir};
 use tokio::process::Command;
 
+pub mod safe_git;
+
+use safe_git::SafeGitCommand;
+
 /// Test utility for creating temporary git repositories
 pub struct TestRepo {
     pub dir: TempDir,
     pub path: PathBuf,
+    git: SafeGitCommand,
 }
 
 impl TestRepo {
@@ -14,32 +19,26 @@ impl TestRepo {
     pub async fn new() -> Result<Self> {
         let dir = tempdir().map_err(crate::PhantomError::Io)?;
         let path = dir.path().to_path_buf();
+        let git = SafeGitCommand::new().map_err(crate::PhantomError::Io)?;
 
         // Initialize git repo with explicit main branch
-        Command::new("git").args(["init", "-b", "main"]).current_dir(&path).output().await.map_err(|e| {
+        git.command(&["init", "-b", "main"]).current_dir(&path).output().map_err(|e| {
             crate::PhantomError::ProcessExecution(format!("Failed to init git repo: {}", e))
         })?;
 
         // Configure git user for tests
-        Command::new("git")
-            .args(["config", "user.name", "Test User"])
-            .current_dir(&path)
-            .output()
-            .await
-            .map_err(|e| {
-                crate::PhantomError::ProcessExecution(format!("Failed to set user.name: {}", e))
-            })?;
+        git.command(&["config", "user.name", "Test User"]).current_dir(&path).output().map_err(
+            |e| crate::PhantomError::ProcessExecution(format!("Failed to set user.name: {}", e)),
+        )?;
 
-        Command::new("git")
-            .args(["config", "user.email", "test@example.com"])
+        git.command(&["config", "user.email", "test@example.com"])
             .current_dir(&path)
             .output()
-            .await
             .map_err(|e| {
                 crate::PhantomError::ProcessExecution(format!("Failed to set user.email: {}", e))
             })?;
 
-        Ok(Self { dir, path })
+        Ok(Self { dir, path, git })
     }
 
     /// Create a test file and commit it
@@ -52,34 +51,23 @@ impl TestRepo {
         let file_path = self.path.join(filename);
         tokio::fs::write(&file_path, content).await.map_err(crate::PhantomError::Io)?;
 
-        Command::new("git")
-            .args(["add", filename])
-            .current_dir(&self.path)
-            .output()
-            .await
-            .map_err(|e| {
-                crate::PhantomError::ProcessExecution(format!("Failed to add file: {}", e))
-            })?;
+        self.git.command(&["add", filename]).current_dir(&self.path).output().map_err(|e| {
+            crate::PhantomError::ProcessExecution(format!("Failed to add file: {}", e))
+        })?;
 
-        Command::new("git")
-            .args(["commit", "-m", message])
-            .current_dir(&self.path)
-            .output()
-            .await
-            .map_err(|e| {
-                crate::PhantomError::ProcessExecution(format!("Failed to commit: {}", e))
-            })?;
+        self.git.command(&["commit", "-m", message]).current_dir(&self.path).output().map_err(
+            |e| crate::PhantomError::ProcessExecution(format!("Failed to commit: {}", e)),
+        )?;
 
         Ok(())
     }
 
     /// Create a new branch
     pub async fn create_branch(&self, branch_name: &str) -> Result<()> {
-        Command::new("git")
-            .args(["checkout", "-b", branch_name])
+        self.git
+            .command(&["checkout", "-b", branch_name])
             .current_dir(&self.path)
             .output()
-            .await
             .map_err(|e| {
                 crate::PhantomError::ProcessExecution(format!("Failed to create branch: {}", e))
             })?;
@@ -139,8 +127,7 @@ mod tests {
         repo.create_branch("feature-branch").await.unwrap();
 
         // Verify branch was created
-        let output =
-            Command::new("git").args(["branch"]).current_dir(&repo.path).output().await.unwrap();
+        let output = repo.git.command(&["branch"]).current_dir(&repo.path).output().unwrap();
 
         let branches = String::from_utf8_lossy(&output.stdout);
         assert!(branches.contains("feature-branch"));
