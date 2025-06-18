@@ -1,7 +1,6 @@
 use crate::Result;
 use std::path::{Path, PathBuf};
 use tempfile::{tempdir, TempDir};
-use tokio::process::Command;
 
 pub mod safe_git;
 
