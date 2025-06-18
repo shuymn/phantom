@@ -38,9 +38,11 @@ mod tests {
     use super::*;
     use crate::git::executor::GitExecutor;
     use crate::test_utils::TestRepo;
+    use serial_test::serial;
     use std::env;
 
     #[tokio::test]
+    #[serial]
     async fn test_get_git_root_in_main_repo() {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
@@ -53,6 +55,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_get_git_root_in_subdirectory() {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
@@ -69,6 +72,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_get_git_root_in_worktree() {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
@@ -78,11 +82,17 @@ mod tests {
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         let unique_name = format!("test-worktree-{}-{}", std::process::id(), timestamp);
-        let worktree_path = repo.path().parent().unwrap().join(&unique_name);
+        // Create worktree inside a subdirectory of the repo to avoid permission issues
+        let worktrees_dir = repo.path().join("test-worktrees");
+        std::fs::create_dir_all(&worktrees_dir).unwrap();
+        let worktree_path = worktrees_dir.join(&unique_name);
         executor
             .run(&["worktree", "add", "-b", "feature", &worktree_path.to_string_lossy()])
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("Failed to create worktree at {:?}: {}", worktree_path, e));
+
+        // Verify worktree was created
+        assert!(worktree_path.exists(), "Worktree directory should exist after creation");
 
         // Change to the worktree directory
         let _guard = TestWorkingDir::new(&worktree_path);
@@ -93,6 +103,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_get_git_root_in_worktree_subdirectory() {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
@@ -102,11 +113,17 @@ mod tests {
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         let unique_name = format!("test-worktree-sub-{}-{}", std::process::id(), timestamp);
-        let worktree_path = repo.path().parent().unwrap().join(&unique_name);
+        // Create worktree inside a subdirectory of the repo to avoid permission issues
+        let worktrees_dir = repo.path().join("test-worktrees");
+        std::fs::create_dir_all(&worktrees_dir).unwrap();
+        let worktree_path = worktrees_dir.join(&unique_name);
         executor
             .run(&["worktree", "add", "-b", "feature-sub", &worktree_path.to_string_lossy()])
             .await
-            .unwrap();
+            .unwrap_or_else(|e| panic!("Failed to create worktree at {:?}: {}", worktree_path, e));
+
+        // Verify worktree was created
+        assert!(worktree_path.exists(), "Worktree directory should exist after creation");
 
         // Create a subdirectory in the worktree
         let subdir = worktree_path.join("subdir");
@@ -127,8 +144,15 @@ mod tests {
 
     impl TestWorkingDir {
         fn new(path: &Path) -> Self {
-            let original = env::current_dir().unwrap();
-            env::set_current_dir(path).unwrap();
+            let original = env::current_dir().expect("Failed to get current directory");
+
+            // Ensure the path exists before changing to it
+            if !path.exists() {
+                panic!("Path does not exist: {:?}", path);
+            }
+
+            env::set_current_dir(path)
+                .unwrap_or_else(|e| panic!("Failed to set current dir to {:?}: {}", path, e));
             Self { original }
         }
     }
