@@ -451,15 +451,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_tmux_session_exists() {
+        // Generate a unique session name that's very unlikely to exist
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique_session =
+            format!("phantom-test-nonexistent-{}-{}", std::process::id(), timestamp);
+
         // Test with a session that should not exist
-        let result = tmux_session_exists("nonexistent-session-test-123456").await;
+        let result = tmux_session_exists(&unique_session).await;
 
         // Skip test if tmux is not available
         let exists = match result {
             Ok(exists) => exists,
             Err(_) => return, // Skip test if tmux is not available
         };
-        assert!(!exists, "Nonexistent session should not exist");
+        assert!(!exists, "Nonexistent session '{}' should not exist", unique_session);
     }
 
     #[test]
