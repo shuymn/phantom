@@ -5,9 +5,15 @@ use phantom::cli::handlers::delete;
 use std::env;
 use tempfile::TempDir;
 use tokio;
+use std::sync::Mutex;
+
+// Global mutex to ensure tests that change current directory run serially
+static DIR_MUTEX: Mutex<()> = Mutex::new(());
 
 #[tokio::test]
 async fn test_delete_command_basic() {
+    let _guard = DIR_MUTEX.lock().unwrap();
+    
     // Create a temporary git repository
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
@@ -54,6 +60,8 @@ async fn test_delete_command_basic() {
 
 #[tokio::test]
 async fn test_delete_command_with_changes() {
+    let _guard = DIR_MUTEX.lock().unwrap();
+    
     // Create a temporary git repository
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
@@ -115,6 +123,8 @@ async fn test_delete_command_with_changes() {
 
 #[tokio::test]
 async fn test_delete_command_not_found() {
+    let _guard = DIR_MUTEX.lock().unwrap();
+    
     // Create a temporary git repository
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();

@@ -73,6 +73,43 @@ impl Output {
             let _ = io::stdout().flush();
         }
     }
+
+    /// Print a table (simple implementation for now)
+    pub fn table<T: std::fmt::Display>(&self, headers: &[&str], rows: Vec<Vec<T>>) {
+        if !self.quiet && !self.json {
+            // Calculate column widths
+            let mut widths: Vec<usize> = headers.iter().map(|h| h.len()).collect();
+            
+            for row in &rows {
+                for (i, cell) in row.iter().enumerate() {
+                    let cell_str = cell.to_string();
+                    if i < widths.len() {
+                        widths[i] = widths[i].max(cell_str.len());
+                    }
+                }
+            }
+            
+            // Print headers
+            for (i, header) in headers.iter().enumerate() {
+                print!("{:<width$}", header, width = widths.get(i).unwrap_or(&0) + 2);
+            }
+            println!();
+            
+            // Print separator
+            for width in &widths {
+                print!("{}", "-".repeat(width + 2));
+            }
+            println!();
+            
+            // Print rows
+            for row in rows {
+                for (i, cell) in row.iter().enumerate() {
+                    print!("{:<width$}", cell.to_string(), width = widths.get(i).unwrap_or(&0) + 2);
+                }
+                println!();
+            }
+        }
+    }
 }
 
 use std::sync::OnceLock;
@@ -225,12 +262,23 @@ mod tests {
 
     #[test]
     fn test_init_output() {
-        // Test initialization
-        init_output(false, true, false);
-        let output = output();
-        assert!(!output.quiet);
-        assert!(output.verbose);
-        assert!(!output.json);
+        // Test initialization - create a new Output instance directly
+        // since we can't reset the singleton in tests
+        let test_output = Output::new(false, true, false);
+        assert!(!test_output.quiet);
+        assert!(test_output.verbose);
+        assert!(!test_output.json);
+        
+        // Also test other combinations
+        let quiet_output = Output::new(true, false, false);
+        assert!(quiet_output.quiet);
+        assert!(!quiet_output.verbose);
+        assert!(!quiet_output.json);
+        
+        let json_output = Output::new(false, false, true);
+        assert!(!json_output.quiet);
+        assert!(!json_output.verbose);
+        assert!(json_output.json);
     }
 
     #[test]

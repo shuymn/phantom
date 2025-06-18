@@ -5,9 +5,15 @@ use phantom::cli::handlers::create;
 use std::env;
 use tempfile::TempDir;
 use tokio;
+use std::sync::Mutex;
+
+// Global mutex to ensure tests that change current directory run serially
+static DIR_MUTEX: Mutex<()> = Mutex::new(());
 
 #[tokio::test]
 async fn test_create_command_basic() {
+    let _guard = DIR_MUTEX.lock().unwrap();
+    
     // Create a temporary git repository
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
@@ -52,6 +58,8 @@ async fn test_create_command_basic() {
 
 #[tokio::test]
 async fn test_create_command_with_copy_files() {
+    let _guard = DIR_MUTEX.lock().unwrap();
+    
     // Create a temporary git repository
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
@@ -118,6 +126,8 @@ async fn test_create_command_with_copy_files() {
 
 #[tokio::test]
 async fn test_create_command_json_output() {
+    let _guard = DIR_MUTEX.lock().unwrap();
+    
     // Create a temporary git repository
     let temp_dir = TempDir::new().unwrap();
     let repo_path = temp_dir.path();
@@ -158,4 +168,64 @@ async fn test_create_command_json_output() {
     let worktree_path =
         repo_path.join(".git").join("phantom").join("worktrees").join("test-worktree-json");
     assert!(worktree_path.exists(), "Worktree directory was not created");
+}
+
+#[tokio::test]
+async fn test_create_command_with_post_create_commands() {
+    let _guard = DIR_MUTEX.lock().unwrap();
+    
+    // Create a temporary git repository
+    let temp_dir = TempDir::new().unwrap();
+    let repo_path = temp_dir.path();
+
+    // Initialize git repo
+    common::init_test_repo(&repo_path);
+    common::create_initial_commit(&repo_path);
+
+    // Create a config file with post-create commands
+    let config = r#"{
+        "postCreate": {
+            "commands": ["echo 'Hello from post-create' > test-output.txt"]
+        }
+    }"#;
+    std::fs::write(repo_path.join("phantom.config.json"), config).unwrap();
+
+    // Change to the repo directory
+    env::set_current_dir(&repo_path).unwrap();
+
+    // Create the worktree
+    let args = CreateArgs {
+        name: "test-worktree-postcmd".to_string(),
+        branch: None,
+        base: None,
+        copy_files: None,
+        shell: false,
+        tmux: false,
+        tmux_vertical: false,
+        tmux_v: false,
+        tmux_horizontal: false,
+        tmux_h: false,
+        kitty: false,
+        kitty_vertical: false,
+        kitty_v: false,
+        kitty_horizontal: false,
+        kitty_h: false,
+        exec: None,
+        json: false,
+    };
+
+    let result = create::handle(args).await;
+    assert!(result.is_ok(), "Create command failed: {:?}", result);
+
+    // Verify the worktree was created and the post-create command ran
+    let worktree_path =
+        repo_path.join(".git").join("phantom").join("worktrees").join("test-worktree-postcmd");
+    assert!(worktree_path.exists(), "Worktree directory was not created");
+    
+    // Check if the post-create command created the file
+    let output_file = worktree_path.join("test-output.txt");
+    assert!(output_file.exists(), "Post-create command did not create the expected file");
+    
+    let content = std::fs::read_to_string(&output_file).unwrap();
+    assert!(content.contains("Hello from post-create"), "Post-create command output incorrect");
 }

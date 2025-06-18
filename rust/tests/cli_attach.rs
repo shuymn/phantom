@@ -1,8 +1,14 @@
+mod common;
+
 use phantom::cli::commands::attach::AttachArgs;
 use phantom::cli::handlers::attach;
 use std::env;
 use tempfile::TempDir;
 use tokio;
+use std::sync::Mutex;
+
+// Global mutex to ensure tests that change current directory run serially
+static DIR_MUTEX: Mutex<()> = Mutex::new(());
 
 #[tokio::test]
 async fn test_attach_command_basic() {
@@ -175,18 +181,29 @@ async fn test_attach_command_already_exists() {
         .expect("Failed to commit");
 
     // Create a branch
-    std::process::Command::new("git")
+    let output = std::process::Command::new("git")
         .args(&["checkout", "-b", "existing-branch"])
         .current_dir(&repo_path)
         .output()
         .expect("Failed to create branch");
+    assert!(output.status.success(), "Failed to create branch: {:?}", String::from_utf8_lossy(&output.stderr));
 
     // Switch back to main
-    std::process::Command::new("git")
+    let output = std::process::Command::new("git")
         .args(&["checkout", "main"])
         .current_dir(&repo_path)
         .output()
         .expect("Failed to switch to main");
+    assert!(output.status.success(), "Failed to switch to main: {:?}", String::from_utf8_lossy(&output.stderr));
+
+    // Verify the branch exists
+    let output = std::process::Command::new("git")
+        .args(&["branch", "--list", "existing-branch"])
+        .current_dir(&repo_path)
+        .output()
+        .expect("Failed to list branches");
+    let branches = String::from_utf8_lossy(&output.stdout);
+    assert!(branches.contains("existing-branch"), "Branch 'existing-branch' was not created");
 
     // Change to the repo directory
     env::set_current_dir(&repo_path).unwrap();
