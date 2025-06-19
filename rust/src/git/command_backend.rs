@@ -65,9 +65,10 @@ impl GitBackend for CommandBackend {
         path: &Path,
         branch: Option<&str>,
         new_branch: bool,
+        commitish: Option<&str>,
     ) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        add_worktree(cwd, path, branch, new_branch).await
+        add_worktree(cwd, path, branch, new_branch, commitish).await
     }
 
     async fn attach_worktree(&self, path: &Path, branch: &str) -> Result<()> {
@@ -141,7 +142,7 @@ mod tests {
             std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
         let worktree_path =
             repo.path().parent().unwrap().join(format!("test-worktree-{}", timestamp));
-        backend.add_worktree(&worktree_path, Some("feature"), true).await.unwrap();
+        backend.add_worktree(&worktree_path, Some("feature"), true, None).await.unwrap();
 
         let worktrees = backend.list_worktrees().await.unwrap();
         assert_eq!(worktrees.len(), 2);

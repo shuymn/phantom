@@ -26,8 +26,13 @@ pub trait GitBackend: Send + Sync {
     async fn list_worktrees(&self) -> Result<Vec<Worktree>>;
 
     /// Add a new worktree
-    async fn add_worktree(&self, path: &Path, branch: Option<&str>, new_branch: bool)
-        -> Result<()>;
+    async fn add_worktree(
+        &self,
+        path: &Path,
+        branch: Option<&str>,
+        new_branch: bool,
+        commitish: Option<&str>,
+    ) -> Result<()>;
 
     /// Attach a worktree to an existing branch
     async fn attach_worktree(&self, path: &Path, branch: &str) -> Result<()>;
