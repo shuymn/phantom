@@ -39,23 +39,23 @@ Each function needs to be updated to accept CommandExecutor, maintaining backwar
 - Handlers accept CommandExecutor via context
 - Pattern proven and documented in multiple guides
 
-📊Migration Progress**
-- 9 of ~20 git operations migrated (45%)
+📊 **Migration Progress**
+- 12 of ~20 git operations migrated (60%)
 - 2 handlers fully testable: list and attach
-- 1 handler partially testable: delete (filesystem ops limit)
+- 2 handlers partially testable: create and delete (filesystem ops limit)
 - Process operations (tmux, kitty, etc.) not started
 
 🔍 **New Discovery**
-- Filesystem operations (fs::metadata) also need abstraction
-- validate_worktree_exists bypasses mocks by checking filesystem directly
+- Filesystem operations (fs::metadata, fs::create_dir_all) also need abstraction
+- validate_worktree_exists and create_worktree bypass mocks by using filesystem directly
 - This limits complete mock testing for some handlers
 
 ## Next Steps
 
 1. **Continue Git Operations Migration** (Priority: Critical)
-   - Next: create_branch (blocks create handler)
-   - Then: is_inside_work_tree, current_commit
-   - ~10 more operations remaining
+   - Next: checkout, list_branches, status
+   - Then: fetch, pull, push
+   - ~8 more operations remaining
 
 2. **Abstract Filesystem Operations** (Priority: High)
    - Create FileSystem trait similar to CommandExecutor

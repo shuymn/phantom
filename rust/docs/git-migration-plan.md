@@ -5,7 +5,7 @@ This document tracks the migration of git operations to use CommandExecutor for 
 
 ## Migration Status
 
-### ✅ Already Migrated (9/20+)
+### ✅ Already Migrated (12/20+)
 - `get_git_root` - Migrated with `get_git_root_with_executor`
 - `add_worktree` - Migrated with `add_worktree_with_executor`
 - `list_worktrees` - Migrated with `list_worktrees_with_executor`
@@ -13,6 +13,9 @@ This document tracks the migration of git operations to use CommandExecutor for 
 - `branch_exists` - Migrated with `branch_exists_with_executor`
 - `attach_worktree` - Migrated with `attach_worktree_with_executor`
 - `get_current_worktree` - Migrated with `get_current_worktree_with_executor`
+- `create_branch` - Migrated with `create_branch_with_executor`
+- `is_inside_work_tree` - Migrated with `is_inside_work_tree_with_executor`
+- `current_commit` - Migrated with `current_commit_with_executor`
 - Functions in `worktree/list.rs`:
   - `get_worktree_branch` - Migrated with `get_worktree_branch_with_executor`
   - `get_worktree_status` - Migrated with `get_worktree_status_with_executor`
@@ -25,25 +28,21 @@ This document tracks the migration of git operations to use CommandExecutor for 
 ### 🎯 Handler Testing Status
 - **List Handler**: ✅ Fully testable - 5 comprehensive mock tests
 - **Attach Handler**: ✅ Fully testable - 5 comprehensive mock tests  
+- **Create Handler**: ✅ Partially testable - 5 mock tests (filesystem ops limit full mocking)
 - **Delete Handler**: ⚠️ Partially testable - filesystem operations limit full mocking
-- **Create Handler**: 🚫 Blocked by create_branch migration
 - **Other Handlers**: 🚫 Blocked by remaining migrations
 
 ### 🔄 Need Migration (Priority Order)
 
-#### Priority 1: Blocking Handler Tests
-1. **`create_branch`** (src/git/libs/create_branch.rs)
-   - Used by: create handler for branch creation
-   - Critical for enabling create handler mock tests
+#### Priority 1: Core Git Operations
+1. **`checkout`** - Switch branches
+2. **`list_branches`** - List all branches  
+3. **`status`** - Get repository status
+4. **`fetch`** - Fetch from remote
+5. **`pull`** - Pull from remote
+6. **`push`** - Push to remote
 
-#### Priority 2: Core Git Operations
-1. **`is_inside_work_tree`** - Basic git repository check
-2. **`current_commit`** - Get current commit hash
-3. **`checkout`** - Switch branches
-4. **`list_branches`** - List all branches
-5. **`status`** - Get repository status
-
-#### Priority 3: GitBackend Operations
+#### Priority 2: GitBackend Operations
 - Operations in `command_backend.rs` that need migration
 - These are lower priority as they're not directly used by handlers
 

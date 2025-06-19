@@ -49,20 +49,21 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
   - [x] attach_worktree ✅ (attach handler now testable)
   - [x] delete_worktree ✅ (delete handler partially testable - filesystem ops limit)
   - [x] branch_exists, get_current_branch, get_current_worktree ✅
-  - [ ] create_branch (blocks create handler)
-  - [ ] is_inside_work_tree, current_commit
-  - [ ] And ~10 more operations...
+  - [x] create_branch ✅ (create handler now partially testable)
+  - [x] is_inside_work_tree, current_commit ✅
+  - [ ] And ~8 more operations...
 - [x] Write mock tests for list and attach handlers ✅
+- [x] Write mock tests for create handler ✅ (partial - filesystem ops limit)
 - [ ] Write mock tests for remaining handlers after migration
 
-Progress: Infrastructure complete, 9/20+ operations migrated (45%), 2 handlers fully testable.
+Progress: Infrastructure complete, 12/20+ operations migrated (60%), 3 handlers with mock tests.
 
 ### Priority 2: Continue Handler Testing
 
 - [x] List handler - 5 comprehensive mock tests ✅
 - [x] Attach handler - 5 comprehensive mock tests ✅
-- [ ] Create handler - blocked by create_branch migration
-- [ ] Delete handler - limited by filesystem operations
+- [x] Create handler - 5 mock tests ✅ (partial - filesystem ops limit)
+- [ ] Delete handler - tests written but limited by filesystem operations
 - [ ] Other handlers - blocked by remaining migrations
 
 ### Priority 3: Address Testing Limitations
