@@ -8,9 +8,7 @@ pub struct MockExitHandler {
 
 impl MockExitHandler {
     pub fn new() -> Self {
-        Self {
-            exits: Arc::new(Mutex::new(Vec::new())),
-        }
+        Self { exits: Arc::new(Mutex::new(Vec::new())) }
     }
 
     /// Get the exit codes that were called

@@ -74,8 +74,8 @@ pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
     use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+    use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
     use std::path::PathBuf;
     use std::sync::Arc;
 

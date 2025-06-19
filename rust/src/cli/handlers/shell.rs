@@ -152,8 +152,8 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
     use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+    use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
     use std::path::PathBuf;
     use std::sync::Arc;
 
@@ -322,7 +322,6 @@ mod tests {
             0,
         );
 
-
         // Mock filesystem check for worktree existence
         // Note: validate_worktree_exists is called twice - once in the handler and once in spawn_shell_in_worktree
         mock_fs.expect(FileSystemExpectation {
@@ -333,7 +332,7 @@ mod tests {
             contents: None,
             result: Ok(MockResult::Bool(true)), // Directory exists
         });
-        
+
         // Second expectation for the same path (called from spawn_shell_in_worktree)
         mock_fs.expect(FileSystemExpectation {
             operation: FileSystemOperation::IsDir,
@@ -348,7 +347,10 @@ mod tests {
         // Mock shell spawn
         let mut env = std::collections::HashMap::new();
         env.insert("PHANTOM_WORKTREE".to_string(), "test".to_string());
-        env.insert("PHANTOM_WORKTREE_PATH".to_string(), "/repo/.git/phantom/worktrees/test".to_string());
+        env.insert(
+            "PHANTOM_WORKTREE_PATH".to_string(),
+            "/repo/.git/phantom/worktrees/test".to_string(),
+        );
 
         mock.expect_command("/bin/bash") // Or whatever shell is detected
             .in_dir("/repo/.git/phantom/worktrees/test")

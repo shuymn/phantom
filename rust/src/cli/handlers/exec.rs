@@ -174,8 +174,8 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
     use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+    use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
     use std::path::PathBuf;
     use std::sync::Arc;
 
@@ -324,7 +324,6 @@ mod tests {
             0,
         );
 
-
         // Mock filesystem check for worktree existence
         // Note: validate_worktree_exists is called twice - once in the handler and once in exec_in_worktree
         mock_fs.expect(FileSystemExpectation {
@@ -335,7 +334,7 @@ mod tests {
             contents: None,
             result: Ok(MockResult::Bool(true)), // Directory exists
         });
-        
+
         // Second expectation for the same path (called from exec_in_worktree)
         mock_fs.expect(FileSystemExpectation {
             operation: FileSystemOperation::IsDir,

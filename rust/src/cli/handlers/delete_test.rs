@@ -11,8 +11,8 @@
 use crate::cli::commands::delete::DeleteArgs;
 use crate::cli::context::HandlerContext;
 use crate::core::executors::MockCommandExecutor;
-use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
 use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -49,9 +49,11 @@ async fn test_delete_with_current_flag_not_in_worktree() {
     let mut mock = MockCommandExecutor::new();
 
     // Mock git root check
-    mock.expect_command("git")
-        .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output("/repo/.git", "", 0);
+    mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+        "/repo/.git",
+        "",
+        0,
+    );
 
     // Mock get_current_worktree - not in a worktree
     mock.expect_command("git")
@@ -81,9 +83,11 @@ async fn test_delete_worktree_success() {
     let mock_fs = MockFileSystem::new();
 
     // Mock git root check
-    mock.expect_command("git")
-        .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output("/repo/.git", "", 0);
+    mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+        "/repo/.git",
+        "",
+        0,
+    );
 
     // Mock validate_worktree_exists (via list_worktrees)
     mock.expect_command("git")
@@ -146,9 +150,11 @@ async fn test_delete_worktree_with_uncommitted_changes_no_force() {
     let mock_fs = MockFileSystem::new();
 
     // Mock git root check
-    mock.expect_command("git")
-        .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output("/repo/.git", "", 0);
+    mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+        "/repo/.git",
+        "",
+        0,
+    );
 
     // Mock validate_worktree_exists
     mock.expect_command("git")
@@ -203,9 +209,11 @@ async fn test_delete_worktree_with_force() {
     let mock_fs = MockFileSystem::new();
 
     // Mock git root check
-    mock.expect_command("git")
-        .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output("/repo/.git", "", 0);
+    mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+        "/repo/.git",
+        "",
+        0,
+    );
 
     // Mock validate_worktree_exists
     mock.expect_command("git")
@@ -274,9 +282,11 @@ async fn test_delete_json_output_success() {
     let mock_fs = MockFileSystem::new();
 
     // Mock git root check
-    mock.expect_command("git")
-        .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output("/repo/.git", "", 0);
+    mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+        "/repo/.git",
+        "",
+        0,
+    );
 
     // Mock validate_worktree_exists
     mock.expect_command("git")
