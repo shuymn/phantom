@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod context;
 pub mod error;
 pub mod handlers;
 pub mod output;

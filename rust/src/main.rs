@@ -1,5 +1,6 @@
 use clap::Parser;
 use phantom::cli::{self, Commands};
+use phantom::cli::context::HandlerContext;
 use phantom::{PhantomError, Result};
 use std::process;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
