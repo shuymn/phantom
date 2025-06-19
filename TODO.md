@@ -180,12 +180,6 @@ All infrastructure work is complete with comprehensive testing patterns establis
   - ✅ Use dependency injection for tmux operations (CommandExecutor parameter)
   - ✅ Mock tmux process execution in tests (MockCommandExecutor used throughout)
 
-### Release & Communication
-
-- [ ] Announce Rust version availability
-- [ ] Gather user feedback
-- [ ] Plan TypeScript deprecation
-
 ### Enhancements
 
 - [ ] Native git support via libgit2
