@@ -99,20 +99,25 @@ pub async fn list_worktrees_with_executor(
 
     let git_worktrees = git_list_worktrees_with_executor(executor.clone(), git_root).await?;
     let phantom_dir = get_phantom_directory(git_root);
-    let phantom_dir_str = phantom_dir.to_string_lossy();
+    // Canonicalize the phantom directory path for consistent comparison
+    let phantom_dir_canonical = phantom_dir.canonicalize().unwrap_or(phantom_dir.clone());
+    let phantom_dir_str = phantom_dir_canonical.to_string_lossy();
 
     // Filter worktrees to only include those in the phantom directory
     let mut phantom_worktrees = Vec::new();
     for worktree in git_worktrees {
-        if worktree.path.starts_with(&phantom_dir) {
-            // Extract the name from the path
-            let path_str = worktree.path.to_string_lossy();
-            let name =
-                if let Some(stripped) = path_str.strip_prefix(&format!("{}/", phantom_dir_str)) {
-                    stripped.to_string()
-                } else {
-                    worktree.name.clone()
-                };
+        // Canonicalize the worktree path for consistent comparison
+        let worktree_path_canonical = worktree.path.canonicalize().unwrap_or(worktree.path.clone());
+        if worktree_path_canonical.starts_with(&phantom_dir_canonical) {
+            // Extract the name from the canonical path
+            let canonical_path_str = worktree_path_canonical.to_string_lossy();
+            let name = if let Some(stripped) =
+                canonical_path_str.strip_prefix(&format!("{}/", phantom_dir_str))
+            {
+                stripped.to_string()
+            } else {
+                worktree.name.clone()
+            };
 
             let is_clean = get_worktree_status_with_executor(executor.clone(), &worktree.path)
                 .await

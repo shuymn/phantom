@@ -15,22 +15,27 @@ pub async fn get_current_worktree_with_executor(
     let current_path = git_executor.run(&["rev-parse", "--show-toplevel"]).await?;
     let current_path = current_path.trim();
     let current_path = Path::new(current_path);
+    // Canonicalize the current path for consistent comparison
+    let current_path_canonical = current_path.canonicalize().unwrap_or(current_path.to_path_buf());
 
-    debug!("Current worktree path: {:?}", current_path);
+    debug!("Current worktree path: {:?}", current_path_canonical);
 
     // Get all worktrees
     let worktrees = list_worktrees_with_executor(executor, git_root).await?;
 
-    // Find the current worktree
-    let current_worktree = worktrees.into_iter().find(|wt| wt.path == current_path);
+    // Find the current worktree by comparing canonical paths
+    let current_worktree = worktrees.into_iter().find(|wt| {
+        let wt_path = Path::new(&wt.path);
+        let wt_canonical = wt_path.canonicalize().unwrap_or(wt_path.to_path_buf());
+        wt_canonical == current_path_canonical
+    });
 
     match current_worktree {
         Some(wt) => {
-            // Canonicalize paths for comparison
-            let wt_canonical = wt.path.canonicalize().unwrap_or(wt.path.clone());
+            // Use the already canonicalized current path
             let git_root_canonical = git_root.canonicalize().unwrap_or(git_root.to_path_buf());
 
-            if wt_canonical != git_root_canonical {
+            if current_path_canonical != git_root_canonical {
                 debug!("Current worktree branch: {:?}", wt.branch);
                 Ok(wt.branch)
             } else {
@@ -216,17 +221,21 @@ mod tests {
             .await
             .unwrap();
 
-        // Test without changing directory - this avoids the flaky directory restoration issue
-        // Instead, we'll test the function by passing the worktree path directly
-        let result = get_current_worktree(repo.path()).await.unwrap();
+        // Save current directory before changing
+        let original_dir = env::current_dir().unwrap();
 
-        // When called from the main repository, it should return None
+        // Test from the main repository directory
+        env::set_current_dir(repo.path()).unwrap();
+        let result = get_current_worktree(repo.path()).await.unwrap();
         assert_eq!(result, None);
 
         // Verify the worktree was created properly by checking from within it
         let worktree_executor = crate::git::executor::GitExecutor::with_cwd(&worktree_path);
         let worktree_result = worktree_executor.run(&["branch", "--show-current"]).await.unwrap();
         assert_eq!(worktree_result.trim(), ""); // Detached HEAD has no branch name
+
+        // Restore original directory
+        env::set_current_dir(&original_dir).unwrap();
     }
 
     /// Helper struct to temporarily change working directory

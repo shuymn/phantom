@@ -24,15 +24,18 @@ pub async fn get_git_root_with_executor(executor: Arc<dyn CommandExecutor>) -> R
             } else {
                 parent.to_path_buf()
             };
-            return Ok(absolute);
+            // Always canonicalize the path to ensure consistency
+            return Ok(absolute.canonicalize().unwrap_or(absolute));
         }
     }
 
     // Fall back to show-toplevel for the main repository
     let toplevel = git_executor.run(&["rev-parse", "--show-toplevel"]).await?;
     let toplevel = toplevel.trim();
+    let toplevel_path = PathBuf::from(toplevel);
 
-    Ok(PathBuf::from(toplevel))
+    // Always canonicalize the path to ensure consistency
+    Ok(toplevel_path.canonicalize().unwrap_or(toplevel_path))
 }
 
 /// Get the main git repository root using the default executor

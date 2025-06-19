@@ -12,28 +12,29 @@ mod tests {
     async fn test_attach_success() {
         let temp_dir = tempdir().unwrap();
         let git_root = temp_dir.path();
+        let git_root_canonical = git_root.canonicalize().unwrap();
         let worktree_path =
-            git_root.join(".git").join("phantom").join("worktrees").join("test-branch");
+            git_root_canonical.join(".git").join("phantom").join("worktrees").join("test-branch");
 
         let mut mock = MockCommandExecutor::new();
 
         // Mock git rev-parse --git-common-dir
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
-            &format!("{}/.git", git_root.to_string_lossy()),
+            &format!("{}/.git", git_root_canonical.to_string_lossy()),
             "",
             0,
         );
 
-        // Mock git show-ref to check branch exists
+        // Mock git show-ref to check branch exists - with canonicalized path
         mock.expect_command("git")
             .with_args(&["show-ref", "--verify", "--quiet", "refs/heads/test-branch"])
-            .in_dir(&git_root)
+            .in_dir(&git_root_canonical)
             .returns_success();
 
-        // Mock git worktree add
+        // Mock git worktree add - with canonicalized path
         mock.expect_command("git")
             .with_args(&["worktree", "add", &worktree_path.to_string_lossy(), "test-branch"])
-            .in_dir(&git_root)
+            .in_dir(&git_root_canonical)
             .returns_success();
 
         let args =
@@ -56,6 +57,7 @@ mod tests {
     async fn test_attach_branch_not_found() {
         let temp_dir = tempdir().unwrap();
         let git_root = temp_dir.path();
+        let git_root_canonical = git_root.canonicalize().unwrap();
 
         let mut mock = MockCommandExecutor::new();
 
@@ -66,10 +68,10 @@ mod tests {
             0,
         );
 
-        // Mock git show-ref to check branch exists (returns false)
+        // Mock git show-ref to check branch exists (returns false) - with canonicalized path
         mock.expect_command("git")
             .with_args(&["show-ref", "--verify", "--quiet", "refs/heads/nonexistent"])
-            .in_dir(&git_root)
+            .in_dir(&git_root_canonical)
             .returns_output("", "fatal: bad ref for symbolic ref refs/heads/nonexistent\n", 1);
 
         let args =
@@ -157,28 +159,29 @@ mod tests {
     async fn test_attach_with_json_output() {
         let temp_dir = tempdir().unwrap();
         let git_root = temp_dir.path();
+        let git_root_canonical = git_root.canonicalize().unwrap();
         let worktree_path =
-            git_root.join(".git").join("phantom").join("worktrees").join("json-branch");
+            git_root_canonical.join(".git").join("phantom").join("worktrees").join("json-branch");
 
         let mut mock = MockCommandExecutor::new();
 
         // Mock git rev-parse --git-common-dir
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
-            &format!("{}/.git", git_root.to_string_lossy()),
+            &format!("{}/.git", git_root_canonical.to_string_lossy()),
             "",
             0,
         );
 
-        // Mock git show-ref to check branch exists
+        // Mock git show-ref to check branch exists - with canonicalized path
         mock.expect_command("git")
             .with_args(&["show-ref", "--verify", "--quiet", "refs/heads/json-branch"])
-            .in_dir(&git_root)
+            .in_dir(&git_root_canonical)
             .returns_success();
 
-        // Mock git worktree add
+        // Mock git worktree add - with canonicalized path
         mock.expect_command("git")
             .with_args(&["worktree", "add", &worktree_path.to_string_lossy(), "json-branch"])
-            .in_dir(&git_root)
+            .in_dir(&git_root_canonical)
             .returns_success();
 
         let args =
