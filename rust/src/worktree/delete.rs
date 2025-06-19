@@ -84,13 +84,6 @@ async fn remove_worktree_with_executor(
     }
 }
 
-/// Remove a worktree using git commands
-#[allow(dead_code)]
-async fn remove_worktree(git_root: &Path, worktree_path: &Path, force: bool) -> Result<()> {
-    use crate::core::executors::RealCommandExecutor;
-    remove_worktree_with_executor(Arc::new(RealCommandExecutor), git_root, worktree_path, force)
-        .await
-}
 
 /// Delete a branch with executor
 async fn delete_branch_with_executor(
@@ -110,12 +103,6 @@ async fn delete_branch_with_executor(
     }
 }
 
-/// Delete a branch
-#[allow(dead_code)]
-async fn delete_branch(git_root: &Path, branch_name: &str) -> Result<bool> {
-    use crate::core::executors::RealCommandExecutor;
-    delete_branch_with_executor(Arc::new(RealCommandExecutor), git_root, branch_name).await
-}
 
 /// Delete a worktree with executor
 pub async fn delete_worktree_with_executor(
