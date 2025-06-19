@@ -3,10 +3,12 @@ use crate::git::backend::{GitBackend, GitConfig};
 use crate::git::executor::GitExecutor;
 use crate::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
+    create_branch::create_branch, current_commit::current_commit,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
-    get_git_root::get_git_root, list_worktrees::list_worktrees,
+    get_git_root::get_git_root, is_inside_work_tree::is_inside_work_tree,
+    list_worktrees::list_worktrees,
 };
-use crate::{PhantomError, Result};
+use crate::Result;
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 
@@ -86,9 +88,8 @@ impl GitBackend for CommandBackend {
     }
 
     async fn create_branch(&self, name: &str) -> Result<()> {
-        let executor = self.executor();
-        executor.run(&["branch", name]).await?;
-        Ok(())
+        let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
+        create_branch(cwd, name).await
     }
 
     async fn checkout(&self, branch: &str) -> Result<()> {
@@ -138,18 +139,12 @@ impl GitBackend for CommandBackend {
     }
 
     async fn current_commit(&self) -> Result<String> {
-        let executor = self.executor();
-        let output = executor.run(&["rev-parse", "HEAD"]).await?;
-        Ok(output.trim().to_string())
+        let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
+        current_commit(cwd).await
     }
 
     async fn is_inside_work_tree(&self) -> Result<bool> {
-        let executor = self.executor();
-        match executor.run(&["rev-parse", "--is-inside-work-tree"]).await {
-            Ok(output) => Ok(output.trim() == "true"),
-            Err(PhantomError::Git { exit_code: 128, .. }) => Ok(false),
-            Err(e) => Err(e),
-        }
+        is_inside_work_tree(self.config.cwd.as_deref()).await
     }
 
     async fn current_worktree(&self) -> Result<Option<String>> {

@@ -14,6 +14,8 @@ use tracing::debug;
 /// ```no_run
 /// use phantom::git::libs::get_current_branch::get_current_branch_with_executor;
 /// use phantom::cli::context::HandlerContext;
+/// use phantom::Result;
+/// use std::path::Path;
 ///
 /// async fn handle_something(context: HandlerContext) -> Result<()> {
 ///     let branch = get_current_branch_with_executor(
