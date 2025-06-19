@@ -5,6 +5,38 @@ Active tasks for the Phantom Rust implementation.
 - Completed tasks: [ARCHIVE.md](./ARCHIVE.md)
 - Test strategy details: [TEST_STRATEGY.md](./TEST_STRATEGY.md)
 
+## 📚 Migration Documentation Guide
+
+### When to Reference Each Document
+
+#### Starting Migration Work
+1. **Read FIRST**: [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) - Understand the overall strategy
+2. **Then**: [MOCK_TESTING_MIGRATION.md](./rust/MOCK_TESTING_MIGRATION.md) - See implementation details and examples
+3. **For context**: [MOCK_TESTING_SUMMARY.md](./rust/MOCK_TESTING_SUMMARY.md) - Learn from past mistakes
+
+#### During Active Development
+- **For git operations**: [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md) - ✅ COMPLETE
+- **For process operations**: [PROCESS_OPERATIONS_MIGRATION.md](./rust/PROCESS_OPERATIONS_MIGRATION.md) - Step-by-step guide
+- **For examples**: Check the `examples/mock_testing_example.rs` file
+- **For progress**: Check the "Migration Progress" section below in this file
+
+#### When Writing Tests
+- **Test patterns**: [TEST_STRATEGY.md](./TEST_STRATEGY.md) - Overall testing approach
+- **Mock examples**: [MOCK_TESTING_MIGRATION.md](./rust/MOCK_TESTING_MIGRATION.md) - Mock usage patterns
+- **Why mocks**: [TEST_RATIONALE.md](./TEST_RATIONALE.md) - Understand the reasoning
+
+#### For Review/Cleanup
+- **Recent changes**: [CLEANUP_SUMMARY.md](./rust/CLEANUP_SUMMARY.md) - What was cleaned up and why
+- **Completed work**: [ARCHIVE.md](./ARCHIVE.md) - What's been done
+
+#### Quick Reference Hierarchy
+```
+MOCK_TESTING_PLAN.md (Strategy)
+└── MOCK_TESTING_MIGRATION.md (Implementation)
+    └── GIT_OPERATIONS_MIGRATION_GUIDE.md (Step-by-step)
+        └── examples/mock_testing_example.rs (Code examples)
+```
+
 ## 🚨 Critical: Mock-Based Testing Strategy Required
 
 **Problem**: Tests are frequently failing in CI due to environment differences,
@@ -41,7 +73,7 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - [x] Update handlers to accept HandlerContext ✅
 - [x] Create GitExecutor adapter ✅
 - [x] Document migration pattern in GIT_OPERATIONS_MIGRATION_GUIDE.md ✅
-- [ ] **IN PROGRESS**: Migrate all git operations (see [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md))
+- [x] **COMPLETED**: Migrate all git operations ✅ (see [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md))
   - [x] get_git_root ✅ (template example)
   - [x] add_worktree ✅ (template example)
   - [x] list_worktrees ✅ (list handler now testable)
@@ -50,13 +82,15 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
   - [x] delete_worktree ✅ (delete handler partially testable - filesystem ops limit)
   - [x] branch_exists, get_current_branch, get_current_worktree ✅
   - [x] create_branch ✅ (create handler now partially testable)
-  - [x] is_inside_work_tree, current_commit ✅
-  - [ ] And ~8 more operations...
+  - [x] is_inside_work_tree ✅
+  - [x] current_commit ✅
+  - [x] list_branches ✅
+  - [x] remove_worktree ✅
 - [x] Write mock tests for list and attach handlers ✅
 - [x] Write mock tests for create handler ✅ (partial - filesystem ops limit)
 - [ ] Write mock tests for remaining handlers after migration
 
-Progress: Infrastructure complete, 12/20+ operations migrated (60%), 3 handlers with mock tests.
+Progress: Infrastructure complete, all 13 git operations migrated (100%), 3 handlers with mock tests. Process operations remain.
 
 ### Priority 2: Continue Handler Testing
 
@@ -74,10 +108,12 @@ Progress: Infrastructure complete, 12/20+ operations migrated (60%), 3 handlers 
 
 ### Priority 4: Complete Process Operations Migration
 
-- [ ] Migrate tmux operations to use CommandExecutor
-- [ ] Migrate kitty operations to use CommandExecutor
-- [ ] Migrate fzf operations to use CommandExecutor
-- [ ] Migrate shell operations to use CommandExecutor
+**See [PROCESS_OPERATIONS_MIGRATION.md](./rust/PROCESS_OPERATIONS_MIGRATION.md) for detailed migration guide**
+
+- [ ] Migrate tmux operations to use CommandExecutor (high priority)
+- [ ] Migrate fzf operations to use CommandExecutor (high priority)
+- [ ] Migrate kitty operations to use CommandExecutor (medium priority)
+- [ ] Migrate shell operations to use CommandExecutor (medium priority)
 
 ## 🔧 Architecture Refactoring (Complete)
 

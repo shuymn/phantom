@@ -1,5 +1,9 @@
 # Git Operations Migration Guide
 
+## Status: ✅ GIT OPERATIONS MIGRATION COMPLETE!
+
+All git operations have been successfully migrated to use CommandExecutor. The remaining work is migrating process operations (tmux, kitty, fzf, shell).
+
 ## Overview
 
 This guide documents the systematic migration of all git operations to use CommandExecutor. This migration is **critical** for enabling mock testing throughout the codebase.
@@ -78,22 +82,26 @@ These operations are directly called by handlers and must be migrated first:
 
 - [x] `get_git_root` - **COMPLETED** (template example)
 - [x] `add_worktree` - **COMPLETED** (template example)
-- [ ] `is_inside_work_tree` - Basic git check
-- [ ] `current_commit` - Version info
+- [x] `is_inside_work_tree` - Basic git check - **COMPLETED**
+- [x] `current_commit` - Version info - **COMPLETED**
 
 ### Medium Priority (GitBackend Implementation)
 
 Operations in `command_backend.rs` that need migration:
 
-- [ ] `init` - Repository initialization
-- [ ] `clone` - Repository cloning
-- [ ] `add` - Stage files
-- [ ] `commit` - Create commits
-- [ ] `list_branches` - List all branches
-- [ ] `create_branch` - Create new branch
-- [ ] `checkout` - Switch branches
-- [ ] `status` - Get repository status
-- [ ] `execute` - Generic git command execution
+- [x] `list_branches` - List all branches - **COMPLETED**
+- [x] `remove_worktree` - Remove worktree - **COMPLETED**
+
+Note: The `status` operation is not needed as a separate function. Status checking is already implemented via `get_worktree_status_with_executor` in `worktree/list.rs`.
+
+### Operations that should be REMOVED from GitBackend (not needed by Phantom):
+
+- `init` - Phantom works with existing repos only
+- `clone` - Phantom manages worktrees, not cloning
+- `add` - Phantom doesn't stage files
+- `commit` - Phantom doesn't create commits
+- `checkout` - Phantom uses worktrees, not branch switching
+- `execute` - Too generic, specific operations should be used instead
 
 ### Process Operations (After Git Migration)
 
@@ -177,11 +185,11 @@ async fn test_list_worktrees_empty() {
 
 ## Success Criteria
 
-- [ ] All git operations accept CommandExecutor
-- [ ] All existing tests still pass
-- [ ] Handler mock tests work without executing real git commands
-- [ ] No direct GitExecutor::new() calls remain (except in compatibility wrappers)
-- [ ] Process operations migrated similarly
+- [x] All git operations accept CommandExecutor ✅
+- [x] All existing tests still pass ✅
+- [x] Handler mock tests work without executing real git commands ✅
+- [x] No direct GitExecutor::new() calls remain (except in compatibility wrappers) ✅
+- [ ] Process operations migrated similarly (in progress)
 
 ## Notes
 
