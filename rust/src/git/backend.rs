@@ -7,18 +7,6 @@ use std::path::{Path, PathBuf};
 /// This abstraction allows for different implementations (command-line, libgit2, etc.)
 #[async_trait]
 pub trait GitBackend: Send + Sync {
-    /// Initialize a new git repository
-    async fn init(&self, path: &Path) -> Result<()>;
-
-    /// Clone a repository
-    async fn clone(&self, url: &str, path: &Path) -> Result<()>;
-
-    /// Add files to the staging area
-    async fn add(&self, paths: &[&str]) -> Result<()>;
-
-    /// Commit changes
-    async fn commit(&self, message: &str) -> Result<String>;
-
     /// Get the current branch name
     async fn current_branch(&self) -> Result<String>;
 
@@ -27,9 +15,6 @@ pub trait GitBackend: Send + Sync {
 
     /// Create a new branch
     async fn create_branch(&self, name: &str) -> Result<()>;
-
-    /// Switch to a branch
-    async fn checkout(&self, branch: &str) -> Result<()>;
 
     /// Check if a branch exists
     async fn branch_exists(&self, name: &str) -> Result<bool>;
@@ -50,9 +35,6 @@ pub trait GitBackend: Send + Sync {
     /// Remove a worktree
     async fn remove_worktree(&self, path: &Path) -> Result<()>;
 
-    /// Get the status of the repository
-    async fn status(&self) -> Result<String>;
-
     /// Get the current commit hash
     async fn current_commit(&self) -> Result<String>;
 
@@ -61,9 +43,6 @@ pub trait GitBackend: Send + Sync {
 
     /// Get the current worktree information (returns None if in main worktree)
     async fn current_worktree(&self) -> Result<Option<String>>;
-
-    /// Execute a raw git command (for operations not covered by the trait)
-    async fn execute(&self, args: &[&str]) -> Result<String>;
 }
 
 /// Configuration for a Git backend

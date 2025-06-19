@@ -158,9 +158,11 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
 
         // Expect git root check to fail
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("", "fatal: not a git repository", 128);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "",
+            "fatal: not a git repository",
+            128,
+        );
 
         let context = HandlerContext::new(Arc::new(mock));
         let args = CreateArgs {
@@ -196,9 +198,11 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
 
         // Expect git root check to fail
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("", "fatal: not a git repository", 128);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "",
+            "fatal: not a git repository",
+            128,
+        );
 
         let context = HandlerContext::new(Arc::new(mock));
         let args = CreateArgs {
@@ -231,9 +235,11 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
 
         // Mock git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/repo/.git", "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "/repo/.git",
+            "",
+            0,
+        );
 
         // Mock worktree list check - shows feature already exists
         mock.expect_command("git")
@@ -273,8 +279,11 @@ mod tests {
                 let error_msg = e.to_string();
                 // The error could be about already existing or about filesystem operations
                 // since create_worktree tries to create directories
-                assert!(error_msg.contains("already exists") || error_msg.contains("phantom directory"),
-                        "Unexpected error: {}", error_msg);
+                assert!(
+                    error_msg.contains("already exists") || error_msg.contains("phantom directory"),
+                    "Unexpected error: {}",
+                    error_msg
+                );
             }
             _ => panic!("Expected error"),
         }
@@ -285,18 +294,18 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
 
         // Mock git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/repo/.git", "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "/repo/.git",
+            "",
+            0,
+        );
 
         // Mock worktree list check - empty
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output(
-                "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n",
-                "",
-                0,
-            );
+        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
+            "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n",
+            "",
+            0,
+        );
 
         let context = HandlerContext::new(Arc::new(mock));
         let args = CreateArgs {
@@ -329,9 +338,11 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
 
         // Mock git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/repo/.git", "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "/repo/.git",
+            "",
+            0,
+        );
 
         let context = HandlerContext::new(Arc::new(mock));
         let args = CreateArgs {

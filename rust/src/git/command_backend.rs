@@ -1,12 +1,11 @@
 use crate::core::types::Worktree;
 use crate::git::backend::{GitBackend, GitConfig};
-use crate::git::executor::GitExecutor;
 use crate::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
     create_branch::create_branch, current_commit::current_commit,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
     get_git_root::get_git_root, is_inside_work_tree::is_inside_work_tree,
-    list_worktrees::list_worktrees,
+    list_branches::list_branches, list_worktrees::list_worktrees, remove_worktree::remove_worktree,
 };
 use crate::Result;
 use async_trait::async_trait;
@@ -22,14 +21,6 @@ impl CommandBackend {
     pub fn new(config: GitConfig) -> Self {
         Self { config }
     }
-
-    /// Create a GitExecutor for the current configuration
-    fn executor(&self) -> GitExecutor {
-        match &self.config.cwd {
-            Some(cwd) => GitExecutor::with_cwd(cwd),
-            None => GitExecutor::new(),
-        }
-    }
 }
 
 impl Default for CommandBackend {
@@ -40,62 +31,19 @@ impl Default for CommandBackend {
 
 #[async_trait]
 impl GitBackend for CommandBackend {
-    async fn init(&self, path: &Path) -> Result<()> {
-        let executor = GitExecutor::with_cwd(path);
-        executor.run(&["init"]).await?;
-        Ok(())
-    }
-
-    async fn clone(&self, url: &str, path: &Path) -> Result<()> {
-        let executor = self.executor();
-        executor.run(&["clone", url, &path.to_string_lossy()]).await?;
-        Ok(())
-    }
-
-    async fn add(&self, paths: &[&str]) -> Result<()> {
-        let executor = self.executor();
-        let mut args = vec!["add"];
-        args.extend_from_slice(paths);
-        executor.run(&args).await?;
-        Ok(())
-    }
-
-    async fn commit(&self, message: &str) -> Result<String> {
-        let executor = self.executor();
-        executor.run(&["commit", "-m", message]).await?;
-
-        // Get the commit hash
-        let hash = executor.run(&["rev-parse", "HEAD"]).await?;
-        Ok(hash.trim().to_string())
-    }
-
     async fn current_branch(&self) -> Result<String> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
         get_current_branch(cwd).await
     }
 
     async fn list_branches(&self) -> Result<Vec<String>> {
-        let executor = self.executor();
-        let output = executor.run(&["branch", "--format=%(refname:short)"]).await?;
-
-        let branches: Vec<String> = output
-            .lines()
-            .map(|line| line.trim().to_string())
-            .filter(|line| !line.is_empty())
-            .collect();
-
-        Ok(branches)
+        let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
+        list_branches(cwd).await
     }
 
     async fn create_branch(&self, name: &str) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
         create_branch(cwd, name).await
-    }
-
-    async fn checkout(&self, branch: &str) -> Result<()> {
-        let executor = self.executor();
-        executor.run(&["checkout", branch]).await?;
-        Ok(())
     }
 
     async fn branch_exists(&self, name: &str) -> Result<bool> {
@@ -128,14 +76,8 @@ impl GitBackend for CommandBackend {
     }
 
     async fn remove_worktree(&self, path: &Path) -> Result<()> {
-        let executor = self.executor();
-        executor.run(&["worktree", "remove", &path.to_string_lossy()]).await?;
-        Ok(())
-    }
-
-    async fn status(&self) -> Result<String> {
-        let executor = self.executor();
-        executor.run(&["status", "--porcelain"]).await
+        let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
+        remove_worktree(cwd, path).await
     }
 
     async fn current_commit(&self) -> Result<String> {
@@ -151,28 +93,12 @@ impl GitBackend for CommandBackend {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
         get_current_worktree(cwd).await
     }
-
-    async fn execute(&self, args: &[&str]) -> Result<String> {
-        let executor = self.executor();
-        executor.run(args).await
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::test_utils::TestRepo;
-    use tempfile::tempdir;
-
-    #[tokio::test]
-    async fn test_command_backend_init() {
-        let temp_dir = tempdir().unwrap();
-        let backend = CommandBackend::default();
-
-        backend.init(temp_dir.path()).await.unwrap();
-
-        assert!(temp_dir.path().join(".git").exists());
-    }
 
     #[tokio::test]
     async fn test_command_backend_basic_operations() {
@@ -196,11 +122,6 @@ mod tests {
         // Test create_branch
         backend.create_branch("test-branch").await.unwrap();
         assert!(backend.branch_exists("test-branch").await.unwrap());
-
-        // Test checkout
-        backend.checkout("test-branch").await.unwrap();
-        let current = backend.current_branch().await.unwrap();
-        assert_eq!(current, "test-branch");
     }
 
     #[tokio::test]
@@ -236,38 +157,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_command_backend_commit_operations() {
+    async fn test_command_backend_current_commit() {
         let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
         let config = GitConfig::with_cwd(repo.path());
         let backend = CommandBackend::new(config);
-
-        // Create a file
-        std::fs::write(repo.path().join("test.txt"), "content").unwrap();
-
-        // Test add
-        backend.add(&["test.txt"]).await.unwrap();
-
-        // Test status
-        let status = backend.status().await.unwrap();
-        assert!(status.contains("test.txt"));
-
-        // Test commit
-        let hash = backend.commit("Test commit").await.unwrap();
-        assert_eq!(hash.len(), 40); // SHA-1 hash length
 
         // Test current_commit
-        let current = backend.current_commit().await.unwrap();
-        assert_eq!(current, hash);
-    }
-
-    #[tokio::test]
-    async fn test_command_backend_execute() {
-        let repo = TestRepo::new().await.unwrap();
-        let config = GitConfig::with_cwd(repo.path());
-        let backend = CommandBackend::new(config);
-
-        // Test execute with arbitrary command - use a command that always works
-        let output = backend.execute(&["--version"]).await.unwrap();
-        assert!(output.contains("git version"));
+        let commit = backend.current_commit().await.unwrap();
+        assert_eq!(commit.len(), 40); // SHA-1 hash length
     }
 }

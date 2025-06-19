@@ -1,10 +1,9 @@
 use crate::core::command_executor::CommandExecutor;
-use crate::git::backend::GitBackend;
 use crate::worktree::errors::WorktreeError;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::worktree::types::DeleteWorktreeSuccess;
 use crate::worktree::validate::validate_worktree_exists;
-use crate::{PhantomError, Result};
+use crate::Result;
 use std::path::Path;
 use std::sync::Arc;
 use tracing::{debug, info};
@@ -160,73 +159,13 @@ pub async fn delete_worktree(
     delete_worktree_with_executor(Arc::new(RealCommandExecutor), git_root, name, options).await
 }
 
-/// Delete a worktree using a GitBackend
-pub async fn delete_worktree_with_backend(
-    backend: Arc<dyn GitBackend>,
-    git_root: &Path,
-    name: &str,
-    options: DeleteWorktreeOptions,
-) -> Result<DeleteWorktreeSuccess> {
-    // Validate worktree exists
-    let validation = validate_worktree_exists(git_root, name).await?;
-    let worktree_path = validation.path;
-
-    // Get worktree status
-    let status = get_worktree_status(&worktree_path).await;
-
-    // Check for uncommitted changes
-    if status.has_uncommitted_changes && !options.force {
-        return Err(WorktreeError::FileOperation(format!(
-            "Worktree '{}' has uncommitted changes ({} files). Use --force to delete anyway.",
-            name, status.changed_files
-        ))
-        .into());
-    }
-
-    // Remove the worktree
-    info!("Removing worktree '{}' at {:?}", name, worktree_path);
-    backend.remove_worktree(&worktree_path).await.map_err(|e| match e {
-        PhantomError::Git { message, .. } => WorktreeError::GitOperation {
-            operation: "worktree remove".to_string(),
-            details: message,
-        }
-        .into(),
-        _ => e,
-    })?;
-
-    // Try to delete the branch
-    let branch_deleted = match backend.execute(&["branch", "-D", name]).await {
-        Ok(_) => true,
-        Err(e) => {
-            debug!("Failed to delete branch '{}': {}", name, e);
-            false
-        }
-    };
-
-    // Build the success message
-    let mut message = if branch_deleted {
-        format!("Deleted worktree '{}' and its branch '{}'", name, name)
-    } else {
-        format!("Deleted worktree '{}'", name)
-    };
-
-    if status.has_uncommitted_changes {
-        message = format!(
-            "Warning: Worktree '{}' had uncommitted changes ({} files)\n{}",
-            name, status.changed_files, message
-        );
-    }
-
-    Ok(DeleteWorktreeSuccess { message, path: worktree_path.to_string_lossy().to_string() })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::factory::create_backend_for_dir;
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
     use crate::worktree::types::CreateWorktreeOptions;
+    use crate::PhantomError;
 
     #[tokio::test]
     async fn test_get_worktree_status_clean() {
@@ -316,26 +255,5 @@ mod tests {
             PhantomError::Worktree(msg) => assert!(msg.contains("not found")),
             _ => panic!("Expected Worktree error"),
         }
-    }
-
-    #[tokio::test]
-    async fn test_delete_worktree_with_backend() {
-        let repo = TestRepo::new().await.unwrap();
-        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
-
-        let backend = create_backend_for_dir(repo.path());
-
-        // Create a worktree
-        let create_options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "feature", create_options).await.unwrap();
-
-        // Delete the worktree
-        let delete_options = DeleteWorktreeOptions::default();
-        let result =
-            delete_worktree_with_backend(backend, repo.path(), "feature", delete_options).await;
-
-        assert!(result.is_ok());
-        let success = result.unwrap();
-        assert!(success.message.contains("Deleted worktree 'feature'"));
     }
 }
