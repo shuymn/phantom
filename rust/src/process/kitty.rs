@@ -1,9 +1,12 @@
+use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
+use std::sync::Arc;
 
-use super::spawn::{spawn_process, SpawnConfig, SpawnSuccess};
+use super::spawn::SpawnSuccess;
 
 /// Direction for kitty split operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,8 +37,11 @@ pub async fn is_inside_kitty() -> bool {
         || env::var("KITTY_WINDOW_ID").is_ok()
 }
 
-/// Execute a command in kitty
-pub async fn execute_kitty_command(options: KittyOptions) -> Result<KittySuccess> {
+/// Execute a command in kitty with CommandExecutor
+pub async fn execute_kitty_command_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    options: KittyOptions,
+) -> Result<()> {
     let mut kitty_args = vec!["@".to_string(), "launch".to_string()];
 
     // Set up the kitty command based on direction
@@ -78,20 +84,21 @@ pub async fn execute_kitty_command(options: KittyOptions) -> Result<KittySuccess
     }
 
     // Execute the kitty command
-    let config = SpawnConfig {
-        command: "kitty".to_string(),
-        args: kitty_args,
-        cwd: None,
-        env: None,
-        inherit_stdio: true,
-        timeout_ms: None,
-    };
-    spawn_process(config).await
+    let config = CommandConfig::new("kitty").with_args(kitty_args);
+    executor.execute(config).await?;
+    Ok(())
+}
+
+/// Execute a command in kitty (backward compatible)
+pub async fn execute_kitty_command(options: KittyOptions) -> Result<KittySuccess> {
+    execute_kitty_command_with_executor(Arc::new(RealCommandExecutor), options).await?;
+    Ok(SpawnSuccess { exit_code: 0 })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::MockCommandExecutor;
 
     #[tokio::test]
     async fn test_is_inside_kitty() {
@@ -293,6 +300,77 @@ mod tests {
         assert_eq!(options.cwd, Some("/tmp".to_string()));
         assert!(options.env.is_some());
         assert_eq!(options.window_title, Some("Test Window".to_string()));
+    }
+
+    // Mock tests for CommandExecutor functions
+    #[tokio::test]
+    async fn test_execute_kitty_command_new_tab() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("kitty")
+            .with_args(&[
+                "@",
+                "launch",
+                "--type=tab",
+                "--tab-title=Test Window",
+                "--cwd=/tmp",
+                "--env=TEST=value",
+                "--",
+                "echo",
+                "hello",
+            ])
+            .returns_output("", "", 0);
+
+        let options = KittyOptions {
+            direction: KittySplitDirection::New,
+            command: "echo".to_string(),
+            args: Some(vec!["hello".to_string()]),
+            cwd: Some("/tmp".to_string()),
+            env: Some(HashMap::from([("TEST".to_string(), "value".to_string())])),
+            window_title: Some("Test Window".to_string()),
+        };
+
+        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_kitty_command_vertical_split() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("kitty")
+            .with_args(&["@", "launch", "--location=vsplit", "--", "htop"])
+            .returns_output("", "", 0);
+
+        let options = KittyOptions {
+            direction: KittySplitDirection::Vertical,
+            command: "htop".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_title: None,
+        };
+
+        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_kitty_command_horizontal_split() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("kitty")
+            .with_args(&["@", "launch", "--location=hsplit", "--", "ls", "-la"])
+            .returns_output("", "", 0);
+
+        let options = KittyOptions {
+            direction: KittySplitDirection::Horizontal,
+            command: "ls".to_string(),
+            args: Some(vec!["-la".to_string()]),
+            cwd: None,
+            env: None,
+            window_title: None,
+        };
+
+        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]

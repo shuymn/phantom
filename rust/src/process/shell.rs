@@ -1,7 +1,10 @@
+use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
+use std::sync::Arc;
 use tracing::{debug, info};
 
 /// Detected shell information
@@ -155,8 +158,11 @@ pub fn current_phantom_worktree() -> Option<String> {
     env::var("PHANTOM_WORKTREE").ok()
 }
 
-/// Open an interactive shell in a directory
-pub async fn shell_in_dir(dir: &Path) -> Result<()> {
+/// Open an interactive shell in a directory with CommandExecutor
+pub async fn shell_in_dir_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    dir: &Path,
+) -> Result<()> {
     let shell_info = detect_shell()?;
     let worktree_name = dir.file_name().and_then(|n| n.to_str()).unwrap_or("phantom");
 
@@ -164,22 +170,24 @@ pub async fn shell_in_dir(dir: &Path) -> Result<()> {
 
     info!("Opening shell in: {}", dir.display());
 
-    let config = super::spawn::SpawnConfig {
-        command: shell_info.path.clone(),
-        args: shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect(),
-        cwd: Some(dir.to_string_lossy().to_string()),
-        env: Some(env_vars),
-        inherit_stdio: true,
-        timeout_ms: None,
-    };
+    let config = CommandConfig::new(shell_info.path.clone())
+        .with_args(shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect())
+        .with_cwd(dir.to_path_buf())
+        .with_env(env_vars);
 
-    super::spawn::spawn_process(config).await?;
+    executor.execute(config).await?;
     Ok(())
+}
+
+/// Open an interactive shell in a directory (backward compatible)
+pub async fn shell_in_dir(dir: &Path) -> Result<()> {
+    shell_in_dir_with_executor(Arc::new(RealCommandExecutor), dir).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::MockCommandExecutor;
 
     #[test]
     fn test_analyze_shell_path() {
@@ -377,6 +385,70 @@ mod tests {
 
         assert_eq!(info1, info2);
         assert_ne!(info1, info3);
+    }
+
+    // Mock tests for CommandExecutor functions
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_shell_in_dir_with_executor_bash() {
+        // Mock SHELL environment variable for consistent testing
+        env::set_var("SHELL", "/bin/bash");
+
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("/bin/bash")
+            .with_args(&["-i"])
+            .returns_output("", "", 0);
+
+        let temp_dir = std::env::temp_dir().join("phantom-test");
+        let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
+        if let Err(e) = &result {
+            eprintln!("Test failed with error: {:?}", e);
+        }
+        assert!(result.is_ok());
+
+        // Clean up
+        env::remove_var("SHELL");
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_shell_in_dir_with_executor_zsh() {
+        // Mock SHELL environment variable
+        env::set_var("SHELL", "/usr/bin/zsh");
+
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("/usr/bin/zsh")
+            .with_args(&["-i"])
+            .returns_output("", "", 0);
+
+        let temp_dir = std::env::temp_dir().join("phantom-test");
+        let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
+        if let Err(e) = &result {
+            eprintln!("Test failed with error: {:?}", e);
+        }
+        assert!(result.is_ok());
+
+        // Clean up
+        env::remove_var("SHELL");
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_shell_in_dir_with_executor_fallback() {
+        // Remove SHELL to force fallback
+        env::remove_var("SHELL");
+
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("/bin/sh")
+            .with_args(&[])  // sh has no init args
+            .returns_output("", "", 0);
+
+        let temp_dir = std::env::temp_dir().join("phantom-test");
+        let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
+        if let Err(e) = &result {
+            eprintln!("Test failed with error: {:?}", e);
+        }
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
