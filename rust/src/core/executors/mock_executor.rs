@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::core::command_executor::{
-    CommandConfig, CommandExecutor, CommandOutput, SpawnConfig, SpawnOutput,
-};
+use crate::core::command_executor::{CommandConfig, CommandExecutor, CommandOutput};
 use crate::core::error::PhantomError;
 use crate::core::result::Result;
 
@@ -33,35 +31,14 @@ pub struct CommandCall {
 pub struct MockCommandExecutor {
     expectations: Arc<Mutex<Vec<CommandExpectation>>>,
     calls: Arc<Mutex<Vec<CommandCall>>>,
-    spawn_expectations: Arc<Mutex<Vec<SpawnExpectation>>>,
-    spawn_calls: Arc<Mutex<Vec<SpawnCall>>>,
 }
 
-#[derive(Debug, Clone)]
-pub struct SpawnExpectation {
-    pub program: String,
-    pub args: Option<Vec<String>>,
-    pub cwd: Option<PathBuf>,
-    pub env: Option<HashMap<String, String>>,
-    pub times: Option<usize>,
-    pub returns: SpawnOutput,
-}
-
-#[derive(Debug, Clone)]
-pub struct SpawnCall {
-    pub program: String,
-    pub args: Vec<String>,
-    pub cwd: Option<PathBuf>,
-    pub env: Option<HashMap<String, String>>,
-}
 
 impl MockCommandExecutor {
     pub fn new() -> Self {
         Self {
             expectations: Arc::new(Mutex::new(Vec::new())),
             calls: Arc::new(Mutex::new(Vec::new())),
-            spawn_expectations: Arc::new(Mutex::new(Vec::new())),
-            spawn_calls: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -69,9 +46,6 @@ impl MockCommandExecutor {
         CommandExpectationBuilder::new(self.expectations.clone(), program)
     }
 
-    pub fn expect_spawn(&mut self, program: &str) -> SpawnExpectationBuilder {
-        SpawnExpectationBuilder::new(self.spawn_expectations.clone(), program)
-    }
 
     pub fn verify(&self) -> Result<()> {
         let expectations = self.expectations.lock().unwrap();
@@ -91,24 +65,6 @@ impl MockCommandExecutor {
             }
         }
 
-        let spawn_expectations = self.spawn_expectations.lock().unwrap();
-        let spawn_calls = self.spawn_calls.lock().unwrap();
-
-        for expectation in spawn_expectations.iter() {
-            if let Some(expected_times) = expectation.times {
-                let actual_calls = spawn_calls
-                    .iter()
-                    .filter(|call| self.matches_spawn_expectation(call, expectation))
-                    .count();
-
-                if actual_calls != expected_times {
-                    return Err(PhantomError::ProcessExecution(format!(
-                        "Expected spawn '{}' to be called {} times, but was called {} times",
-                        expectation.program, expected_times, actual_calls
-                    )));
-                }
-            }
-        }
 
         Ok(())
     }
@@ -145,38 +101,8 @@ impl MockCommandExecutor {
         true
     }
 
-    fn matches_spawn_expectation(&self, call: &SpawnCall, expectation: &SpawnExpectation) -> bool {
-        if call.program != expectation.program {
-            return false;
-        }
-
-        if let Some(ref expected_args) = expectation.args {
-            if call.args != *expected_args {
-                return false;
-            }
-        }
-
-        if let Some(ref expected_cwd) = expectation.cwd {
-            if call.cwd.as_ref() != Some(expected_cwd) {
-                return false;
-            }
-        }
-
-        if let Some(ref expected_env) = expectation.env {
-            if call.env.as_ref() != Some(expected_env) {
-                return false;
-            }
-        }
-
-        true
-    }
-
     pub fn calls(&self) -> Vec<CommandCall> {
         self.calls.lock().unwrap().clone()
-    }
-
-    pub fn spawn_calls(&self) -> Vec<SpawnCall> {
-        self.spawn_calls.lock().unwrap().clone()
     }
 }
 
@@ -212,28 +138,6 @@ impl CommandExecutor for MockCommandExecutor {
         )))
     }
 
-    async fn spawn(&self, config: SpawnConfig) -> Result<SpawnOutput> {
-        let call = SpawnCall {
-            program: config.program.clone(),
-            args: config.args.clone(),
-            cwd: config.cwd.clone(),
-            env: config.env.clone(),
-        };
-
-        self.spawn_calls.lock().unwrap().push(call.clone());
-
-        let expectations = self.spawn_expectations.lock().unwrap();
-        for expectation in expectations.iter() {
-            if self.matches_spawn_expectation(&call, expectation) {
-                return Ok(expectation.returns.clone());
-            }
-        }
-
-        Err(PhantomError::ProcessExecution(format!(
-            "Unexpected spawn: {} {:?}",
-            config.program, config.args
-        )))
-    }
 }
 
 pub struct CommandExpectationBuilder {
@@ -297,51 +201,6 @@ impl CommandExpectationBuilder {
     }
 }
 
-pub struct SpawnExpectationBuilder {
-    expectations: Arc<Mutex<Vec<SpawnExpectation>>>,
-    expectation: SpawnExpectation,
-}
-
-impl SpawnExpectationBuilder {
-    fn new(expectations: Arc<Mutex<Vec<SpawnExpectation>>>, program: &str) -> Self {
-        Self {
-            expectations,
-            expectation: SpawnExpectation {
-                program: program.to_string(),
-                args: None,
-                cwd: None,
-                env: None,
-                times: None,
-                returns: SpawnOutput { pid: 12345 },
-            },
-        }
-    }
-
-    pub fn with_args(mut self, args: &[&str]) -> Self {
-        self.expectation.args = Some(args.iter().map(|s| s.to_string()).collect());
-        self
-    }
-
-    pub fn in_dir(mut self, dir: impl Into<PathBuf>) -> Self {
-        self.expectation.cwd = Some(dir.into());
-        self
-    }
-
-    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
-        self.expectation.env = Some(env);
-        self
-    }
-
-    pub fn times(mut self, times: usize) -> Self {
-        self.expectation.times = Some(times);
-        self
-    }
-
-    pub fn returns_pid(mut self, pid: u32) {
-        self.expectation.returns = SpawnOutput { pid };
-        self.expectations.lock().unwrap().push(self.expectation);
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -417,19 +276,6 @@ mod tests {
         assert!(mock.verify().is_ok());
     }
 
-    #[tokio::test]
-    async fn test_mock_spawn_success() {
-        let mut mock = MockCommandExecutor::new();
-        mock.expect_spawn("sleep").with_args(&["1"]).returns_pid(9999);
-
-        let config = SpawnConfig::new("sleep").with_args(vec!["1".to_string()]);
-
-        let result = mock.spawn(config).await;
-        assert!(result.is_ok());
-
-        let output = result.unwrap();
-        assert_eq!(output.pid, 9999);
-    }
 
     #[tokio::test]
     async fn test_mock_with_env() {

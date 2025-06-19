@@ -3,9 +3,7 @@ use std::process::Stdio;
 use tokio::process::Command;
 use tracing::{debug, error, info};
 
-use crate::core::command_executor::{
-    CommandConfig, CommandExecutor, CommandOutput, SpawnConfig, SpawnOutput,
-};
+use crate::core::command_executor::{CommandConfig, CommandExecutor, CommandOutput};
 use crate::core::error::PhantomError;
 use crate::core::result::Result;
 
@@ -150,39 +148,6 @@ impl CommandExecutor for RealCommandExecutor {
 
         Ok(CommandOutput { stdout, stderr, exit_code })
     }
-
-    async fn spawn(&self, config: SpawnConfig) -> Result<SpawnOutput> {
-        info!("Spawning process: {} {:?}", config.program, config.args);
-
-        let mut command = Command::new(&config.program);
-        command.args(&config.args);
-
-        if let Some(ref cwd) = config.cwd {
-            command.current_dir(cwd);
-        }
-
-        if let Some(ref env) = config.env {
-            command.envs(env);
-        }
-
-        command.stdin(if config.stdin { Stdio::inherit() } else { Stdio::null() });
-
-        command.stdout(if config.stdout { Stdio::inherit() } else { Stdio::null() });
-
-        command.stderr(if config.stderr { Stdio::inherit() } else { Stdio::null() });
-
-        let child = command.spawn().map_err(|e| {
-            PhantomError::ProcessExecution(format!(
-                "Failed to spawn process '{}': {}",
-                config.program, e
-            ))
-        })?;
-
-        let pid = child.id().unwrap_or(0);
-        debug!("Process spawned with PID: {}", pid);
-
-        Ok(SpawnOutput { pid })
-    }
 }
 
 #[cfg(test)]
@@ -276,39 +241,6 @@ mod tests {
         assert_eq!(output.exit_code, 1);
     }
 
-    #[tokio::test]
-    async fn test_spawn_success() {
-        let executor = RealCommandExecutor::new();
-        let config = SpawnConfig::new("sleep").with_args(vec!["0.1".to_string()]);
-
-        let result = executor.spawn(config).await;
-        assert!(result.is_ok());
-
-        let output = result.unwrap();
-        assert!(output.pid > 0);
-    }
-
-    #[tokio::test]
-    async fn test_spawn_with_cwd() {
-        let executor = RealCommandExecutor::new();
-        let temp_dir = tempfile::tempdir().unwrap();
-        let cwd = temp_dir.path().to_path_buf();
-
-        let config = SpawnConfig::new("pwd").with_cwd(cwd);
-
-        let result = executor.spawn(config).await;
-        assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_spawn_nonexistent_command() {
-        let executor = RealCommandExecutor::new();
-        let config = SpawnConfig::new("nonexistent-command-xyz123");
-
-        let result = executor.spawn(config).await;
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to spawn process"));
-    }
 
     #[tokio::test]
     async fn test_default_impl() {
