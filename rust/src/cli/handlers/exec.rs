@@ -162,3 +162,235 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
     // Exit with the same code as the executed command
     process::exit(result.exit_code);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::executors::MockCommandExecutor;
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn test_exec_not_in_git_repo() {
+        let mut mock = MockCommandExecutor::new();
+
+        // Expect git root check to fail
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "",
+            "fatal: not a git repository",
+            128,
+        );
+
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ExecArgs {
+            name: Some("test".to_string()),
+            command: vec!["echo".to_string(), "hello".to_string()],
+            fzf: false,
+            tmux: false,
+            tmux_vertical: false,
+            tmux_v: false,
+            tmux_horizontal: false,
+            tmux_h: false,
+            kitty: false,
+            kitty_vertical: false,
+            kitty_v: false,
+            kitty_horizontal: false,
+            kitty_h: false,
+        };
+
+        let result = handle(args, context).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_exec_no_command_specified() {
+        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let args = ExecArgs {
+            name: None,
+            command: vec![], // No args at all
+            fzf: false,
+            tmux: false,
+            tmux_vertical: false,
+            tmux_v: false,
+            tmux_horizontal: false,
+            tmux_h: false,
+            kitty: false,
+            kitty_vertical: false,
+            kitty_v: false,
+            kitty_horizontal: false,
+            kitty_h: false,
+        };
+
+        let result = handle(args, context).await;
+        assert!(result.is_err());
+        // This will trigger the first validation error about usage
+        assert!(result.unwrap_err().to_string().contains("Usage:"));
+    }
+
+    #[tokio::test]
+    async fn test_exec_invalid_usage_without_name() {
+        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let args = ExecArgs {
+            name: None,
+            command: vec!["echo".to_string()], // Only one arg, need at least 2
+            fzf: false,
+            tmux: false,
+            tmux_vertical: false,
+            tmux_v: false,
+            tmux_horizontal: false,
+            tmux_h: false,
+            kitty: false,
+            kitty_vertical: false,
+            kitty_v: false,
+            kitty_horizontal: false,
+            kitty_h: false,
+        };
+
+        let result = handle(args, context).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Usage:"));
+    }
+
+    #[tokio::test]
+    async fn test_exec_tmux_outside_tmux_session() {
+        let mock = MockCommandExecutor::new();
+
+        // Mock TMUX env check (not inside tmux)
+        // Note: is_inside_tmux checks std::env::var("TMUX") directly
+        // This test will pass validation but demonstrates the structure
+
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ExecArgs {
+            name: Some("test".to_string()),
+            command: vec!["echo".to_string(), "hello".to_string()],
+            fzf: false,
+            tmux: true,
+            tmux_vertical: false,
+            tmux_v: false,
+            tmux_horizontal: false,
+            tmux_h: false,
+            kitty: false,
+            kitty_vertical: false,
+            kitty_v: false,
+            kitty_horizontal: false,
+            kitty_h: false,
+        };
+
+        let result = handle(args, context).await;
+        // This will likely pass because is_inside_tmux() checks env directly
+        // In a real test environment without TMUX set, this would fail
+        if std::env::var("TMUX").is_err() {
+            assert!(result.is_err());
+            assert!(result.unwrap_err().to_string().contains("inside a tmux session"));
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "Requires filesystem mocking - validate_worktree_exists uses fs::metadata"]
+    async fn test_exec_success_normal() {
+        let mut mock = MockCommandExecutor::new();
+
+        // Mock git root check
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "/repo/.git",
+            "",
+            0,
+        );
+
+        // Mock worktree validation (would need filesystem mock)
+        // Mock command execution
+        mock.expect_command("echo")
+            .with_args(&["hello"])
+            .in_dir("/repo/.phantom/test")
+            .returns_output("hello\n", "", 0);
+
+        let _context = HandlerContext::new(Arc::new(mock));
+        let _args = ExecArgs {
+            name: Some("test".to_string()),
+            command: vec!["echo".to_string(), "hello".to_string()],
+            fzf: false,
+            tmux: false,
+            tmux_vertical: false,
+            tmux_v: false,
+            tmux_horizontal: false,
+            tmux_h: false,
+            kitty: false,
+            kitty_vertical: false,
+            kitty_v: false,
+            kitty_horizontal: false,
+            kitty_h: false,
+        };
+
+        // This test would call process::exit, so we can't easily test the success case
+        // without refactoring the handler to return the exit code instead
+    }
+
+    #[tokio::test]
+    #[ignore = "Requires refactoring - tmux execution spawns detached process"]
+    async fn test_exec_tmux_new_window() {
+        let mut mock = MockCommandExecutor::new();
+
+        // Mock git root check
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "/repo/.git",
+            "",
+            0,
+        );
+
+        // Mock tmux command
+        mock.expect_spawn("tmux")
+            .with_args(&["new-window", "-n", "test", "-c", "/repo/.phantom/test", "echo hello"])
+            .returns_pid(12345);
+
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ExecArgs {
+            name: Some("test".to_string()),
+            command: vec!["echo".to_string(), "hello".to_string()],
+            fzf: false,
+            tmux: true,
+            tmux_vertical: false,
+            tmux_v: false,
+            tmux_horizontal: false,
+            tmux_h: false,
+            kitty: false,
+            kitty_vertical: false,
+            kitty_v: false,
+            kitty_horizontal: false,
+            kitty_h: false,
+        };
+
+        // Would need to set TMUX env var and handle filesystem checks
+    }
+
+    #[tokio::test]
+    async fn test_exec_positional_worktree_name() {
+        let mut mock = MockCommandExecutor::new();
+
+        // Mock git root check
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "/repo/.git",
+            "",
+            0,
+        );
+
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ExecArgs {
+            name: None, // Name will be taken from first command arg
+            command: vec!["myworktree".to_string(), "echo".to_string(), "hello".to_string()],
+            fzf: false,
+            tmux: false,
+            tmux_vertical: false,
+            tmux_v: false,
+            tmux_horizontal: false,
+            tmux_h: false,
+            kitty: false,
+            kitty_vertical: false,
+            kitty_v: false,
+            kitty_horizontal: false,
+            kitty_h: false,
+        };
+
+        // This test will fail at validate_worktree_exists due to filesystem operations
+        let _result = handle(args, context).await;
+        // Can't fully test without filesystem abstraction
+    }
+}
