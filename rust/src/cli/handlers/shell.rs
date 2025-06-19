@@ -422,6 +422,8 @@ mod tests {
                 "-c",
                 "/repo/.git/phantom/worktrees/test",
                 "-e",
+                "PHANTOM_ACTIVE=1",
+                "-e",
                 "PHANTOM_WORKTREE=test",
                 "-e",
                 "PHANTOM_WORKTREE_PATH=/repo/.git/phantom/worktrees/test",
@@ -481,8 +483,21 @@ mod tests {
             result: Ok(MockResult::Bool(true)),
         });
 
-        // Mock kitty command - don't check exact args due to HashMap ordering
-        mock.expect_command("kitty").returns_output("", "", 0);
+        // Mock kitty command with sorted environment variables
+        mock.expect_command("kitty")
+            .with_args(&[
+                "@",
+                "launch",
+                "--type=tab",
+                "--tab-title=test",
+                "--cwd=/repo/.git/phantom/worktrees/test",
+                "--env=PHANTOM_ACTIVE=1",
+                "--env=PHANTOM_WORKTREE=test",
+                "--env=PHANTOM_WORKTREE_PATH=/repo/.git/phantom/worktrees/test",
+                "--",
+                std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string()).as_str(),
+            ])
+            .returns_output("", "", 0);
 
         let context = HandlerContext::new(
             Arc::new(mock),

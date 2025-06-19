@@ -65,10 +65,14 @@ pub async fn execute_kitty_command_with_executor(
         kitty_args.push(format!("--cwd={}", cwd));
     }
 
-    // Add environment variables
+    // Add environment variables in sorted order for deterministic output
     if let Some(env_vars) = &options.env {
-        for (key, value) in env_vars {
-            kitty_args.push(format!("--env={}={}", key, value));
+        let mut sorted_keys: Vec<_> = env_vars.keys().collect();
+        sorted_keys.sort();
+        for key in sorted_keys {
+            if let Some(value) = env_vars.get(key) {
+                kitty_args.push(format!("--env={}={}", key, value));
+            }
         }
     }
 

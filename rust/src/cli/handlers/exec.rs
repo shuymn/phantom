@@ -422,6 +422,8 @@ mod tests {
                 "-c",
                 "/repo/.git/phantom/worktrees/test",
                 "-e",
+                "PHANTOM_ACTIVE=1",
+                "-e",
                 "PHANTOM_WORKTREE=test",
                 "-e",
                 "PHANTOM_WORKTREE_PATH=/repo/.git/phantom/worktrees/test",

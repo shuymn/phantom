@@ -69,11 +69,15 @@ pub async fn execute_tmux_command_with_executor(
         tmux_args.push(cwd.clone());
     }
 
-    // Add environment variables
+    // Add environment variables in sorted order for deterministic output
     if let Some(env_vars) = &options.env {
-        for (key, value) in env_vars {
-            tmux_args.push("-e".to_string());
-            tmux_args.push(format!("{}={}", key, value));
+        let mut sorted_keys: Vec<_> = env_vars.keys().collect();
+        sorted_keys.sort();
+        for key in sorted_keys {
+            if let Some(value) = env_vars.get(key) {
+                tmux_args.push("-e".to_string());
+                tmux_args.push(format!("{}={}", key, value));
+            }
         }
     }
 
