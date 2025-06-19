@@ -96,6 +96,14 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - 📝 **DOCUMENTED**: Serial test requirements analyzed and documented
 - 📊 **FINAL STATUS**: Testing infrastructure transformation complete
 
+### Progress Update (2025-06-19) - FZF Test Enablement Complete
+- ✅ **NEW**: Implemented CommandExecutor support for worktree selection with FZF
+- ✅ **NEW**: Added select_worktree_with_fzf_with_executor and helper functions
+- ✅ **NEW**: Updated handlers (where_cmd, shell) to use executor versions in test mode
+- ✅ **NEW**: Enabled all 5 remaining ignored FZF tests with comprehensive mocking
+- 📊 **ACHIEVEMENT**: 0 ignored tests remaining (down from 5)
+- 📝 **PATTERN**: Established pattern for FZF command mocking and testing
+
 ## 📋 Next Steps
 
 ### 🎯 Priority 1: Complete Handler Testing
@@ -197,7 +205,8 @@ All infrastructure work is complete with comprehensive testing patterns establis
 ### Test Coverage Note
 
 ✅ **Test infrastructure is now in place!**
-- 504 tests passing with 0 failures
+- 519 tests total (518 passing, 1 flaky test in get_current_worktree)
+- 0 ignored tests (all FZF tests enabled)
 - Mock-based testing eliminates environment dependencies
 - Clear patterns established for future development
 - Coverage metrics now accurately reflect actual test coverage
