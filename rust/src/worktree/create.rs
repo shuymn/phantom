@@ -21,7 +21,7 @@ pub async fn create_worktree(
     validate_worktree_name(name)?;
 
     let branch = options.branch.as_deref().unwrap_or(name);
-    let _commitish = options.commitish.as_deref().unwrap_or("HEAD");
+    let commitish = options.commitish.as_deref();
 
     let worktrees_path = get_phantom_directory(git_root);
     let worktree_path = get_worktree_path(git_root, name);
@@ -47,13 +47,16 @@ pub async fn create_worktree(
 
     // For now, we'll use the existing add_worktree function
     // In the future, this should use the GitBackend trait
-    add_worktree(git_root, &worktree_path, Some(branch), true).await.map_err(|e| match e {
-        PhantomError::Git { message, .. } => {
-            WorktreeError::GitOperation { operation: "worktree add".to_string(), details: message }
-                .into()
-        }
-        _ => e,
-    })?;
+    add_worktree(git_root, &worktree_path, Some(branch), true, commitish).await.map_err(
+        |e| match e {
+            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
+                operation: "worktree add".to_string(),
+                details: message,
+            }
+            .into(),
+            _ => e,
+        },
+    )?;
 
     let mut result = CreateWorktreeSuccess {
         message: format!("Created worktree '{}' at {}", name, worktree_path.display()),
@@ -92,6 +95,7 @@ pub async fn create_worktree_with_backend(
     validate_worktree_name(name)?;
 
     let branch = options.branch.as_deref().unwrap_or(name);
+    let commitish = options.commitish.as_deref();
     let worktrees_path = get_phantom_directory(git_root);
     let worktree_path = get_worktree_path(git_root, name);
 
@@ -113,13 +117,16 @@ pub async fn create_worktree_with_backend(
 
     // Add the worktree using the git backend
     info!("Creating worktree '{}' at {:?}", name, worktree_path);
-    backend.add_worktree(&worktree_path, Some(branch), true).await.map_err(|e| match e {
-        PhantomError::Git { message, .. } => {
-            WorktreeError::GitOperation { operation: "worktree add".to_string(), details: message }
-                .into()
-        }
-        _ => e,
-    })?;
+    backend.add_worktree(&worktree_path, Some(branch), true, commitish).await.map_err(
+        |e| match e {
+            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
+                operation: "worktree add".to_string(),
+                details: message,
+            }
+            .into(),
+            _ => e,
+        },
+    )?;
 
     let mut result = CreateWorktreeSuccess {
         message: format!("Created worktree '{}' at {}", name, worktree_path.display()),

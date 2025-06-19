@@ -288,8 +288,15 @@ fn test_typescript_compat_create_base_option() {
     let worktree_path = repo_path.join(".git/phantom/worktrees/based-on-first");
     assert!(worktree_path.exists());
 
-    // TODO: Once --base is implemented, verify the worktree is at the correct commit
-    // Currently it creates from HEAD regardless of --base option
+    // Verify the worktree is at the correct commit
+    let output = std::process::Command::new("git")
+        .args(&["rev-parse", "HEAD"])
+        .current_dir(&worktree_path)
+        .output()
+        .expect("Failed to get worktree commit");
+
+    let worktree_commit = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    assert_eq!(worktree_commit, first_commit, "Worktree should be based on the specified commit");
 }
 
 #[test]
