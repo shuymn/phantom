@@ -113,21 +113,6 @@ jobs:
 
       - name: Generate coverage report with octocov
         uses: k1LoW/octocov-action@v1
-        with:
-          config: |
-            coverage:
-              paths:
-                - ./lcov.info
-              target: 55%
-            comment:
-              if: is_pull_request
-            report:
-              if: is_default_branch
-              datastores:
-                - artifact://${GITHUB_REPOSITORY}
-            diff:
-              datastores:
-                - artifact://${GITHUB_REPOSITORY}
 
   build:
     name: Build Binaries
