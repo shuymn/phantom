@@ -15,6 +15,7 @@ pub struct CommandExpectation {
     pub args: Option<Vec<String>>,
     pub cwd: Option<PathBuf>,
     pub env: Option<HashMap<String, String>>,
+    pub stdin_data: Option<String>,
     pub times: Option<usize>,
     pub returns: CommandOutput,
 }
@@ -25,6 +26,7 @@ pub struct CommandCall {
     pub args: Vec<String>,
     pub cwd: Option<PathBuf>,
     pub env: Option<HashMap<String, String>>,
+    pub stdin_data: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -134,6 +136,12 @@ impl MockCommandExecutor {
             }
         }
 
+        if let Some(ref expected_stdin) = expectation.stdin_data {
+            if call.stdin_data.as_ref() != Some(expected_stdin) {
+                return false;
+            }
+        }
+
         true
     }
 
@@ -186,6 +194,7 @@ impl CommandExecutor for MockCommandExecutor {
             args: config.args.clone(),
             cwd: config.cwd.clone(),
             env: config.env.clone(),
+            stdin_data: config.stdin_data.clone(),
         };
 
         self.calls.lock().unwrap().push(call.clone());
@@ -241,6 +250,7 @@ impl CommandExpectationBuilder {
                 args: None,
                 cwd: None,
                 env: None,
+                stdin_data: None,
                 times: None,
                 returns: CommandOutput::new(String::new(), String::new(), 0),
             },
@@ -259,6 +269,11 @@ impl CommandExpectationBuilder {
 
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.expectation.env = Some(env);
+        self
+    }
+
+    pub fn with_stdin_data(mut self, stdin_data: &str) -> Self {
+        self.expectation.stdin_data = Some(stdin_data.to_string());
         self
     }
 

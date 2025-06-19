@@ -12,11 +12,19 @@ pub struct CommandConfig {
     pub cwd: Option<PathBuf>,
     pub env: Option<HashMap<String, String>>,
     pub timeout: Option<Duration>,
+    pub stdin_data: Option<String>,
 }
 
 impl CommandConfig {
     pub fn new(program: impl Into<String>) -> Self {
-        Self { program: program.into(), args: Vec::new(), cwd: None, env: None, timeout: None }
+        Self {
+            program: program.into(),
+            args: Vec::new(),
+            cwd: None,
+            env: None,
+            timeout: None,
+            stdin_data: None,
+        }
     }
 
     pub fn with_args(mut self, args: Vec<String>) -> Self {
@@ -36,6 +44,11 @@ impl CommandConfig {
 
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = Some(timeout);
+        self
+    }
+
+    pub fn with_stdin_data(mut self, stdin_data: String) -> Self {
+        self.stdin_data = Some(stdin_data);
         self
     }
 }
