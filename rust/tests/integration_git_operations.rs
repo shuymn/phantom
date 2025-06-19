@@ -14,17 +14,24 @@ async fn create_real_git_repo() -> tempfile::TempDir {
 
     let executor = GitExecutor::with_cwd(repo_path);
 
-    // Initialize git repo with main as default branch
-    executor.run(&["init", "-b", "main"]).await.expect("Failed to init git repo");
+    // Initialize git repo
+    executor.run(&["init"]).await.expect("Failed to init git repo");
 
     // Set user config for commits
     executor.run(&["config", "user.email", "test@example.com"]).await.expect("Failed to set email");
     executor.run(&["config", "user.name", "Test User"]).await.expect("Failed to set name");
 
-    // Create initial commit
+    // Create initial commit on main branch
     fs::write(repo_path.join("README.md"), "# Test Repository").expect("Failed to write README");
     executor.run(&["add", "README.md"]).await.expect("Failed to add README");
     executor.run(&["commit", "-m", "Initial commit"]).await.expect("Failed to commit");
+    
+    // Ensure we're on main branch (rename if needed)
+    let current_branch = executor.run(&["branch", "--show-current"]).await.expect("Failed to get branch");
+    let current_branch = current_branch.trim();
+    if current_branch != "main" {
+        executor.run(&["branch", "-m", current_branch, "main"]).await.expect("Failed to rename branch");
+    }
 
     temp_dir
 }
