@@ -5,15 +5,15 @@ Active tasks for the Phantom Rust implementation.
 - Completed tasks: [ARCHIVE.md](./ARCHIVE.md)
 - Test strategy details: [TEST_STRATEGY.md](./TEST_STRATEGY.md)
 
-## 📚 Migration Documentation Reference
+## 📚 Key Documentation
 
-Key documentation for understanding the codebase:
+Essential guides for understanding the codebase:
 
-- **Testing Strategy**: [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md)
-- **Implementation Guide**: [MOCK_TESTING_MIGRATION.md](./rust/MOCK_TESTING_MIGRATION.md) 
-- **Lessons Learned**: [MOCK_TESTING_SUMMARY.md](./rust/MOCK_TESTING_SUMMARY.md)
-- **Git Operations**: [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md)
-- **Process Operations**: [PROCESS_OPERATIONS_MIGRATION.md](./rust/PROCESS_OPERATIONS_MIGRATION.md)
+- **Testing Guide**: [TESTING_GUIDE.md](./rust/TESTING_GUIDE.md) - Comprehensive testing strategy and patterns
+- **CommandExecutor Guide**: [COMMAND_EXECUTOR_GUIDE.md](./rust/COMMAND_EXECUTOR_GUIDE.md) - Migration patterns and examples
+- **Test Strategy**: [TEST_STRATEGY.md](./TEST_STRATEGY.md) - High-level testing philosophy
+- **Test Rationale**: [TEST_RATIONALE.md](./rust/TEST_RATIONALE.md) - Why we test this way
+- **Architecture**: [ARCHITECTURE.md](./rust/ARCHITECTURE.md) - System design and structure
 
 ## 📋 Future Enhancements
 
