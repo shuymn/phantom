@@ -1,16 +1,21 @@
+use crate::core::command_executor::CommandExecutor;
 use crate::core::types::Worktree;
-use crate::git::executor::GitExecutor;
+use crate::git::git_executor_adapter::GitExecutor;
 use crate::git::parse::parse_worktree_list;
 use crate::Result;
 use std::path::Path;
+use std::sync::Arc;
 use tracing::debug;
 
-/// List all git worktrees in a repository
-pub async fn list_worktrees(repo_path: &Path) -> Result<Vec<Worktree>> {
-    let executor = GitExecutor::with_cwd(repo_path);
+/// List all git worktrees in a repository with executor
+pub async fn list_worktrees_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    repo_path: &Path,
+) -> Result<Vec<Worktree>> {
+    let git_executor = GitExecutor::new(executor).with_cwd(repo_path);
 
     debug!("Listing worktrees in {:?}", repo_path);
-    let output = executor.run(&["worktree", "list", "--porcelain"]).await?;
+    let output = git_executor.run(&["worktree", "list", "--porcelain"]).await?;
 
     let worktrees = parse_worktree_list(&output);
     debug!("Found {} worktrees", worktrees.len());
@@ -18,9 +23,16 @@ pub async fn list_worktrees(repo_path: &Path) -> Result<Vec<Worktree>> {
     Ok(worktrees)
 }
 
+/// List all git worktrees in a repository using the default executor
+pub async fn list_worktrees(repo_path: &Path) -> Result<Vec<Worktree>> {
+    use crate::core::executors::RealCommandExecutor;
+    list_worktrees_with_executor(Arc::new(RealCommandExecutor), repo_path).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::git::executor::GitExecutor;
     use crate::test_utils::TestRepo;
 
     #[tokio::test]

@@ -1,19 +1,48 @@
-use crate::git::executor::GitExecutor;
+use crate::core::command_executor::CommandExecutor;
+use crate::git::git_executor_adapter::GitExecutor as GitExecutorAdapter;
 use crate::Result;
 use std::path::Path;
+use std::sync::Arc;
 use tracing::debug;
 
-/// Get the current branch name
-pub async fn get_current_branch(repo_path: &Path) -> Result<String> {
-    let executor = GitExecutor::with_cwd(repo_path);
+/// Get the current branch name with executor
+/// 
+/// This function enables mock testing by accepting a CommandExecutor.
+/// Use this in handlers that have access to CommandExecutor from HandlerContext.
+/// 
+/// # Example
+/// ```no_run
+/// use phantom::git::libs::get_current_branch::get_current_branch_with_executor;
+/// use phantom::cli::context::HandlerContext;
+/// 
+/// async fn handle_something(context: HandlerContext) -> Result<()> {
+///     let branch = get_current_branch_with_executor(
+///         context.executor.clone(),
+///         Path::new("/repo/path")
+///     ).await?;
+///     println!("Current branch: {}", branch);
+///     Ok(())
+/// }
+/// ```
+pub async fn get_current_branch_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    repo_path: &Path,
+) -> Result<String> {
+    let git_executor = GitExecutorAdapter::new(executor).with_cwd(repo_path);
 
     debug!("Getting current branch in {:?}", repo_path);
-    let output = executor.run(&["branch", "--show-current"]).await?;
+    let output = git_executor.run(&["branch", "--show-current"]).await?;
 
     let branch = output.trim().to_string();
     debug!("Current branch: {}", branch);
 
     Ok(branch)
+}
+
+/// Get the current branch name using the default executor
+pub async fn get_current_branch(repo_path: &Path) -> Result<String> {
+    use crate::core::executors::RealCommandExecutor;
+    get_current_branch_with_executor(Arc::new(RealCommandExecutor), repo_path).await
 }
 
 #[cfg(test)]
@@ -88,5 +117,37 @@ mod tests {
 
         let branch = get_current_branch(repo.path()).await.unwrap();
         assert_eq!(branch, "feature/new-feature");
+    }
+
+    #[tokio::test]
+    async fn test_get_current_branch_with_mock_executor() {
+        use crate::core::executors::MockCommandExecutor;
+
+        let mut mock = MockCommandExecutor::new();
+        
+        // Mock the branch --show-current command
+        mock.expect_command("git")
+            .with_args(&["branch", "--show-current"])
+            .in_dir("/test")
+            .returns_output("feature-branch", "", 0);
+
+        let branch = get_current_branch_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
+        assert_eq!(branch, "feature-branch");
+    }
+
+    #[tokio::test]
+    async fn test_get_current_branch_detached_with_mock() {
+        use crate::core::executors::MockCommandExecutor;
+
+        let mut mock = MockCommandExecutor::new();
+        
+        // Mock detached HEAD state (empty output)
+        mock.expect_command("git")
+            .with_args(&["branch", "--show-current"])
+            .in_dir("/test")
+            .returns_output("", "", 0);
+
+        let branch = get_current_branch_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
+        assert_eq!(branch, "");
     }
 }

@@ -2,7 +2,7 @@ use crate::cli::commands::list::ListArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::worktree::list::list_worktrees;
+use crate::worktree::list::list_worktrees_with_executor;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::Result;
 use serde::Serialize;
@@ -36,7 +36,7 @@ pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
         }
     } else {
         // List all worktrees
-        let result = list_worktrees(&git_root).await?;
+        let result = list_worktrees_with_executor(context.executor.clone(), &git_root).await?;
 
         if result.worktrees.is_empty() {
             if args.json {
@@ -123,12 +123,160 @@ mod tests {
         assert!(result.is_err());
     }
 
-    // Future tests to implement after migration:
-    // - test_list_empty_worktrees
-    // - test_list_with_worktrees  
-    // - test_list_json_output
-    // - test_list_names_only
-    // - test_list_with_dirty_worktrees
-    //
-    // These tests are documented in the git history if needed for reference.
+    #[tokio::test]
+    async fn test_list_empty_worktrees() {
+        let mut mock = MockCommandExecutor::new();
+        
+        // Mock git root check
+        mock.expect_command("git")
+            .with_args(&["rev-parse", "--git-common-dir"])
+            .returns_output("/home/user/project/.git", "", 0);
+        
+        // Mock worktree list - empty
+        mock.expect_command("git")
+            .with_args(&["worktree", "list", "--porcelain"])
+            .returns_output("worktree /home/user/project\nHEAD abcd1234\nbranch refs/heads/main\n", "", 0);
+        
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ListArgs {
+            fzf: false,
+            json: false,
+            names: false,
+        };
+        
+        let result = handle(args, context).await;
+        assert!(result.is_ok());
+    }
+    
+    #[tokio::test]
+    async fn test_list_with_worktrees() {
+        let mut mock = MockCommandExecutor::new();
+        
+        // Mock git root check
+        mock.expect_command("git")
+            .with_args(&["rev-parse", "--git-common-dir"])
+            .returns_output("/home/user/project/.git", "", 0);
+        
+        // Mock worktree list - with phantoms
+        mock.expect_command("git")
+            .with_args(&["worktree", "list", "--porcelain"])
+            .returns_output(
+                "worktree /home/user/project\n\
+                HEAD abcd1234\n\
+                branch refs/heads/main\n\
+                \n\
+                worktree /home/user/project/.phantom/feature-1\n\
+                HEAD efgh5678\n\
+                branch refs/heads/feature-1\n\
+                \n\
+                worktree /home/user/project/.phantom/feature-2\n\
+                HEAD ijkl9012\n\
+                branch refs/heads/feature-2\n",
+                "",
+                0
+            );
+        
+        // Mock status checks for each phantom worktree
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir("/home/user/project/.phantom/feature-1")
+            .returns_output("", "", 0); // Clean
+            
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir("/home/user/project/.phantom/feature-2")
+            .returns_output("M README.md\n", "", 0); // Dirty
+        
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ListArgs {
+            fzf: false,
+            json: false,
+            names: false,
+        };
+        
+        let result = handle(args, context).await;
+        assert!(result.is_ok());
+    }
+    
+    #[tokio::test]
+    async fn test_list_json_output() {
+        let mut mock = MockCommandExecutor::new();
+        
+        // Mock git root check
+        mock.expect_command("git")
+            .with_args(&["rev-parse", "--git-common-dir"])
+            .returns_output("/home/user/project/.git", "", 0);
+        
+        // Mock worktree list
+        mock.expect_command("git")
+            .with_args(&["worktree", "list", "--porcelain"])
+            .returns_output(
+                "worktree /home/user/project\n\
+                HEAD abcd1234\n\
+                branch refs/heads/main\n\
+                \n\
+                worktree /home/user/project/.phantom/feature-1\n\
+                HEAD efgh5678\n\
+                branch refs/heads/feature-1\n",
+                "",
+                0
+            );
+        
+        // Mock status check
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir("/home/user/project/.phantom/feature-1")
+            .returns_output("", "", 0);
+        
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ListArgs {
+            fzf: false,
+            json: true,
+            names: false,
+        };
+        
+        let result = handle(args, context).await;
+        assert!(result.is_ok());
+    }
+    
+    #[tokio::test]
+    async fn test_list_names_only() {
+        let mut mock = MockCommandExecutor::new();
+        
+        // Mock git root check
+        mock.expect_command("git")
+            .with_args(&["rev-parse", "--git-common-dir"])
+            .returns_output("/home/user/project/.git", "", 0);
+        
+        // Mock worktree list
+        mock.expect_command("git")
+            .with_args(&["worktree", "list", "--porcelain"])
+            .returns_output(
+                "worktree /home/user/project\n\
+                HEAD abcd1234\n\
+                branch refs/heads/main\n\
+                \n\
+                worktree /home/user/project/.phantom/feature-1\n\
+                HEAD efgh5678\n\
+                branch refs/heads/feature-1\n",
+                "",
+                0
+            );
+        
+        // Mock status check
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir("/home/user/project/.phantom/feature-1")
+            .returns_output("", "", 0);
+        
+        let context = HandlerContext::new(Arc::new(mock));
+        let args = ListArgs {
+            fzf: false,
+            json: false,
+            names: true,
+        };
+        
+        let result = handle(args, context).await;
+        assert!(result.is_ok());
+    }
 }

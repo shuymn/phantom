@@ -1,13 +1,19 @@
-use crate::git::libs::attach_worktree::attach_worktree as git_attach_worktree;
+use crate::core::command_executor::CommandExecutor;
+use crate::git::libs::attach_worktree::attach_worktree_with_executor as git_attach_worktree_with_executor;
 use crate::worktree::paths::get_worktree_path;
 use crate::worktree::validate::validate_worktree_name;
 use crate::{PhantomError, Result};
 use std::path::Path;
+use std::sync::Arc;
 use tokio::fs;
 use tracing::info;
 
-/// Attach a worktree to an existing branch
-pub async fn attach_worktree(git_root: &Path, branch_name: &str) -> Result<()> {
+/// Attach a worktree to an existing branch with executor
+pub async fn attach_worktree_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    git_root: &Path,
+    branch_name: &str,
+) -> Result<()> {
     // Validate the branch name
     validate_worktree_name(branch_name)?;
 
@@ -34,9 +40,15 @@ pub async fn attach_worktree(git_root: &Path, branch_name: &str) -> Result<()> {
 
     // Attach the worktree using the git backend
     info!("Attaching worktree '{}' at {:?}", branch_name, worktree_path);
-    git_attach_worktree(git_root, &worktree_path, branch_name).await?;
+    git_attach_worktree_with_executor(executor, git_root, &worktree_path, branch_name).await?;
 
     Ok(())
+}
+
+/// Attach a worktree to an existing branch using the default executor
+pub async fn attach_worktree(git_root: &Path, branch_name: &str) -> Result<()> {
+    use crate::core::executors::RealCommandExecutor;
+    attach_worktree_with_executor(Arc::new(RealCommandExecutor), git_root, branch_name).await
 }
 
 #[cfg(test)]

@@ -1,11 +1,11 @@
 use crate::cli::commands::attach::AttachArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
-use crate::git::libs::branch_exists::branch_exists;
+use crate::git::libs::branch_exists::branch_exists_with_executor;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::process::exec::exec_in_dir;
 use crate::process::shell::shell_in_dir;
-use crate::worktree::attach::attach_worktree;
+use crate::worktree::attach::attach_worktree_with_executor;
 use crate::worktree::paths::get_worktree_path;
 use crate::worktree::validate::validate_worktree_name;
 use crate::{PhantomError, Result};
@@ -35,12 +35,12 @@ pub async fn handle(args: AttachArgs, context: HandlerContext) -> Result<()> {
     }
 
     // Check if branch exists
-    if !branch_exists(&git_root, &args.branch).await? {
+    if !branch_exists_with_executor(context.executor.clone(), &git_root, &args.branch).await? {
         return Err(PhantomError::BranchNotFound { branch: args.branch.clone() });
     }
 
     // Attach the worktree
-    attach_worktree(&git_root, &args.branch).await?;
+    attach_worktree_with_executor(context.executor.clone(), &git_root, &args.branch).await?;
 
     if args.json {
         let json_output = AttachJsonOutput {
@@ -64,3 +64,7 @@ pub async fn handle(args: AttachArgs, context: HandlerContext) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "attach_test.rs"]
+mod tests;

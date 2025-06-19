@@ -1,9 +1,11 @@
-use crate::git::executor::GitExecutor;
-use crate::git::libs::list_worktrees::list_worktrees as git_list_worktrees;
+use crate::core::command_executor::CommandExecutor;
+use crate::git::git_executor_adapter::GitExecutor as GitExecutorAdapter;
+use crate::git::libs::list_worktrees::list_worktrees_with_executor as git_list_worktrees_with_executor;
 use crate::worktree::paths::get_phantom_directory;
 use crate::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::sync::Arc;
 use tracing::debug;
 
 /// Information about a worktree
@@ -22,10 +24,13 @@ pub struct ListWorktreesSuccess {
     pub message: Option<String>,
 }
 
-/// Get the current branch of a worktree
-pub async fn get_worktree_branch(worktree_path: &Path) -> Result<String> {
-    let executor = GitExecutor::with_cwd(worktree_path);
-    match executor.run(&["branch", "--show-current"]).await {
+/// Get the current branch of a worktree with executor
+pub async fn get_worktree_branch_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    worktree_path: &Path,
+) -> Result<String> {
+    let git_executor = GitExecutorAdapter::new(executor).with_cwd(worktree_path);
+    match git_executor.run(&["branch", "--show-current"]).await {
         Ok(output) => {
             let branch = output.trim().to_string();
             Ok(if branch.is_empty() { "(detached HEAD)".to_string() } else { branch })
@@ -34,21 +39,42 @@ pub async fn get_worktree_branch(worktree_path: &Path) -> Result<String> {
     }
 }
 
-/// Get the status of a worktree (clean/dirty)
-pub async fn get_worktree_status(worktree_path: &Path) -> Result<bool> {
-    let executor = GitExecutor::with_cwd(worktree_path);
-    match executor.run(&["status", "--porcelain"]).await {
+/// Get the current branch of a worktree
+pub async fn get_worktree_branch(worktree_path: &Path) -> Result<String> {
+    use crate::core::executors::RealCommandExecutor;
+    get_worktree_branch_with_executor(Arc::new(RealCommandExecutor), worktree_path).await
+}
+
+/// Get the status of a worktree (clean/dirty) with executor
+pub async fn get_worktree_status_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    worktree_path: &Path,
+) -> Result<bool> {
+    let git_executor = GitExecutorAdapter::new(executor).with_cwd(worktree_path);
+    match git_executor.run(&["status", "--porcelain"]).await {
         Ok(output) => Ok(output.trim().is_empty()), // Clean if no output
         Err(_) => Ok(true),                         // If git status fails, assume clean
     }
 }
 
-/// Get detailed information about a worktree
-pub async fn get_worktree_info(git_root: &Path, name: &str) -> Result<WorktreeInfo> {
+/// Get the status of a worktree (clean/dirty)
+pub async fn get_worktree_status(worktree_path: &Path) -> Result<bool> {
+    use crate::core::executors::RealCommandExecutor;
+    get_worktree_status_with_executor(Arc::new(RealCommandExecutor), worktree_path).await
+}
+
+/// Get detailed information about a worktree with executor
+pub async fn get_worktree_info_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    git_root: &Path,
+    name: &str,
+) -> Result<WorktreeInfo> {
     let worktree_path = get_phantom_directory(git_root).join(name);
 
-    let (branch, is_clean) =
-        tokio::join!(get_worktree_branch(&worktree_path), get_worktree_status(&worktree_path));
+    let (branch, is_clean) = tokio::join!(
+        get_worktree_branch_with_executor(executor.clone(), &worktree_path),
+        get_worktree_status_with_executor(executor, &worktree_path)
+    );
 
     Ok(WorktreeInfo {
         name: name.to_string(),
@@ -58,11 +84,20 @@ pub async fn get_worktree_info(git_root: &Path, name: &str) -> Result<WorktreeIn
     })
 }
 
-/// List all phantom worktrees
-pub async fn list_worktrees(git_root: &Path) -> Result<ListWorktreesSuccess> {
+/// Get detailed information about a worktree
+pub async fn get_worktree_info(git_root: &Path, name: &str) -> Result<WorktreeInfo> {
+    use crate::core::executors::RealCommandExecutor;
+    get_worktree_info_with_executor(Arc::new(RealCommandExecutor), git_root, name).await
+}
+
+/// List all phantom worktrees with executor
+pub async fn list_worktrees_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    git_root: &Path,
+) -> Result<ListWorktreesSuccess> {
     debug!("Listing worktrees from git root: {:?}", git_root);
 
-    let git_worktrees = git_list_worktrees(git_root).await?;
+    let git_worktrees = git_list_worktrees_with_executor(executor.clone(), git_root).await?;
     let phantom_dir = get_phantom_directory(git_root);
     let phantom_dir_str = phantom_dir.to_string_lossy();
 
@@ -79,7 +114,7 @@ pub async fn list_worktrees(git_root: &Path) -> Result<ListWorktreesSuccess> {
                     worktree.name.clone()
                 };
 
-            let is_clean = get_worktree_status(&worktree.path).await.unwrap_or(true);
+            let is_clean = get_worktree_status_with_executor(executor.clone(), &worktree.path).await.unwrap_or(true);
 
             phantom_worktrees.push(WorktreeInfo {
                 name,
@@ -94,6 +129,12 @@ pub async fn list_worktrees(git_root: &Path) -> Result<ListWorktreesSuccess> {
         if phantom_worktrees.is_empty() { Some("No worktrees found".to_string()) } else { None };
 
     Ok(ListWorktreesSuccess { worktrees: phantom_worktrees, message })
+}
+
+/// List all phantom worktrees
+pub async fn list_worktrees(git_root: &Path) -> Result<ListWorktreesSuccess> {
+    use crate::core::executors::RealCommandExecutor;
+    list_worktrees_with_executor(Arc::new(RealCommandExecutor), git_root).await
 }
 
 #[cfg(test)]

@@ -301,6 +301,13 @@ See [MIGRATION.md](../MIGRATION.md) for detailed migration instructions.
 - **[Configuration](../docs/configuration.md)** - Set up automatic file copying and post-create commands
 - **[Architecture](ARCHITECTURE.md)** - Technical details of the Rust implementation
 
+### Testing Infrastructure Documentation
+
+- **[Mock Testing Summary](MOCK_TESTING_SUMMARY.md)** - Lessons learned from mock testing implementation
+- **[Mock Testing Migration Guide](MOCK_TESTING_MIGRATION.md)** - How the mock infrastructure works
+- **[Git Operations Migration Guide](GIT_OPERATIONS_MIGRATION_GUIDE.md)** - Checklist for migrating git operations
+- **[Test Rationale](TEST_RATIONALE.md)** - Why we chose this testing approach
+
 ## 🤝 Contributing
 
 Contributions are welcome! See our [Contributing Guide](../CONTRIBUTING.md) for:

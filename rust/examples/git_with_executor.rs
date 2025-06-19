@@ -1,6 +1,5 @@
 use phantom::core::command_executor::{CommandConfig, CommandExecutor};
-use phantom::core::executors::{MockCommandExecutor, RealCommandExecutor};
-use std::path::Path;
+use phantom::core::executors::MockCommandExecutor;
 use std::sync::Arc;
 
 // Example: Refactored Git operations using CommandExecutor
@@ -14,6 +13,7 @@ impl GitOperations {
         Self { executor, cwd: None }
     }
 
+    #[allow(dead_code)]
     fn with_cwd(mut self, cwd: impl Into<String>) -> Self {
         self.cwd = Some(cwd.into());
         self

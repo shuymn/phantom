@@ -1,22 +1,41 @@
-use crate::git::executor::GitExecutor;
+use crate::core::command_executor::CommandExecutor;
+use crate::git::git_executor_adapter::GitExecutor;
 use crate::Result;
 use std::path::Path;
+use std::sync::Arc;
 use tracing::info;
 
-/// Attach a worktree to an existing branch
+/// Attach a worktree to an existing branch with executor
+pub async fn attach_worktree_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    git_root: &Path,
+    worktree_path: &Path,
+    branch_name: &str,
+) -> Result<()> {
+    let git_executor = GitExecutor::new(executor).with_cwd(git_root);
+
+    info!("Attaching worktree at {:?} to branch '{}'", worktree_path, branch_name);
+
+    let worktree_path_str = worktree_path.to_string_lossy();
+    git_executor.run(&["worktree", "add", &worktree_path_str, branch_name]).await?;
+
+    Ok(())
+}
+
+/// Attach a worktree to an existing branch using the default executor
 pub async fn attach_worktree(
     git_root: &Path,
     worktree_path: &Path,
     branch_name: &str,
 ) -> Result<()> {
-    let executor = GitExecutor::with_cwd(git_root);
-
-    info!("Attaching worktree at {:?} to branch '{}'", worktree_path, branch_name);
-
-    let worktree_path_str = worktree_path.to_string_lossy();
-    executor.run(&["worktree", "add", &worktree_path_str, branch_name]).await?;
-
-    Ok(())
+    use crate::core::executors::RealCommandExecutor;
+    attach_worktree_with_executor(
+        Arc::new(RealCommandExecutor),
+        git_root,
+        worktree_path,
+        branch_name,
+    )
+    .await
 }
 
 #[cfg(test)]

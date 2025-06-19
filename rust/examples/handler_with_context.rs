@@ -1,6 +1,6 @@
 use phantom::cli::context::HandlerContext;
-use phantom::core::command_executor::{CommandConfig, CommandExecutor};
-use phantom::core::executors::{MockCommandExecutor, RealCommandExecutor};
+use phantom::core::command_executor::CommandConfig;
+use phantom::core::executors::MockCommandExecutor;
 use std::sync::Arc;
 
 // Example: A handler that needs to execute git commands

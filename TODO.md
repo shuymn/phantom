@@ -25,6 +25,8 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - ✅ **NEW**: Integrated CommandExecutor into handlers and created GitExecutor adapter
 - ✅ **NEW**: Written mock tests for handlers - revealed incomplete migration blocks testing
 - 📝 **LEARNING**: Partial migration doesn't work - all git operations must use CommandExecutor
+- 📝 **NEW**: Created MOCK_TESTING_SUMMARY.md documenting lessons learned
+- 📝 **NEW**: Created GIT_OPERATIONS_MIGRATION_GUIDE.md with complete migration checklist
 
 ## 📋 Next Steps
 
@@ -35,15 +37,19 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - [x] Create CommandExecutor trait and implementations ✅
 - [x] Update handlers to accept HandlerContext ✅
 - [x] Create GitExecutor adapter ✅
-- [ ] **BLOCKED**: Update all ~20 git operations to use CommandExecutor
+- [x] Document migration pattern in GIT_OPERATIONS_MIGRATION_GUIDE.md ✅
+- [ ] **IN PROGRESS**: Migrate all git operations (see [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md))
+  - [x] get_git_root ✅ (template example)
+  - [x] add_worktree ✅ (template example)
   - [ ] list_worktrees (blocks list handler tests)
-  - [ ] get_worktree_branch, get_worktree_status
-  - [ ] attach_worktree, delete_worktree
-  - [ ] branch_exists, get_current_branch
-  - [ ] And 15+ more...
-- [ ] Only then: Write effective mock tests
+  - [ ] get_worktree_branch, get_worktree_status (blocks list handler)
+  - [ ] attach_worktree (blocks attach handler)
+  - [ ] delete_worktree (blocks delete handler)
+  - [ ] branch_exists, get_current_branch (blocks create handler)
+  - [ ] And 15+ more operations...
+- [ ] Only then: Write effective mock tests for handlers
 
-Progress: Infrastructure complete, but migration incomplete prevents mock testing.
+Progress: Infrastructure complete, migration pattern documented, 2/20+ operations migrated.
 
 ### Priority 2: Complete Test Migration
 
@@ -56,28 +62,18 @@ Progress: Infrastructure complete, but migration incomplete prevents mock testin
 
 The dependency injection work naturally aligns with the mock testing infrastructure.
 
-## 🔧 Architecture Refactoring (Depends on Mock Infrastructure)
+## 🔧 Architecture Refactoring (Complete)
 
-### Phase 1: Enable Dependency Injection
+The mock infrastructure has been successfully implemented:
 
-- [ ] Add `executor: Arc<dyn CommandExecutor>` to all handlers
-- [ ] Create `HandlerContext` struct for dependency passing
-- [ ] Update CLI main to inject `RealCommandExecutor` by default
-- [ ] Ensure backward compatibility
+- [x] Created CommandExecutor trait with Real and Mock implementations ✅
+- [x] Created HandlerContext for dependency injection ✅
+- [x] Updated all handlers to accept HandlerContext ✅
+- [x] Updated CLI main to inject RealCommandExecutor ✅
+- [x] Created working examples showing proper usage ✅
+- [x] Documented patterns in multiple guides ✅
 
-### Phase 2: Implement Test Infrastructure
-
-- [ ] Create `MockGitBackend` with expectation builder
-- [ ] Create test examples showing proper usage
-- [ ] Document testing patterns in CONTRIBUTING.md
-- [ ] Add test helpers for common scenarios
-
-### Phase 3: Migrate Tests
-
-- [ ] Convert handler tests to use mocks
-- [ ] Extract business logic to testable functions
-- [ ] Reduce E2E tests to essential scenarios only
-- [ ] Set up separate CI jobs for different test types
+Remaining work is completing the migration of existing code to use this infrastructure.
 
 ## 📅 Future Work (Low Priority)
 
