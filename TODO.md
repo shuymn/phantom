@@ -19,14 +19,17 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - ✅ Fixed CI: added tmux to coverage job, fixed cross-compilation
 - ✅ Added clippy lint to prevent std::env::set_var usage
 - 📝 Created TEST_RATIONALE.md and TEST_STRATEGY.md documentation
-- ✅ **NEW**: Implemented CommandExecutor trait with RealCommandExecutor and MockCommandExecutor
-- ✅ **NEW**: Created working example demonstrating mock usage patterns
-- ✅ **NEW**: Added MOCK_TESTING_MIGRATION.md with comprehensive guide
-- ✅ **NEW**: Integrated CommandExecutor into handlers and created GitExecutor adapter
-- ✅ **NEW**: Written mock tests for handlers - revealed incomplete migration blocks testing
+- ✅ Implemented CommandExecutor trait with RealCommandExecutor and MockCommandExecutor
+- ✅ Created working example demonstrating mock usage patterns
+- ✅ Added MOCK_TESTING_MIGRATION.md with comprehensive guide
+- ✅ Integrated CommandExecutor into handlers and created GitExecutor adapter
+- ✅ Written mock tests for handlers - revealed incomplete migration blocks testing
 - 📝 **LEARNING**: Partial migration doesn't work - all git operations must use CommandExecutor
-- 📝 **NEW**: Created MOCK_TESTING_SUMMARY.md documenting lessons learned
-- 📝 **NEW**: Created GIT_OPERATIONS_MIGRATION_GUIDE.md with complete migration checklist
+- 📝 Created MOCK_TESTING_SUMMARY.md documenting lessons learned
+- 📝 Created GIT_OPERATIONS_MIGRATION_GUIDE.md with complete migration checklist
+- ✅ **NEW**: Migrated 9 critical git operations to CommandExecutor (45% complete)
+- ✅ **NEW**: List and attach handlers now fully testable with mocks
+- 📝 **NEW**: Discovered filesystem operation limitations for complete mock testing
 
 ## 📋 Next Steps
 
@@ -41,26 +44,39 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - [ ] **IN PROGRESS**: Migrate all git operations (see [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md))
   - [x] get_git_root ✅ (template example)
   - [x] add_worktree ✅ (template example)
-  - [ ] list_worktrees (blocks list handler tests)
-  - [ ] get_worktree_branch, get_worktree_status (blocks list handler)
-  - [ ] attach_worktree (blocks attach handler)
-  - [ ] delete_worktree (blocks delete handler)
-  - [ ] branch_exists, get_current_branch (blocks create handler)
-  - [ ] And 15+ more operations...
-- [ ] Only then: Write effective mock tests for handlers
+  - [x] list_worktrees ✅ (list handler now testable)
+  - [x] get_worktree_branch, get_worktree_status ✅ (list handler fully testable)
+  - [x] attach_worktree ✅ (attach handler now testable)
+  - [x] delete_worktree ✅ (delete handler partially testable - filesystem ops limit)
+  - [x] branch_exists, get_current_branch, get_current_worktree ✅
+  - [ ] create_branch (blocks create handler)
+  - [ ] is_inside_work_tree, current_commit
+  - [ ] And ~10 more operations...
+- [x] Write mock tests for list and attach handlers ✅
+- [ ] Write mock tests for remaining handlers after migration
 
-Progress: Infrastructure complete, migration pattern documented, 2/20+ operations migrated.
+Progress: Infrastructure complete, 9/20+ operations migrated (45%), 2 handlers fully testable.
 
-### Priority 2: Complete Test Migration
+### Priority 2: Continue Handler Testing
 
-- [ ] Move validation logic from integration tests to unit tests
-- [ ] Convert all command-executing tests to use mocks
-- [ ] Create separate integration test suite with `#[ignore]`
-- [ ] Update CI to run appropriate test suites
+- [x] List handler - 5 comprehensive mock tests ✅
+- [x] Attach handler - 5 comprehensive mock tests ✅
+- [ ] Create handler - blocked by create_branch migration
+- [ ] Delete handler - limited by filesystem operations
+- [ ] Other handlers - blocked by remaining migrations
 
-### Priority 3: Architecture Refactoring (After Mock Implementation)
+### Priority 3: Address Testing Limitations
 
-The dependency injection work naturally aligns with the mock testing infrastructure.
+- [ ] Abstract filesystem operations (fs::metadata, etc.) for complete testability
+- [ ] Consider creating FileSystem trait similar to CommandExecutor
+- [ ] Update validate_worktree_exists to use abstractions
+
+### Priority 4: Complete Process Operations Migration
+
+- [ ] Migrate tmux operations to use CommandExecutor
+- [ ] Migrate kitty operations to use CommandExecutor
+- [ ] Migrate fzf operations to use CommandExecutor
+- [ ] Migrate shell operations to use CommandExecutor
 
 ## 🔧 Architecture Refactoring (Complete)
 
@@ -117,6 +133,7 @@ Coverage targets suspended until proper test infrastructure is in place. Current
 
 ## 📝 Notes
 
-- **Priority**: Fix architecture before adding features
-- **Timeline**: Complete refactoring in 3-4 weeks
+- **Priority**: Complete git operations migration before adding features
+- **Timeline**: Complete git migration in 1-2 weeks, process operations in 1 week
 - **Principle**: No more git command tests without proper abstractions
+- **Learning**: Filesystem operations also need abstraction for complete testability

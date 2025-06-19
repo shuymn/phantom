@@ -5,7 +5,7 @@ This document tracks the migration of git operations to use CommandExecutor for 
 
 ## Migration Status
 
-### ✅ Already Migrated
+### ✅ Already Migrated (9/20+)
 - `get_git_root` - Migrated with `get_git_root_with_executor`
 - `add_worktree` - Migrated with `add_worktree_with_executor`
 - `list_worktrees` - Migrated with `list_worktrees_with_executor`
@@ -22,12 +22,30 @@ This document tracks the migration of git operations to use CommandExecutor for 
   - `delete_worktree` - Migrated with `delete_worktree_with_executor`
   - `get_worktree_status` - Migrated with `get_worktree_status_with_executor`
 
+### 🎯 Handler Testing Status
+- **List Handler**: ✅ Fully testable - 5 comprehensive mock tests
+- **Attach Handler**: ✅ Fully testable - 5 comprehensive mock tests  
+- **Delete Handler**: ⚠️ Partially testable - filesystem operations limit full mocking
+- **Create Handler**: 🚫 Blocked by create_branch migration
+- **Other Handlers**: 🚫 Blocked by remaining migrations
+
 ### 🔄 Need Migration (Priority Order)
 
-#### Priority 1: Blocking Other Handlers
+#### Priority 1: Blocking Handler Tests
 1. **`create_branch`** (src/git/libs/create_branch.rs)
    - Used by: create handler for branch creation
    - Critical for enabling create handler mock tests
+
+#### Priority 2: Core Git Operations
+1. **`is_inside_work_tree`** - Basic git repository check
+2. **`current_commit`** - Get current commit hash
+3. **`checkout`** - Switch branches
+4. **`list_branches`** - List all branches
+5. **`status`** - Get repository status
+
+#### Priority 3: GitBackend Operations
+- Operations in `command_backend.rs` that need migration
+- These are lower priority as they're not directly used by handlers
 
 ## Migration Pattern
 
@@ -74,7 +92,20 @@ After each migration:
 - All 5 handler tests passing, proving that mock testing is now possible
 - The migration pattern has been validated and can be applied to other functions
 
+### Attach Handler Migration (Completed)
+- Successfully migrated `attach_worktree` and `branch_exists`
+- Added 5 comprehensive mock tests for the attach handler
+- All tests passing, handler is fully testable with mocks
+
+### Delete Handler Migration (Partially Complete)
+- Migrated `delete_worktree` and related functions to use CommandExecutor
+- Discovered limitation: `validate_worktree_exists` uses filesystem operations
+- Can only test early failures and document the limitation with ignored tests
+- Future work: Abstract filesystem operations for complete testability
+
 ### Key Learnings
 - The MockCommandExecutor uses `in_dir()` method, not `with_cwd()`
 - Handler tests need to mock both the git operations and any status checks
 - The _with_executor pattern allows backward compatibility while enabling testing
+- **Important**: Filesystem operations (fs::metadata) also need abstraction for complete mock testing
+- Dead code cleanup: Removed unused backward compatibility wrappers

@@ -62,7 +62,6 @@ async fn test_delete_with_current_flag_not_in_worktree() {
 
     let result = super::handle(args, context).await;
     assert!(result.is_err());
-    assert!(result.is_err());
 }
 
 #[tokio::test]

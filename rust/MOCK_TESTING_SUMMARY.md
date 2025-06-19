@@ -32,31 +32,43 @@ We identified ~20 git operations that need updating:
 
 Each function needs to be updated to accept CommandExecutor, maintaining backward compatibility.
 
-## Current State
+## Current State (2025-06-19)
 
 ✅ **Infrastructure Ready**
 - Mock system works perfectly (see examples/)
 - Handlers accept CommandExecutor via context
-- Pattern proven with get_git_root and add_worktree
+- Pattern proven and documented in multiple guides
 
-❌ **Migration Incomplete**
-- Only 2 of ~20 git operations migrated
-- Handler tests blocked by unmigrated dependencies
+📊Migration Progress**
+- 9 of ~20 git operations migrated (45%)
+- 2 handlers fully testable: list and attach
+- 1 handler partially testable: delete (filesystem ops limit)
 - Process operations (tmux, kitty, etc.) not started
+
+🔍 **New Discovery**
+- Filesystem operations (fs::metadata) also need abstraction
+- validate_worktree_exists bypasses mocks by checking filesystem directly
+- This limits complete mock testing for some handlers
 
 ## Next Steps
 
-1. **Complete Git Operations Migration** (Priority: Critical)
-   - Systematic migration of all git operations
-   - Each needs executor parameter and backward compatibility wrapper
+1. **Continue Git Operations Migration** (Priority: Critical)
+   - Next: create_branch (blocks create handler)
+   - Then: is_inside_work_tree, current_commit
+   - ~10 more operations remaining
 
-2. **Then Write Tests** (Priority: High)
-   - Only after dependencies are migrated
-   - Will enable fast, reliable testing
+2. **Abstract Filesystem Operations** (Priority: High)
+   - Create FileSystem trait similar to CommandExecutor
+   - Migrate fs::metadata calls to use abstraction
+   - Enable complete mock testing for all handlers
 
 3. **Update Process Operations** (Priority: Medium)
    - tmux, kitty, fzf, shell operations
    - Similar pattern to git operations
+
+4. **Complete Handler Tests** (Priority: High)
+   - Create handler: blocked by create_branch
+   - Other handlers: blocked by remaining migrations
 
 ## Key Takeaway
 
