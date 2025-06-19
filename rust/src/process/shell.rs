@@ -101,7 +101,14 @@ fn detect_from_parent_process() -> Option<ShellInfo> {
     if let Ok(cmdline) = fs::read_to_string(&cmdline_path) {
         let args: Vec<&str> = cmdline.split('\0').collect();
         if let Some(cmd) = args.first() {
-            return analyze_shell_path(cmd);
+            if let Some(shell_info) = analyze_shell_path(cmd) {
+                // Only use recognized shells from parent process
+                // Unknown shell types might be non-shell programs like cargo
+                if matches!(shell_info.shell_type, ShellType::Unknown) {
+                    return None;
+                }
+                return Some(shell_info);
+            }
         }
     }
 
