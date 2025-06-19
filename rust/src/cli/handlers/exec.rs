@@ -2,7 +2,7 @@ use crate::cli::commands::exec::ExecArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::process::exec::exec_in_worktree;
+use crate::process::exec::{exec_in_worktree, exec_in_worktree_with_executor};
 use crate::process::kitty::{
     execute_kitty_command, is_inside_kitty, KittyOptions, KittySplitDirection,
 };
@@ -157,14 +157,27 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
     }
 
     // Normal execution
-    let result = exec_in_worktree(
-        &git_root,
-        &worktree_name,
-        &command,
-        args_slice,
-        context.filesystem.as_ref(),
-    )
-    .await?;
+    let result = if cfg!(test) {
+        // In test mode, use the executor from context
+        exec_in_worktree_with_executor(
+            &git_root,
+            &worktree_name,
+            &command,
+            args_slice,
+            context.filesystem.as_ref(),
+            Some(context.executor.clone()),
+        )
+        .await?
+    } else {
+        exec_in_worktree(
+            &git_root,
+            &worktree_name,
+            &command,
+            args_slice,
+            context.filesystem.as_ref(),
+        )
+        .await?
+    };
 
     // Exit with the same code as the executed command
     context.exit_handler.exit(result.exit_code);
@@ -311,7 +324,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires refactoring - exec_in_worktree uses spawn_process directly instead of CommandExecutor"]
     #[should_panic(expected = "MockExitHandler::exit called with code 0")]
     async fn test_exec_success_normal() {
         let mut mock = MockCommandExecutor::new();
@@ -335,7 +347,7 @@ mod tests {
             result: Ok(MockResult::Bool(true)), // Directory exists
         });
 
-        // Second expectation for the same path (called from exec_in_worktree)
+        // Second expectation for the same path (called from exec_in_worktree_with_executor)
         mock_fs.expect(FileSystemExpectation {
             operation: FileSystemOperation::IsDir,
             path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
@@ -377,9 +389,12 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires refactoring - tmux execution spawns detached process"]
     async fn test_exec_tmux_new_window() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
+
+        // Set TMUX env var to simulate being inside tmux
+        std::env::set_var("TMUX", "/tmp/tmux-1000/default,12345,0");
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -388,17 +403,39 @@ mod tests {
             0,
         );
 
-        // Mock tmux command
-        mock.expect_spawn("tmux")
-            .with_args(&["new-window", "-n", "test", "-c", "/repo/.phantom/test", "echo hello"])
-            .returns_pid(12345);
+        // Mock filesystem check for worktree existence
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)),
+        });
 
-        let _context = HandlerContext::new(
+        // Mock tmux command - using expect_command since tmux now uses CommandExecutor
+        mock.expect_command("tmux")
+            .with_args(&[
+                "new-window",
+                "-n",
+                "test",
+                "-c",
+                "/repo/.git/phantom/worktrees/test",
+                "-e",
+                "PHANTOM_WORKTREE=test",
+                "-e",
+                "PHANTOM_WORKTREE_PATH=/repo/.git/phantom/worktrees/test",
+                "echo",
+                "hello",
+            ])
+            .returns_output("", "", 0);
+
+        let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
             Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
-        let _args = ExecArgs {
+        let args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
             fzf: false,
@@ -414,7 +451,11 @@ mod tests {
             kitty_h: false,
         };
 
-        // Would need to set TMUX env var and handle filesystem checks
+        let result = handle(args, context).await;
+        assert!(result.is_ok());
+
+        // Clean up env var
+        std::env::remove_var("TMUX");
     }
 
     #[tokio::test]
