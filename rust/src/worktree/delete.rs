@@ -84,7 +84,6 @@ async fn remove_worktree_with_executor(
     }
 }
 
-
 /// Delete a branch with executor
 async fn delete_branch_with_executor(
     executor: Arc<dyn CommandExecutor>,
@@ -102,7 +101,6 @@ async fn delete_branch_with_executor(
         }
     }
 }
-
 
 /// Delete a worktree with executor
 pub async fn delete_worktree_with_executor(
