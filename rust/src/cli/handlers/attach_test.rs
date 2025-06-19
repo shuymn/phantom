@@ -12,14 +12,17 @@ mod tests {
     async fn test_attach_success() {
         let temp_dir = tempdir().unwrap();
         let git_root = temp_dir.path();
-        let worktree_path = git_root.join(".git").join("phantom").join("worktrees").join("test-branch");
+        let worktree_path =
+            git_root.join(".git").join("phantom").join("worktrees").join("test-branch");
 
         let mut mock = MockCommandExecutor::new();
 
         // Mock git rev-parse --git-common-dir
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output(&format!("{}/.git", git_root.to_string_lossy()), "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            &format!("{}/.git", git_root.to_string_lossy()),
+            "",
+            0,
+        );
 
         // Mock git show-ref to check branch exists
         mock.expect_command("git")
@@ -33,16 +36,10 @@ mod tests {
             .in_dir(&git_root)
             .returns_success();
 
-        let args = AttachArgs {
-            branch: "test-branch".to_string(),
-            json: false,
-            shell: false,
-            exec: None,
-        };
+        let args =
+            AttachArgs { branch: "test-branch".to_string(), json: false, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-        };
+        let context = HandlerContext { executor: Arc::new(mock) };
 
         let result = handle(args, context).await;
         if let Err(e) = &result {
@@ -59,9 +56,11 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
 
         // Mock git rev-parse --git-common-dir
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output(&format!("{}/.git", git_root.to_string_lossy()), "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            &format!("{}/.git", git_root.to_string_lossy()),
+            "",
+            0,
+        );
 
         // Mock git show-ref to check branch exists (returns false)
         mock.expect_command("git")
@@ -69,16 +68,10 @@ mod tests {
             .in_dir(&git_root)
             .returns_output("", "fatal: bad ref for symbolic ref refs/heads/nonexistent\n", 1);
 
-        let args = AttachArgs {
-            branch: "nonexistent".to_string(),
-            json: false,
-            shell: false,
-            exec: None,
-        };
+        let args =
+            AttachArgs { branch: "nonexistent".to_string(), json: false, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-        };
+        let context = HandlerContext { executor: Arc::new(mock) };
 
         let result = handle(args, context).await;
         assert!(result.is_err());
@@ -94,7 +87,8 @@ mod tests {
     async fn test_attach_worktree_already_exists() {
         let temp_dir = tempdir().unwrap();
         let git_root = temp_dir.path();
-        let worktree_path = git_root.join(".git").join("phantom").join("worktrees").join("existing-branch");
+        let worktree_path =
+            git_root.join(".git").join("phantom").join("worktrees").join("existing-branch");
 
         // Create the worktree directory to simulate it already exists
         std::fs::create_dir_all(&worktree_path).unwrap();
@@ -102,9 +96,11 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
 
         // Mock git rev-parse --git-common-dir
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output(&format!("{}/.git", git_root.to_string_lossy()), "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            &format!("{}/.git", git_root.to_string_lossy()),
+            "",
+            0,
+        );
 
         let args = AttachArgs {
             branch: "existing-branch".to_string(),
@@ -113,9 +109,7 @@ mod tests {
             exec: None,
         };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-        };
+        let context = HandlerContext { executor: Arc::new(mock) };
 
         let result = handle(args, context).await;
         assert!(result.is_err());
@@ -131,16 +125,9 @@ mod tests {
     async fn test_attach_invalid_worktree_name() {
         let mock = MockCommandExecutor::new();
 
-        let args = AttachArgs {
-            branch: "".to_string(),
-            json: false,
-            shell: false,
-            exec: None,
-        };
+        let args = AttachArgs { branch: "".to_string(), json: false, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-        };
+        let context = HandlerContext { executor: Arc::new(mock) };
 
         let result = handle(args, context).await;
         assert!(result.is_err());
@@ -154,14 +141,17 @@ mod tests {
     async fn test_attach_with_json_output() {
         let temp_dir = tempdir().unwrap();
         let git_root = temp_dir.path();
-        let worktree_path = git_root.join(".git").join("phantom").join("worktrees").join("json-branch");
+        let worktree_path =
+            git_root.join(".git").join("phantom").join("worktrees").join("json-branch");
 
         let mut mock = MockCommandExecutor::new();
 
         // Mock git rev-parse --git-common-dir
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output(&format!("{}/.git", git_root.to_string_lossy()), "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            &format!("{}/.git", git_root.to_string_lossy()),
+            "",
+            0,
+        );
 
         // Mock git show-ref to check branch exists
         mock.expect_command("git")
@@ -175,16 +165,10 @@ mod tests {
             .in_dir(&git_root)
             .returns_success();
 
-        let args = AttachArgs {
-            branch: "json-branch".to_string(),
-            json: true,
-            shell: false,
-            exec: None,
-        };
+        let args =
+            AttachArgs { branch: "json-branch".to_string(), json: true, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-        };
+        let context = HandlerContext { executor: Arc::new(mock) };
 
         let result = handle(args, context).await;
         if let Err(e) = &result {

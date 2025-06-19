@@ -62,21 +62,22 @@ mod tests {
     #[tokio::test]
     async fn test_get_current_worktree_with_executor_main_worktree() {
         let mut mock = MockCommandExecutor::new();
-        
+
         // Mock rev-parse --show-toplevel (returns main worktree path)
         mock.expect_command("git")
             .with_args(&["rev-parse", "--show-toplevel"])
             .returns_output("/repo", "", 0);
-        
+
         // Mock worktree list for list_worktrees_with_executor
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output("worktree /repo\nHEAD abc123\nbranch refs/heads/main\n", "", 0);
+        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
+            "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n",
+            "",
+            0,
+        );
 
         let executor = Arc::new(mock);
-        let result = get_current_worktree_with_executor(executor, Path::new("/repo"))
-            .await
-            .unwrap();
+        let result =
+            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None); // Main worktree returns None
     }
@@ -84,26 +85,25 @@ mod tests {
     #[tokio::test]
     async fn test_get_current_worktree_with_executor_in_feature_worktree() {
         let mut mock = MockCommandExecutor::new();
-        
+
         // Mock rev-parse --show-toplevel (returns feature worktree path)
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--show-toplevel"])
-            .returns_output("/repo-feature", "", 0);
-        
+        mock.expect_command("git").with_args(&["rev-parse", "--show-toplevel"]).returns_output(
+            "/repo-feature",
+            "",
+            0,
+        );
+
         // Mock worktree list for list_worktrees_with_executor
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output(
-                "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n\n\
+        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
+            "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n\n\
                  worktree /repo-feature\nHEAD def456\nbranch refs/heads/feature\n",
-                "",
-                0
-            );
+            "",
+            0,
+        );
 
         let executor = Arc::new(mock);
-        let result = get_current_worktree_with_executor(executor, Path::new("/repo"))
-            .await
-            .unwrap();
+        let result =
+            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, Some("feature".to_string()));
     }
@@ -111,26 +111,25 @@ mod tests {
     #[tokio::test]
     async fn test_get_current_worktree_with_executor_detached() {
         let mut mock = MockCommandExecutor::new();
-        
+
         // Mock rev-parse --show-toplevel (returns detached worktree path)
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--show-toplevel"])
-            .returns_output("/repo-detached", "", 0);
-        
+        mock.expect_command("git").with_args(&["rev-parse", "--show-toplevel"]).returns_output(
+            "/repo-detached",
+            "",
+            0,
+        );
+
         // Mock worktree list for list_worktrees_with_executor
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output(
-                "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n\n\
+        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
+            "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n\n\
                  worktree /repo-detached\nHEAD def456\ndetached\n",
-                "",
-                0
-            );
+            "",
+            0,
+        );
 
         let executor = Arc::new(mock);
-        let result = get_current_worktree_with_executor(executor, Path::new("/repo"))
-            .await
-            .unwrap();
+        let result =
+            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None); // Detached worktree has no branch
     }
@@ -138,21 +137,24 @@ mod tests {
     #[tokio::test]
     async fn test_get_current_worktree_with_executor_not_found() {
         let mut mock = MockCommandExecutor::new();
-        
+
         // Mock rev-parse --show-toplevel (returns a path not in worktree list)
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--show-toplevel"])
-            .returns_output("/some/other/path", "", 0);
-        
+        mock.expect_command("git").with_args(&["rev-parse", "--show-toplevel"]).returns_output(
+            "/some/other/path",
+            "",
+            0,
+        );
+
         // Mock worktree list for list_worktrees_with_executor
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output("worktree /repo\nHEAD abc123\nbranch refs/heads/main\n", "", 0);
+        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
+            "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n",
+            "",
+            0,
+        );
 
         let executor = Arc::new(mock);
-        let result = get_current_worktree_with_executor(executor, Path::new("/repo"))
-            .await
-            .unwrap();
+        let result =
+            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None);
     }

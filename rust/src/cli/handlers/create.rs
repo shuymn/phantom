@@ -146,7 +146,7 @@ mod tests {
 
     // IMPORTANT: Mock testing lesson learned
     //
-    // The create handler shows another challenge: it mixes command execution with 
+    // The create handler shows another challenge: it mixes command execution with
     // filesystem operations (creating directories). We can only mock the commands,
     // not the filesystem operations. This limits what we can test.
     //
@@ -156,12 +156,14 @@ mod tests {
     #[tokio::test]
     async fn test_create_not_in_git_repo() {
         let mut mock = MockCommandExecutor::new();
-        
+
         // Expect git root check to fail
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("", "fatal: not a git repository", 128);
-        
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "",
+            "fatal: not a git repository",
+            128,
+        );
+
         let context = HandlerContext::new(Arc::new(mock));
         let args = CreateArgs {
             name: "test".to_string(),
@@ -182,7 +184,7 @@ mod tests {
             kitty_horizontal: false,
             kitty_h: false,
         };
-        
+
         let result = handle(args, context).await;
         assert!(result.is_err());
     }
@@ -190,12 +192,14 @@ mod tests {
     #[tokio::test]
     async fn test_create_json_error_output() {
         let mut mock = MockCommandExecutor::new();
-        
+
         // Expect git root check to fail
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("", "fatal: not a git repository", 128);
-        
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "",
+            "fatal: not a git repository",
+            128,
+        );
+
         let context = HandlerContext::new(Arc::new(mock));
         let args = CreateArgs {
             name: "test".to_string(),
@@ -216,7 +220,7 @@ mod tests {
             kitty_horizontal: false,
             kitty_h: false,
         };
-        
+
         let result = handle(args, context).await;
         assert!(result.is_err());
         // In JSON mode, errors should be output as JSON before returning
@@ -229,25 +233,32 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let repo_path = temp_dir.path().join(".git");
         std::fs::create_dir(&repo_path).unwrap();
-        
+
         let mut mock = MockCommandExecutor::new();
-        
+
         // Return the temp directory as git root
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output(repo_path.to_str().unwrap(), "", 0);
-        
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            repo_path.to_str().unwrap(),
+            "",
+            0,
+        );
+
         // Expect worktree list - empty initially
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output(&format!("worktree {}\nHEAD abc123\nbranch refs/heads/main\n\n", temp_dir.path().display()), "", 0);
-        
+        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
+            &format!(
+                "worktree {}\nHEAD abc123\nbranch refs/heads/main\n\n",
+                temp_dir.path().display()
+            ),
+            "",
+            0,
+        );
+
         // Expect worktree add
         let expected_path = temp_dir.path().join("phantoms").join("feature-test");
         mock.expect_command("git")
             .with_args(&["worktree", "add", "-b", "feature-test", expected_path.to_str().unwrap()])
             .returns_success();
-        
+
         let context = HandlerContext::new(Arc::new(mock));
         let args = CreateArgs {
             name: "feature-test".to_string(),
@@ -268,10 +279,10 @@ mod tests {
             kitty_horizontal: false,
             kitty_h: false,
         };
-        
+
         let result = handle(args, context).await;
         assert!(result.is_ok());
-        
+
         // Verify the phantoms directory was created
         assert!(temp_dir.path().join("phantoms").exists());
     }

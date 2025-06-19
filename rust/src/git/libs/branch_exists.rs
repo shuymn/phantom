@@ -125,13 +125,9 @@ mod tests {
             .in_dir("/test/repo")
             .returns_success();
 
-        let result = branch_exists_with_executor(
-            Arc::new(mock),
-            Path::new("/test/repo"),
-            "main"
-        )
-        .await
-        .unwrap();
+        let result = branch_exists_with_executor(Arc::new(mock), Path::new("/test/repo"), "main")
+            .await
+            .unwrap();
         assert!(result);
     }
 
@@ -143,13 +139,10 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "error: reference 'refs/heads/nonexistent' not found", 1);
 
-        let result = branch_exists_with_executor(
-            Arc::new(mock),
-            Path::new("/test/repo"),
-            "nonexistent"
-        )
-        .await
-        .unwrap();
+        let result =
+            branch_exists_with_executor(Arc::new(mock), Path::new("/test/repo"), "nonexistent")
+                .await
+                .unwrap();
         assert!(!result);
     }
 
@@ -161,12 +154,8 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "fatal: not a git repository", 128);
 
-        let result = branch_exists_with_executor(
-            Arc::new(mock),
-            Path::new("/test/repo"),
-            "broken"
-        )
-        .await;
+        let result =
+            branch_exists_with_executor(Arc::new(mock), Path::new("/test/repo"), "broken").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }

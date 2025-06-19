@@ -114,7 +114,9 @@ pub async fn list_worktrees_with_executor(
                     worktree.name.clone()
                 };
 
-            let is_clean = get_worktree_status_with_executor(executor.clone(), &worktree.path).await.unwrap_or(true);
+            let is_clean = get_worktree_status_with_executor(executor.clone(), &worktree.path)
+                .await
+                .unwrap_or(true);
 
             phantom_worktrees.push(WorktreeInfo {
                 name,

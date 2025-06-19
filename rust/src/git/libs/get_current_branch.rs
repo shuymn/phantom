@@ -6,15 +6,15 @@ use std::sync::Arc;
 use tracing::debug;
 
 /// Get the current branch name with executor
-/// 
+///
 /// This function enables mock testing by accepting a CommandExecutor.
 /// Use this in handlers that have access to CommandExecutor from HandlerContext.
-/// 
+///
 /// # Example
 /// ```no_run
 /// use phantom::git::libs::get_current_branch::get_current_branch_with_executor;
 /// use phantom::cli::context::HandlerContext;
-/// 
+///
 /// async fn handle_something(context: HandlerContext) -> Result<()> {
 ///     let branch = get_current_branch_with_executor(
 ///         context.executor.clone(),
@@ -124,14 +124,15 @@ mod tests {
         use crate::core::executors::MockCommandExecutor;
 
         let mut mock = MockCommandExecutor::new();
-        
+
         // Mock the branch --show-current command
         mock.expect_command("git")
             .with_args(&["branch", "--show-current"])
             .in_dir("/test")
             .returns_output("feature-branch", "", 0);
 
-        let branch = get_current_branch_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
+        let branch =
+            get_current_branch_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
         assert_eq!(branch, "feature-branch");
     }
 
@@ -140,14 +141,15 @@ mod tests {
         use crate::core::executors::MockCommandExecutor;
 
         let mut mock = MockCommandExecutor::new();
-        
+
         // Mock detached HEAD state (empty output)
         mock.expect_command("git")
             .with_args(&["branch", "--show-current"])
             .in_dir("/test")
             .returns_output("", "", 0);
 
-        let branch = get_current_branch_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
+        let branch =
+            get_current_branch_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
         assert_eq!(branch, "");
     }
 }

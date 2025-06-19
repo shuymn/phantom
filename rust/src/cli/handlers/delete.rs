@@ -34,7 +34,8 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
 
     // Get worktree name
     let worktree_name = if args.current {
-        let current = get_current_worktree_with_executor(context.executor.clone(), &git_root).await?;
+        let current =
+            get_current_worktree_with_executor(context.executor.clone(), &git_root).await?;
         match current {
             Some(name) => name,
             None => {
@@ -58,7 +59,14 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
     // Delete the worktree
     let options = DeleteWorktreeOptions { force: args.force };
 
-    match delete_worktree_with_executor(context.executor.clone(), &git_root, &worktree_name, options).await {
+    match delete_worktree_with_executor(
+        context.executor.clone(),
+        &git_root,
+        &worktree_name,
+        options,
+    )
+    .await
+    {
         Ok(result) => {
             if args.json {
                 let json_result = DeleteResult {
