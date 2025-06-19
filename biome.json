@@ -19,7 +19,8 @@
       ".git/**/*",
       "dist/**/*",
       "package.json",
-      ".claude/**/*"
+      ".claude/**/*",
+      "rust/target/**/*"
     ]
   }
 }

@@ -19,6 +19,22 @@ Essential guides for understanding the codebase:
 
 ### 🔴 High Priority
 
+#### Fix Missing --base Option Implementation
+- [x] Implement --base option for create command (regression from TypeScript) ✅
+  - [x] Update GitBackend trait to accept commitish parameter
+  - [x] Modify add_worktree function to pass commitish to git command
+  - [x] Update all GitBackend implementations (CommandBackend)
+  - [x] Remove regression test TODO and verify it passes
+  - [x] Add unit tests for --base functionality
+
+#### Replace External Dependencies with Native Rust Libraries
+- [ ] Replace fzf with skim-rs for fuzzy finding
+  - [ ] Integrate skim as a library dependency
+  - [ ] Migrate all fzf usage to skim API
+  - [ ] Remove requirement for external fzf installation
+  - [ ] Maintain identical user experience and features
+  - [ ] Update installation docs to remove fzf requirement
+
 #### Native Git Support
 - [ ] Integrate libgit2 for native git operations
 - [ ] Remove dependency on git CLI commands
