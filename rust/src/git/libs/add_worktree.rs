@@ -12,6 +12,7 @@ pub async fn add_worktree_with_executor(
     worktree_path: &Path,
     branch: Option<&str>,
     new_branch: bool,
+    commitish: Option<&str>,
 ) -> Result<()> {
     let git_executor = GitExecutor::new(executor).with_cwd(repo_path);
 
@@ -38,9 +39,17 @@ pub async fn add_worktree_with_executor(
         if let Some(branch_name) = branch {
             args.push(branch_name);
         }
+    } else {
+        // When creating a new branch, add the commitish if provided
+        if let Some(base) = commitish {
+            args.push(base);
+        }
     }
 
-    info!("Creating worktree at {:?} for branch {:?}", worktree_path, branch);
+    info!(
+        "Creating worktree at {:?} for branch {:?} from base {:?}",
+        worktree_path, branch, commitish
+    );
     git_executor.run(&args).await?;
 
     Ok(())
@@ -52,6 +61,7 @@ pub async fn add_worktree(
     worktree_path: &Path,
     branch: Option<&str>,
     new_branch: bool,
+    commitish: Option<&str>,
 ) -> Result<()> {
     use crate::core::executors::RealCommandExecutor;
     add_worktree_with_executor(
@@ -60,6 +70,7 @@ pub async fn add_worktree(
         worktree_path,
         branch,
         new_branch,
+        commitish,
     )
     .await
 }
@@ -73,7 +84,7 @@ pub async fn add_worktree_auto(repo_path: &Path, worktree_name: &str) -> Result<
         })?
         .join(worktree_name);
 
-    add_worktree(repo_path, &worktree_path, Some(worktree_name), true).await
+    add_worktree(repo_path, &worktree_path, Some(worktree_name), true, None).await
 }
 
 #[cfg(test)]
@@ -90,7 +101,9 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("feature-branch");
 
-        add_worktree(repo.path(), &worktree_path, Some("feature-branch"), true).await.unwrap();
+        add_worktree(repo.path(), &worktree_path, Some("feature-branch"), true, None)
+            .await
+            .unwrap();
 
         assert!(worktree_path.exists());
         assert!(worktree_path.join(".git").exists());
@@ -111,7 +124,9 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("existing-worktree");
 
-        add_worktree(repo.path(), &worktree_path, Some("existing-branch"), false).await.unwrap();
+        add_worktree(repo.path(), &worktree_path, Some("existing-branch"), false, None)
+            .await
+            .unwrap();
 
         assert!(worktree_path.exists());
     }
@@ -135,7 +150,7 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("test");
 
-        let result = add_worktree(repo.path(), &worktree_path, None, true).await;
+        let result = add_worktree(repo.path(), &worktree_path, None, true, None).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -144,5 +159,49 @@ mod tests {
             }
             _ => panic!("Expected InvalidWorktreeName error"),
         }
+    }
+
+    #[tokio::test]
+    async fn test_add_worktree_with_commitish() {
+        let repo = TestRepo::new().await.unwrap();
+
+        // Create initial commit
+        repo.create_file_and_commit("file1.txt", "content1", "First commit").await.unwrap();
+
+        // Get first commit hash
+        use crate::core::executors::RealCommandExecutor;
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(repo.path());
+        let first_commit = executor.run(&["rev-parse", "HEAD"]).await.unwrap();
+        let first_commit = first_commit.trim();
+
+        // Create second commit
+        repo.create_file_and_commit("file2.txt", "content2", "Second commit").await.unwrap();
+
+        // Create worktree based on first commit
+        let temp_dir = tempdir().unwrap();
+        let worktree_path = temp_dir.path().join("based-on-first");
+
+        add_worktree(
+            repo.path(),
+            &worktree_path,
+            Some("feature-from-first"),
+            true,
+            Some(first_commit),
+        )
+        .await
+        .unwrap();
+
+        // Verify worktree exists
+        assert!(worktree_path.exists());
+
+        // Verify it's at the first commit (file2.txt should not exist)
+        assert!(worktree_path.join("file1.txt").exists());
+        assert!(!worktree_path.join("file2.txt").exists());
+
+        // Verify the commit hash
+        let worktree_executor =
+            GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(&worktree_path);
+        let worktree_commit = worktree_executor.run(&["rev-parse", "HEAD"]).await.unwrap();
+        assert_eq!(worktree_commit.trim(), first_commit);
     }
 }

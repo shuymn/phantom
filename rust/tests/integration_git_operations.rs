@@ -80,7 +80,7 @@ async fn test_worktree_creation_and_management() {
     let timestamp =
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
     let worktree_path = repo_path.parent().unwrap().join(format!("test-worktree-{}", timestamp));
-    add_worktree(repo_path, &worktree_path, Some("feature-branch"), true)
+    add_worktree(repo_path, &worktree_path, Some("feature-branch"), true, None)
         .await
         .expect("Failed to add worktree");
 
@@ -228,7 +228,7 @@ async fn test_worktree_with_upstream_branch() {
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
     let worktree_path =
         repo_path.parent().unwrap().join(format!("tracking-worktree-{}", timestamp));
-    add_worktree(repo_path, &worktree_path, Some("tracking-branch"), true)
+    add_worktree(repo_path, &worktree_path, Some("tracking-branch"), true, None)
         .await
         .expect("Failed to add worktree with new branch");
 
