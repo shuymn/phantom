@@ -297,16 +297,19 @@ See [MIGRATION.md](../MIGRATION.md) for detailed migration instructions.
 
 ## 📚 Documentation
 
+### User Documentation
 - **[Commands Reference](../docs/commands.md)** - All commands and options
 - **[Configuration](../docs/configuration.md)** - Set up automatic file copying and post-create commands
-- **[Architecture](ARCHITECTURE.md)** - Technical details of the Rust implementation
+- **[Getting Started](../docs/getting-started.md)** - Quick start guide
+- **[Migration Guide](../MIGRATION.md)** - Migrating from TypeScript version
 
-### Testing Infrastructure Documentation
-
-- **[Mock Testing Summary](MOCK_TESTING_SUMMARY.md)** - Lessons learned from mock testing implementation
-- **[Mock Testing Migration Guide](MOCK_TESTING_MIGRATION.md)** - How the mock infrastructure works
-- **[Git Operations Migration Guide](GIT_OPERATIONS_MIGRATION_GUIDE.md)** - Checklist for migrating git operations
-- **[Test Rationale](TEST_RATIONALE.md)** - Why we chose this testing approach
+### Developer Documentation
+- **[Architecture](docs/architecture.md)** - System design and structure
+- **[Testing Guide](docs/testing-guide.md)** - Comprehensive testing strategy and patterns
+- **[CommandExecutor Guide](docs/command-executor-guide.md)** - Mock infrastructure patterns
+- **[Test Strategy](docs/test-strategy.md)** - High-level testing philosophy
+- **[Test Rationale](docs/test-rationale.md)** - Why we test this way
+- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 
 ## 🤝 Contributing
 

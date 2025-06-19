@@ -351,10 +351,10 @@ The filesystem abstraction has been successfully implemented and integrated thro
 ### Completed Migrations
 
 #### Git Operations (100% Complete)
-All 13 git operations successfully migrated to use CommandExecutor. See [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md).
+All 13 git operations successfully migrated to use CommandExecutor.
 
 #### Process Operations (100% Complete)  
-All process operations successfully migrated to use CommandExecutor. See [PROCESS_OPERATIONS_MIGRATION.md](./rust/PROCESS_OPERATIONS_MIGRATION.md).
+All process operations successfully migrated to use CommandExecutor.
 
 **Migration Summary**:
 - ✅ CommandExecutor trait and implementations

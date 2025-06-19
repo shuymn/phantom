@@ -3,17 +3,17 @@
 Active tasks for the Phantom Rust implementation.
 
 - Completed tasks: [ARCHIVE.md](./ARCHIVE.md)
-- Test strategy details: [TEST_STRATEGY.md](./TEST_STRATEGY.md)
 
 ## 📚 Key Documentation
 
 Essential guides for understanding the codebase:
 
-- **Testing Guide**: [TESTING_GUIDE.md](./rust/TESTING_GUIDE.md) - Comprehensive testing strategy and patterns
-- **CommandExecutor Guide**: [COMMAND_EXECUTOR_GUIDE.md](./rust/COMMAND_EXECUTOR_GUIDE.md) - Migration patterns and examples
-- **Test Strategy**: [TEST_STRATEGY.md](./TEST_STRATEGY.md) - High-level testing philosophy
-- **Test Rationale**: [TEST_RATIONALE.md](./rust/TEST_RATIONALE.md) - Why we test this way
-- **Architecture**: [ARCHITECTURE.md](./rust/ARCHITECTURE.md) - System design and structure
+- **Testing Guide**: [testing-guide.md](./rust/docs/testing-guide.md) - Comprehensive testing strategy and patterns
+- **CommandExecutor Guide**: [command-executor-guide.md](./rust/docs/command-executor-guide.md) - Migration patterns and examples
+- **Test Strategy**: [test-strategy.md](./rust/docs/test-strategy.md) - High-level testing philosophy
+- **Test Rationale**: [test-rationale.md](./rust/docs/test-rationale.md) - Why we test this way
+- **Architecture**: [architecture.md](./rust/docs/architecture.md) - System design and structure
+- **Troubleshooting**: [troubleshooting.md](./rust/docs/troubleshooting.md) - Common issues and solutions
 
 ## 📋 Future Enhancements
 
@@ -57,4 +57,4 @@ These are potential improvements that could be added to phantom in the future:
 - Full documentation of patterns and practices
 - All handlers and operations properly abstracted
 
-**Known Issue**: One flaky test in `get_current_worktree` that occasionally fails in CI. See [TEST_RACE_CONDITION_FIX.md](./rust/TEST_RACE_CONDITION_FIX.md) for details on race condition handling.
+**Known Issue**: One flaky test in `get_current_worktree` that occasionally fails in CI. See [test-race-condition-fix.md](./rust/docs/test-race-condition-fix.md) for details on race condition handling.
