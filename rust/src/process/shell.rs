@@ -395,9 +395,7 @@ mod tests {
         env::set_var("SHELL", "/bin/bash");
 
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("/bin/bash")
-            .with_args(&["-i"])
-            .returns_output("", "", 0);
+        mock.expect_command("/bin/bash").with_args(&["-i"]).returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
         let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
@@ -417,9 +415,7 @@ mod tests {
         env::set_var("SHELL", "/usr/bin/zsh");
 
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("/usr/bin/zsh")
-            .with_args(&["-i"])
-            .returns_output("", "", 0);
+        mock.expect_command("/usr/bin/zsh").with_args(&["-i"]).returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
         let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
@@ -440,7 +436,7 @@ mod tests {
 
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("/bin/sh")
-            .with_args(&[])  // sh has no init args
+            .with_args(&[]) // sh has no init args
             .returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");

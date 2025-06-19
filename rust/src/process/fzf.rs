@@ -149,9 +149,9 @@ pub async fn select_with_fzf(items: Vec<String>, options: FzfOptions) -> Result<
 /// Check if fzf is available in the system with CommandExecutor
 pub async fn is_fzf_available_with_executor(executor: Arc<dyn CommandExecutor>) -> bool {
     use crate::core::command_executor::CommandConfig;
-    
+
     let config = CommandConfig::new("fzf").with_args(vec!["--version".to_string()]);
-    
+
     match executor.execute(config).await {
         Ok(output) => output.exit_code == 0,
         Err(_) => false,
@@ -187,9 +187,11 @@ mod tests {
     #[tokio::test]
     async fn test_is_fzf_available_with_executor_true() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("fzf")
-            .with_args(&["--version"])
-            .returns_output("0.42.0 (d471067)", "", 0);
+        mock.expect_command("fzf").with_args(&["--version"]).returns_output(
+            "0.42.0 (d471067)",
+            "",
+            0,
+        );
 
         let result = is_fzf_available_with_executor(Arc::new(mock)).await;
         assert!(result);
@@ -198,9 +200,7 @@ mod tests {
     #[tokio::test]
     async fn test_is_fzf_available_with_executor_false() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("fzf")
-            .with_args(&["--version"])
-            .returns_error("command not found");
+        mock.expect_command("fzf").with_args(&["--version"]).returns_error("command not found");
 
         let result = is_fzf_available_with_executor(Arc::new(mock)).await;
         assert!(!result);
@@ -237,11 +237,8 @@ mod tests {
     #[tokio::test]
     async fn test_select_with_fzf_with_executor_empty_items() {
         let mock = MockCommandExecutor::new();
-        let result = select_with_fzf_with_executor(
-            Arc::new(mock),
-            vec![],
-            FzfOptions::default()
-        ).await;
+        let result =
+            select_with_fzf_with_executor(Arc::new(mock), vec![], FzfOptions::default()).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -251,11 +248,8 @@ mod tests {
     async fn test_select_with_fzf_with_executor_returns_first() {
         let mock = MockCommandExecutor::new();
         let items = vec!["item1".to_string(), "item2".to_string()];
-        let result = select_with_fzf_with_executor(
-            Arc::new(mock),
-            items,
-            FzfOptions::default()
-        ).await;
+        let result =
+            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("item1".to_string()));
     }

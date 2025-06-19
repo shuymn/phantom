@@ -168,7 +168,7 @@ pub async fn tmux_session_exists_with_executor(
 ) -> Result<bool> {
     let args = vec!["has-session".to_string(), "-t".to_string(), session_name.to_string()];
     let config = CommandConfig::new("tmux").with_args(args);
-    
+
     match executor.execute(config).await {
         Ok(output) => {
             // tmux has-session returns 0 if session exists, non-zero if it doesn't
@@ -466,7 +466,8 @@ mod tests {
             .with_args(&["has-session", "-t", "existing-session"])
             .returns_output("", "", 0);
 
-        let result = tmux_session_exists_with_executor(Arc::new(mock), "existing-session").await.unwrap();
+        let result =
+            tmux_session_exists_with_executor(Arc::new(mock), "existing-session").await.unwrap();
         assert!(result);
     }
 
@@ -477,7 +478,8 @@ mod tests {
             .with_args(&["has-session", "-t", "nonexistent-session"])
             .returns_error("session not found: nonexistent-session");
 
-        let result = tmux_session_exists_with_executor(Arc::new(mock), "nonexistent-session").await.unwrap();
+        let result =
+            tmux_session_exists_with_executor(Arc::new(mock), "nonexistent-session").await.unwrap();
         assert!(!result);
     }
 
