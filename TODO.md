@@ -22,18 +22,28 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - ✅ **NEW**: Implemented CommandExecutor trait with RealCommandExecutor and MockCommandExecutor
 - ✅ **NEW**: Created working example demonstrating mock usage patterns
 - ✅ **NEW**: Added MOCK_TESTING_MIGRATION.md with comprehensive guide
+- ✅ **NEW**: Integrated CommandExecutor into handlers and created GitExecutor adapter
+- ✅ **NEW**: Written mock tests for handlers - revealed incomplete migration blocks testing
+- 📝 **LEARNING**: Partial migration doesn't work - all git operations must use CommandExecutor
 
 ## 📋 Next Steps
 
-### 🚨 Priority 1: Complete Mock Testing Infrastructure Integration
+### 🚨 Priority 1: Complete Git Operations Migration
 
-- [x] Create CommandExecutor trait and implementations
-- [x] Implement MockCommandExecutor with expectation builder
-- [ ] Refactor GitExecutor to use CommandExecutor trait
-- [ ] Update process operations to use CommandExecutor
-- [ ] Migrate tests to use mocks instead of real commands
+**Critical Insight**: Mock tests cannot work until ALL git operations use CommandExecutor.
 
-Progress: Core infrastructure complete, ready for integration.
+- [x] Create CommandExecutor trait and implementations ✅
+- [x] Update handlers to accept HandlerContext ✅
+- [x] Create GitExecutor adapter ✅
+- [ ] **BLOCKED**: Update all ~20 git operations to use CommandExecutor
+  - [ ] list_worktrees (blocks list handler tests)
+  - [ ] get_worktree_branch, get_worktree_status
+  - [ ] attach_worktree, delete_worktree
+  - [ ] branch_exists, get_current_branch
+  - [ ] And 15+ more...
+- [ ] Only then: Write effective mock tests
+
+Progress: Infrastructure complete, but migration incomplete prevents mock testing.
 
 ### Priority 2: Complete Test Migration
 

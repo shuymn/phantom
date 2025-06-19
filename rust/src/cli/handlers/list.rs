@@ -93,12 +93,15 @@ mod tests {
     use crate::core::executors::MockCommandExecutor;
     use std::sync::Arc;
 
-    // Note: These tests demonstrate the challenge of partial migration.
-    // The list handler calls list_worktrees() which still uses the old GitExecutor
-    // directly, not our CommandExecutor. Until list_worktrees is refactored to
-    // accept a CommandExecutor, we cannot effectively test the list handler with mocks.
+    // IMPORTANT: Mock testing lesson learned
     //
-    // This is tracked in TODO: "Update list_worktrees git operation to use CommandExecutor"
+    // The list handler demonstrates why partial migration to CommandExecutor doesn't work.
+    // The handler calls list_worktrees() which uses GitExecutor directly, bypassing our mocks.
+    // 
+    // We can only test paths that fail before reaching unmigrated code (like git root check).
+    // Full handler testing requires ALL dependencies to use CommandExecutor.
+    //
+    // TODO: Complete migration of list_worktrees and its dependencies before adding tests.
 
     #[tokio::test]
     async fn test_list_not_in_git_repo() {
@@ -120,210 +123,12 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[tokio::test]
-    #[ignore = "Requires list_worktrees to be refactored to use CommandExecutor"]
-    async fn test_list_empty_worktrees() {
-        let mut mock = MockCommandExecutor::new();
-        
-        // Expect git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/path/to/repo/.git", "", 0);
-        
-        // Expect worktree list - only main
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output("worktree /path/to/repo\nHEAD abc123\nbranch refs/heads/main\n\n", "", 0);
-        
-        let context = HandlerContext::new(Arc::new(mock));
-        let args = ListArgs {
-            fzf: false,
-            json: false,
-            names: false,
-        };
-        
-        let result = handle(args, context).await;
-        if let Err(e) = &result {
-            eprintln!("Test failed with error: {:?}", e);
-        }
-        assert!(result.is_ok());
-        // Note: Should output "No phantom worktrees found in the main repository."
-    }
-
-    #[tokio::test]
-    #[ignore = "Requires list_worktrees to be refactored to use CommandExecutor"]
-    async fn test_list_with_worktrees() {
-        let mut mock = MockCommandExecutor::new();
-        
-        // Expect git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/path/to/repo/.git", "", 0);
-        
-        // Expect worktree list with multiple worktrees
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output(concat!(
-                "worktree /path/to/repo\n",
-                "HEAD abc123\n",
-                "branch refs/heads/main\n",
-                "\n",
-                "worktree /path/to/repo/phantoms/feature-1\n",
-                "HEAD def456\n", 
-                "branch refs/heads/feature-1\n",
-                "\n",
-                "worktree /path/to/repo/phantoms/feature-2\n",
-                "HEAD ghi789\n",
-                "branch refs/heads/feature-2\n",
-                "\n"
-            ), "", 0);
-        
-        // Expect status checks for each worktree
-        mock.expect_command("git")
-            .with_args(&["branch", "--show-current"])
-            .in_dir("/path/to/repo/phantoms/feature-1")
-            .returns_output("feature-1", "", 0);
-        
-        mock.expect_command("git")
-            .with_args(&["status", "--porcelain"])
-            .in_dir("/path/to/repo/phantoms/feature-1")
-            .returns_output("", "", 0); // Clean
-        
-        mock.expect_command("git")
-            .with_args(&["branch", "--show-current"])
-            .in_dir("/path/to/repo/phantoms/feature-2")
-            .returns_output("feature-2", "", 0);
-        
-        mock.expect_command("git")
-            .with_args(&["status", "--porcelain"])
-            .in_dir("/path/to/repo/phantoms/feature-2")
-            .returns_output("M file.txt\n", "", 0); // Dirty
-        
-        let context = HandlerContext::new(Arc::new(mock));
-        let args = ListArgs {
-            fzf: false,
-            json: false,
-            names: false,
-        };
-        
-        let result = handle(args, context).await;
-        assert!(result.is_ok());
-        // Should list both worktrees with their status
-    }
-
-    #[tokio::test]
-    #[ignore = "Requires list_worktrees to be refactored to use CommandExecutor"]
-    async fn test_list_json_output() {
-        let mut mock = MockCommandExecutor::new();
-        
-        // Expect git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/path/to/repo/.git", "", 0);
-        
-        // Expect worktree list
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output(concat!(
-                "worktree /path/to/repo\n",
-                "HEAD abc123\n",
-                "branch refs/heads/main\n",
-                "\n",
-                "worktree /path/to/repo/phantoms/feature-json\n",
-                "HEAD def456\n",
-                "branch refs/heads/feature-json\n",
-                "\n"
-            ), "", 0);
-        
-        // Expect status checks
-        mock.expect_command("git")
-            .with_args(&["branch", "--show-current"])
-            .in_dir("/path/to/repo/phantoms/feature-json")
-            .returns_output("feature-json", "", 0);
-        
-        mock.expect_command("git")
-            .with_args(&["status", "--porcelain"])
-            .in_dir("/path/to/repo/phantoms/feature-json")
-            .returns_output("", "", 0);
-        
-        let context = HandlerContext::new(Arc::new(mock));
-        let args = ListArgs {
-            fzf: false,
-            json: true,
-            names: false,
-        };
-        
-        let result = handle(args, context).await;
-        assert!(result.is_ok());
-        // Should output JSON format
-    }
-
-    #[tokio::test]
-    #[ignore = "Requires list_worktrees to be refactored to use CommandExecutor"]
-    async fn test_list_names_only() {
-        let mut mock = MockCommandExecutor::new();
-        
-        // Expect git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/path/to/repo/.git", "", 0);
-        
-        // Expect worktree list
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output(concat!(
-                "worktree /path/to/repo\n",
-                "HEAD abc123\n",
-                "branch refs/heads/main\n",
-                "\n",
-                "worktree /path/to/repo/phantoms/name-1\n",
-                "HEAD def456\n",
-                "branch refs/heads/name-1\n",
-                "\n",
-                "worktree /path/to/repo/phantoms/name-2\n",
-                "HEAD ghi789\n",
-                "branch refs/heads/name-2\n",
-                "\n"
-            ), "", 0);
-        
-        // No status checks needed for names-only mode
-        
-        let context = HandlerContext::new(Arc::new(mock));
-        let args = ListArgs {
-            fzf: false,
-            json: false,
-            names: true,
-        };
-        
-        let result = handle(args, context).await;
-        assert!(result.is_ok());
-        // Should output only names: name-1, name-2
-    }
-
-    #[tokio::test]
-    #[ignore = "Requires list_worktrees to be refactored to use CommandExecutor"]
-    async fn test_list_json_empty() {
-        let mut mock = MockCommandExecutor::new();
-        
-        // Expect git root check
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/path/to/repo/.git", "", 0);
-        
-        // Expect worktree list - only main
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output("worktree /path/to/repo\nHEAD abc123\nbranch refs/heads/main\n\n", "", 0);
-        
-        let context = HandlerContext::new(Arc::new(mock));
-        let args = ListArgs {
-            fzf: false,
-            json: true,
-            names: false,
-        };
-        
-        let result = handle(args, context).await;
-        assert!(result.is_ok());
-        // Should output empty JSON array: {"worktrees":[]}
-    }
+    // Future tests to implement after migration:
+    // - test_list_empty_worktrees
+    // - test_list_with_worktrees  
+    // - test_list_json_output
+    // - test_list_names_only
+    // - test_list_with_dirty_worktrees
+    //
+    // These tests are documented in the git history if needed for reference.
 }

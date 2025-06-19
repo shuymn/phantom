@@ -65,25 +65,38 @@ mock.verify()?; // Verify expectations were met
 - [x] Updated all handlers to accept HandlerContext
 - [x] Updated CLI main to inject HandlerContext with RealCommandExecutor
 
-### Phase 4: Migrate Tests
+### Phase 4: Migrate Tests (In Progress)
+- [x] Write mock tests for handlers - **BLOCKED by incomplete migration**
 - [ ] Convert git operation tests to use mocks
 - [ ] Convert process operation tests to use mocks
 - [ ] Mark integration tests with #[ignore]
 - [ ] Update CI configuration
 
-## Benefits Achieved
+## Critical Learning
 
-1. **Deterministic Tests**: No more failures due to environment differences
-2. **Fast Execution**: Mock tests run in milliseconds
-3. **Better Coverage**: Can test error scenarios easily
-4. **Clear Expectations**: Tests explicitly show expected command interactions
+**The migration must be complete before mock testing is effective.** Our attempt to write mock tests for handlers revealed that:
 
-## Next Steps
+1. Handlers call functions like `list_worktrees()` that still use the old GitExecutor
+2. These functions execute real git commands, bypassing our mocks
+3. We can only test error paths that fail before reaching unmigrated code
 
-1. Complete the GitExecutor refactoring to fully use CommandExecutor
-2. Create a HandlerContext struct for dependency injection
-3. Migrate process operations one by one
-4. Update tests incrementally as each component is migrated
+This demonstrates why a partial migration doesn't work - all dependencies must use CommandExecutor.
+
+## Actual Next Steps (Prioritized)
+
+1. **Update all git operations to use CommandExecutor**
+   - list_worktrees
+   - attach_worktree  
+   - delete_worktree
+   - branch_exists
+   - get_current_branch
+   - And ~15 more...
+
+2. **Then write mock tests** - Only after git operations are migrated
+
+3. **Update process operations** - tmux, kitty, fzf, shell
+
+4. **Finally, update CI configuration**
 
 ## Example Test Pattern
 

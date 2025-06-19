@@ -144,10 +144,14 @@ mod tests {
     use std::sync::Arc;
     use tempfile::TempDir;
 
-    // Note: These tests demonstrate the challenge of testing handlers that do filesystem operations.
-    // The create handler currently mixes command execution with filesystem operations,
-    // making it difficult to test with mocks alone. A future refactoring should separate
-    // these concerns to enable better testing.
+    // IMPORTANT: Mock testing lesson learned
+    //
+    // The create handler shows another challenge: it mixes command execution with 
+    // filesystem operations (creating directories). We can only mock the commands,
+    // not the filesystem operations. This limits what we can test.
+    //
+    // A future refactoring should separate these concerns or inject filesystem
+    // operations as another mockable dependency.
 
     #[tokio::test]
     async fn test_create_not_in_git_repo() {
