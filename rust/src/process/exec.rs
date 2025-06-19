@@ -1,3 +1,4 @@
+use crate::core::command_executor::{CommandConfig, CommandExecutor};
 use crate::core::filesystem::FileSystem;
 use crate::process::shell::{detect_shell, get_phantom_env};
 use crate::process::spawn::{spawn_process, SpawnConfig, SpawnSuccess};
@@ -6,6 +7,7 @@ use crate::{PhantomError, Result};
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
+use std::sync::Arc;
 use tracing::{debug, error, info};
 
 /// Execute a command in a specific directory
@@ -23,13 +25,14 @@ pub async fn exec_in_dir(dir: &Path, command: &str, args: &[String]) -> Result<S
     spawn_process(config).await
 }
 
-/// Execute a command in a worktree
-pub async fn exec_in_worktree(
+/// Execute a command in a worktree with optional CommandExecutor
+pub async fn exec_in_worktree_with_executor(
     git_root: &Path,
     worktree_name: &str,
     command: &str,
     args: &[String],
     filesystem: &dyn FileSystem,
+    executor: Option<Arc<dyn CommandExecutor>>,
 ) -> Result<SpawnSuccess> {
     // Validate worktree exists
     let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
@@ -42,16 +45,39 @@ pub async fn exec_in_worktree(
     let phantom_env = get_phantom_env(worktree_name, &worktree_path.to_string_lossy());
     env.extend(phantom_env);
 
-    let config = SpawnConfig {
-        command: command.to_string(),
-        args: args.to_vec(),
-        cwd: Some(worktree_path.to_string_lossy().to_string()),
-        env: Some(env),
-        inherit_stdio: true,
-        ..Default::default()
-    };
+    if let Some(executor) = executor {
+        // Use CommandExecutor
+        let config = CommandConfig::new(command)
+            .with_args(args.to_vec())
+            .with_cwd(worktree_path.to_path_buf())
+            .with_env(env);
 
-    spawn_process(config).await
+        let output = executor.execute(config).await?;
+        Ok(SpawnSuccess { exit_code: output.exit_code })
+    } else {
+        // Fall back to spawn_process
+        let config = SpawnConfig {
+            command: command.to_string(),
+            args: args.to_vec(),
+            cwd: Some(worktree_path.to_string_lossy().to_string()),
+            env: Some(env),
+            inherit_stdio: true,
+            ..Default::default()
+        };
+
+        spawn_process(config).await
+    }
+}
+
+/// Execute a command in a worktree (backward compatible)
+pub async fn exec_in_worktree(
+    git_root: &Path,
+    worktree_name: &str,
+    command: &str,
+    args: &[String],
+    filesystem: &dyn FileSystem,
+) -> Result<SpawnSuccess> {
+    exec_in_worktree_with_executor(git_root, worktree_name, command, args, filesystem, None).await
 }
 
 /// Spawn a shell in a specific directory
@@ -70,11 +96,12 @@ pub async fn spawn_shell_in_dir(dir: &Path) -> Result<SpawnSuccess> {
     spawn_process(config).await
 }
 
-/// Spawn a shell in a worktree
-pub async fn spawn_shell_in_worktree(
+/// Spawn a shell in a worktree with optional CommandExecutor
+pub async fn spawn_shell_in_worktree_with_executor(
     git_root: &Path,
     worktree_name: &str,
     filesystem: &dyn FileSystem,
+    executor: Option<Arc<dyn CommandExecutor>>,
 ) -> Result<SpawnSuccess> {
     // Validate worktree exists
     let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
@@ -96,21 +123,46 @@ pub async fn spawn_shell_in_worktree(
     // Add a custom prompt or greeting for the shell
     debug!("Shell type: {:?}", shell_info.shell_type);
 
-    let config = SpawnConfig {
-        command: shell_info.path,
-        args: shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect(),
-        cwd: Some(worktree_path.to_string_lossy().to_string()),
-        env: Some(env),
-        inherit_stdio: true,
-        ..Default::default()
-    };
+    if let Some(executor) = executor {
+        // Use CommandExecutor
+        let config = CommandConfig::new(&shell_info.path)
+            .with_args(shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect())
+            .with_cwd(worktree_path.to_path_buf())
+            .with_env(env);
 
-    let result = spawn_process(config).await?;
+        let output = executor.execute(config).await?;
+        let result = SpawnSuccess { exit_code: output.exit_code };
 
-    // Log exit
-    info!("Shell exited with code {} for worktree '{}'", result.exit_code, worktree_name);
+        // Log exit
+        info!("Shell exited with code {} for worktree '{}'", result.exit_code, worktree_name);
+        Ok(result)
+    } else {
+        // Fall back to spawn_process
+        let config = SpawnConfig {
+            command: shell_info.path,
+            args: shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect(),
+            cwd: Some(worktree_path.to_string_lossy().to_string()),
+            env: Some(env),
+            inherit_stdio: true,
+            ..Default::default()
+        };
 
-    Ok(result)
+        let result = spawn_process(config).await?;
+
+        // Log exit
+        info!("Shell exited with code {} for worktree '{}'", result.exit_code, worktree_name);
+
+        Ok(result)
+    }
+}
+
+/// Spawn a shell in a worktree (backward compatible)
+pub async fn spawn_shell_in_worktree(
+    git_root: &Path,
+    worktree_name: &str,
+    filesystem: &dyn FileSystem,
+) -> Result<SpawnSuccess> {
+    spawn_shell_in_worktree_with_executor(git_root, worktree_name, filesystem, None).await
 }
 
 /// Execute multiple commands in sequence
