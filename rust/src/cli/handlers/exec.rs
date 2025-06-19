@@ -99,7 +99,8 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
     };
 
     // Validate worktree exists
-    let validation = validate_worktree_exists(&git_root, &worktree_name).await?;
+    let validation =
+        validate_worktree_exists(&git_root, &worktree_name, context.filesystem.as_ref()).await?;
     let worktree_path = validation.path;
 
     // Split command into program and arguments
@@ -157,7 +158,14 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
     }
 
     // Normal execution
-    let result = exec_in_worktree(&git_root, &worktree_name, &command, args_slice).await?;
+    let result = exec_in_worktree(
+        &git_root,
+        &worktree_name,
+        &command,
+        args_slice,
+        context.filesystem.as_ref(),
+    )
+    .await?;
 
     // Exit with the same code as the executed command
     process::exit(result.exit_code);
@@ -180,7 +188,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
@@ -203,7 +214,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_exec_no_command_specified() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ExecArgs {
             name: None,
             command: vec![], // No args at all
@@ -228,7 +242,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_exec_invalid_usage_without_name() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ExecArgs {
             name: None,
             command: vec!["echo".to_string()], // Only one arg, need at least 2
@@ -258,7 +275,10 @@ mod tests {
         // Note: is_inside_tmux checks std::env::var("TMUX") directly
         // This test will pass validation but demonstrates the structure
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
@@ -303,7 +323,10 @@ mod tests {
             .in_dir("/repo/.phantom/test")
             .returns_output("hello\n", "", 0);
 
-        let _context = HandlerContext::new(Arc::new(mock));
+        let _context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let _args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
@@ -341,7 +364,10 @@ mod tests {
             .with_args(&["new-window", "-n", "test", "-c", "/repo/.phantom/test", "echo hello"])
             .returns_pid(12345);
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
@@ -372,7 +398,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ExecArgs {
             name: None, // Name will be taken from first command arg
             command: vec!["myworktree".to_string(), "echo".to_string(), "hello".to_string()],

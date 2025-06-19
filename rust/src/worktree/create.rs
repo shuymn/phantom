@@ -38,7 +38,9 @@ pub async fn create_worktree(
     }
 
     // Validate worktree doesn't already exist
-    validate_worktree_does_not_exist(git_root, name).await?;
+    use crate::core::filesystems::RealFileSystem;
+    let filesystem = RealFileSystem::new();
+    validate_worktree_does_not_exist(git_root, name, &filesystem).await?;
 
     // Add the worktree using the git backend
     info!("Creating worktree '{}' at {:?}", name, worktree_path);
@@ -105,7 +107,9 @@ pub async fn create_worktree_with_backend(
     }
 
     // Validate worktree doesn't already exist
-    validate_worktree_does_not_exist(git_root, name).await?;
+    use crate::core::filesystems::RealFileSystem;
+    let filesystem = RealFileSystem::new();
+    validate_worktree_does_not_exist(git_root, name, &filesystem).await?;
 
     // Add the worktree using the git backend
     info!("Creating worktree '{}' at {:?}", name, worktree_path);

@@ -80,7 +80,8 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
     };
 
     // Validate worktree exists
-    let validation = validate_worktree_exists(&git_root, &worktree_name).await?;
+    let validation =
+        validate_worktree_exists(&git_root, &worktree_name, context.filesystem.as_ref()).await?;
     let worktree_path = validation.path;
 
     // Get shell info
@@ -141,7 +142,8 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
     output().log(&format!("Entering worktree '{}' at {}", worktree_name, worktree_path.display()));
     output().log("Type 'exit' to return to your original directory\n");
 
-    let result = spawn_shell_in_worktree(&git_root, &worktree_name).await?;
+    let result =
+        spawn_shell_in_worktree(&git_root, &worktree_name, context.filesystem.as_ref()).await?;
 
     // Exit with the same code as the shell
     process::exit(result.exit_code);
@@ -164,7 +166,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -186,7 +191,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_shell_invalid_usage_no_name_no_fzf() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: None,
             fzf: false,
@@ -209,7 +217,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_shell_both_name_and_fzf() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: true,
@@ -232,7 +243,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_shell_tmux_outside_tmux_session() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -259,7 +273,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_shell_kitty_outside_kitty_terminal() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -307,7 +324,10 @@ mod tests {
             .with_env(env)
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -351,7 +371,10 @@ mod tests {
             ])
             .returns_pid(12345);
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -394,7 +417,10 @@ mod tests {
             ])
             .returns_pid(12345);
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -424,7 +450,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,

@@ -64,6 +64,7 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
         &git_root,
         &worktree_name,
         options,
+        context.filesystem.as_ref(),
     )
     .await
     {

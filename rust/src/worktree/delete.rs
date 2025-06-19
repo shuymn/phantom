@@ -1,4 +1,5 @@
 use crate::core::command_executor::CommandExecutor;
+use crate::core::filesystem::FileSystem;
 use crate::worktree::errors::WorktreeError;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::worktree::types::DeleteWorktreeSuccess;
@@ -107,9 +108,10 @@ pub async fn delete_worktree_with_executor(
     git_root: &Path,
     name: &str,
     options: DeleteWorktreeOptions,
+    filesystem: &dyn FileSystem,
 ) -> Result<DeleteWorktreeSuccess> {
     // Validate worktree exists
-    let validation = validate_worktree_exists(git_root, name).await?;
+    let validation = validate_worktree_exists(git_root, name, filesystem).await?;
     let worktree_path = validation.path;
 
     // Get worktree status
@@ -156,7 +158,16 @@ pub async fn delete_worktree(
     options: DeleteWorktreeOptions,
 ) -> Result<DeleteWorktreeSuccess> {
     use crate::core::executors::RealCommandExecutor;
-    delete_worktree_with_executor(Arc::new(RealCommandExecutor), git_root, name, options).await
+    use crate::core::filesystems::RealFileSystem;
+    let filesystem = RealFileSystem::new();
+    delete_worktree_with_executor(
+        Arc::new(RealCommandExecutor),
+        git_root,
+        name,
+        options,
+        &filesystem,
+    )
+    .await
 }
 
 #[cfg(test)]

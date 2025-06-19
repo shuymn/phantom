@@ -38,7 +38,7 @@ pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
     };
 
     // Get the worktree path
-    match where_worktree(&git_root, &worktree_name).await {
+    match where_worktree(&git_root, &worktree_name, context.filesystem.as_ref()).await {
         Ok(result) => {
             if args.json {
                 let json_result = WhereResult {
@@ -87,7 +87,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: false };
 
         let result = handle(args, context).await;
@@ -96,7 +99,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_where_invalid_usage_no_name_no_fzf() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = WhereArgs { name: None, fzf: false, json: false };
 
         let result = handle(args, context).await;
@@ -106,7 +112,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_where_both_name_and_fzf() {
-        let context = HandlerContext::new(Arc::new(MockCommandExecutor::new()));
+        let context = HandlerContext::new(
+            Arc::new(MockCommandExecutor::new()),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = WhereArgs { name: Some("test".to_string()), fzf: true, json: false };
 
         let result = handle(args, context).await;
@@ -139,7 +148,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: false };
 
         let result = handle(args, context).await;
@@ -168,7 +180,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = WhereArgs { name: Some("nonexistent".to_string()), fzf: false, json: false };
 
         let result = handle(args, context).await;
@@ -200,7 +215,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: true };
 
         let result = handle(args, context).await;
@@ -229,7 +247,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = WhereArgs { name: Some("nonexistent".to_string()), fzf: false, json: true };
 
         let result = handle(args, context).await;
@@ -278,7 +299,10 @@ mod tests {
             0,
         );
 
-        let _context = HandlerContext::new(Arc::new(mock));
+        let _context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let _args = WhereArgs { name: None, fzf: true, json: false };
 
         // This test requires fzf process mocking

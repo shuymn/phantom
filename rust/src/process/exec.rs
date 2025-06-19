@@ -1,3 +1,4 @@
+use crate::core::filesystem::FileSystem;
 use crate::process::shell::{detect_shell, get_phantom_env};
 use crate::process::spawn::{spawn_process, SpawnConfig, SpawnSuccess};
 use crate::worktree::validate::validate_worktree_exists;
@@ -28,9 +29,10 @@ pub async fn exec_in_worktree(
     worktree_name: &str,
     command: &str,
     args: &[String],
+    filesystem: &dyn FileSystem,
 ) -> Result<SpawnSuccess> {
     // Validate worktree exists
-    let validation = validate_worktree_exists(git_root, worktree_name).await?;
+    let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
     let worktree_path = validation.path;
 
     info!("Executing '{}' in worktree '{}' at {}", command, worktree_name, worktree_path.display());
@@ -69,9 +71,13 @@ pub async fn spawn_shell_in_dir(dir: &Path) -> Result<SpawnSuccess> {
 }
 
 /// Spawn a shell in a worktree
-pub async fn spawn_shell_in_worktree(git_root: &Path, worktree_name: &str) -> Result<SpawnSuccess> {
+pub async fn spawn_shell_in_worktree(
+    git_root: &Path,
+    worktree_name: &str,
+    filesystem: &dyn FileSystem,
+) -> Result<SpawnSuccess> {
     // Validate worktree exists
-    let validation = validate_worktree_exists(git_root, worktree_name).await?;
+    let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
     let worktree_path = validation.path;
 
     let shell_info = detect_shell()?;
@@ -147,6 +153,7 @@ pub async fn exec_commands_in_dir(dir: &Path, commands: &[String]) -> Result<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::filesystems::RealFileSystem;
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
     use crate::worktree::types::CreateWorktreeOptions;
@@ -215,8 +222,15 @@ mod tests {
         create_worktree(repo.path(), "test-worktree", options).await.unwrap();
 
         // Execute command in worktree
-        let result =
-            exec_in_worktree(repo.path(), "test-worktree", "echo", &["hello".to_string()]).await;
+        let filesystem = RealFileSystem::new();
+        let result = exec_in_worktree(
+            repo.path(),
+            "test-worktree",
+            "echo",
+            &["hello".to_string()],
+            &filesystem,
+        )
+        .await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().exit_code, 0);
@@ -226,8 +240,15 @@ mod tests {
     async fn test_exec_in_nonexistent_worktree() {
         let repo = TestRepo::new().await.unwrap();
 
-        let result =
-            exec_in_worktree(repo.path(), "nonexistent", "echo", &["hello".to_string()]).await;
+        let filesystem = RealFileSystem::new();
+        let result = exec_in_worktree(
+            repo.path(),
+            "nonexistent",
+            "echo",
+            &["hello".to_string()],
+            &filesystem,
+        )
+        .await;
 
         assert!(result.is_err());
     }
@@ -282,11 +303,13 @@ mod tests {
 
         // Execute a safe command that verifies env vars are set without exposing them
         // Use printenv to check specific PHANTOM vars only
+        let filesystem = RealFileSystem::new();
         let result = exec_in_worktree(
             repo.path(),
             "test-env",
             "printenv",
             &["PHANTOM_WORKTREE".to_string()],
+            &filesystem,
         )
         .await;
         assert!(result.is_ok());
@@ -353,8 +376,15 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Try to execute in a worktree that doesn't exist
-        let result =
-            exec_in_worktree(repo.path(), "does-not-exist", "echo", &["test".to_string()]).await;
+        let filesystem = RealFileSystem::new();
+        let result = exec_in_worktree(
+            repo.path(),
+            "does-not-exist",
+            "echo",
+            &["test".to_string()],
+            &filesystem,
+        )
+        .await;
 
         assert!(result.is_err());
         match result.unwrap_err() {
