@@ -1,5 +1,5 @@
+use crate::core::command_executor::CommandExecutor;
 use crate::git::backend::GitBackend;
-use crate::git::executor::GitExecutor;
 use crate::worktree::errors::WorktreeError;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::worktree::types::DeleteWorktreeSuccess;
@@ -16,11 +16,15 @@ pub struct WorktreeStatus {
     pub changed_files: usize,
 }
 
-/// Get the status of a worktree (uncommitted changes)
-pub async fn get_worktree_status(worktree_path: &Path) -> WorktreeStatus {
-    let executor = GitExecutor::with_cwd(worktree_path);
+/// Get the status of a worktree (uncommitted changes) with executor
+pub async fn get_worktree_status_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    worktree_path: &Path,
+) -> WorktreeStatus {
+    let git_executor = crate::git::git_executor_adapter::GitExecutor::new(executor)
+        .with_cwd(worktree_path);
 
-    match executor.run(&["status", "--porcelain"]).await {
+    match git_executor.run(&["status", "--porcelain"]).await {
         Ok(output) => {
             let output = output.trim();
             if output.is_empty() {
@@ -37,18 +41,30 @@ pub async fn get_worktree_status(worktree_path: &Path) -> WorktreeStatus {
     }
 }
 
-/// Remove a worktree using git commands
-async fn remove_worktree(git_root: &Path, worktree_path: &Path, force: bool) -> Result<()> {
-    let executor = GitExecutor::with_cwd(git_root);
+/// Get the status of a worktree (uncommitted changes)
+pub async fn get_worktree_status(worktree_path: &Path) -> WorktreeStatus {
+    use crate::core::executors::RealCommandExecutor;
+    get_worktree_status_with_executor(Arc::new(RealCommandExecutor), worktree_path).await
+}
+
+/// Remove a worktree using git commands with executor
+async fn remove_worktree_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    git_root: &Path,
+    worktree_path: &Path,
+    force: bool,
+) -> Result<()> {
+    let git_executor = crate::git::git_executor_adapter::GitExecutor::new(executor)
+        .with_cwd(git_root);
 
     // First try normal removal
-    let result = executor.run(&["worktree", "remove", &worktree_path.to_string_lossy()]).await;
+    let result = git_executor.run(&["worktree", "remove", &worktree_path.to_string_lossy()]).await;
 
     match result {
         Ok(_) => Ok(()),
         Err(_) if force => {
             // If normal removal fails and force is true, try force removal
-            executor
+            git_executor
                 .run(&["worktree", "remove", "--force", &worktree_path.to_string_lossy()])
                 .await
                 .map(|_| ())
@@ -68,11 +84,22 @@ async fn remove_worktree(git_root: &Path, worktree_path: &Path, force: bool) -> 
     }
 }
 
-/// Delete a branch
-async fn delete_branch(git_root: &Path, branch_name: &str) -> Result<bool> {
-    let executor = GitExecutor::with_cwd(git_root);
+/// Remove a worktree using git commands
+async fn remove_worktree(git_root: &Path, worktree_path: &Path, force: bool) -> Result<()> {
+    use crate::core::executors::RealCommandExecutor;
+    remove_worktree_with_executor(Arc::new(RealCommandExecutor), git_root, worktree_path, force).await
+}
 
-    match executor.run(&["branch", "-D", branch_name]).await {
+/// Delete a branch with executor
+async fn delete_branch_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    git_root: &Path,
+    branch_name: &str,
+) -> Result<bool> {
+    let git_executor = crate::git::git_executor_adapter::GitExecutor::new(executor)
+        .with_cwd(git_root);
+
+    match git_executor.run(&["branch", "-D", branch_name]).await {
         Ok(_) => Ok(true),
         Err(e) => {
             debug!("Failed to delete branch '{}': {}", branch_name, e);
@@ -81,8 +108,15 @@ async fn delete_branch(git_root: &Path, branch_name: &str) -> Result<bool> {
     }
 }
 
-/// Delete a worktree
-pub async fn delete_worktree(
+/// Delete a branch
+async fn delete_branch(git_root: &Path, branch_name: &str) -> Result<bool> {
+    use crate::core::executors::RealCommandExecutor;
+    delete_branch_with_executor(Arc::new(RealCommandExecutor), git_root, branch_name).await
+}
+
+/// Delete a worktree with executor
+pub async fn delete_worktree_with_executor(
+    executor: Arc<dyn CommandExecutor>,
     git_root: &Path,
     name: &str,
     options: DeleteWorktreeOptions,
@@ -92,7 +126,7 @@ pub async fn delete_worktree(
     let worktree_path = validation.path;
 
     // Get worktree status
-    let status = get_worktree_status(&worktree_path).await;
+    let status = get_worktree_status_with_executor(executor.clone(), &worktree_path).await;
 
     // Check for uncommitted changes
     if status.has_uncommitted_changes && !options.force {
@@ -105,10 +139,10 @@ pub async fn delete_worktree(
 
     // Remove the worktree
     info!("Removing worktree '{}' at {:?}", name, worktree_path);
-    remove_worktree(git_root, &worktree_path, options.force).await?;
+    remove_worktree_with_executor(executor.clone(), git_root, &worktree_path, options.force).await?;
 
     // Try to delete the branch
-    let branch_deleted = delete_branch(git_root, name).await?;
+    let branch_deleted = delete_branch_with_executor(executor, git_root, name).await?;
 
     // Build the success message
     let mut message = if branch_deleted {
@@ -125,6 +159,16 @@ pub async fn delete_worktree(
     }
 
     Ok(DeleteWorktreeSuccess { message, path: worktree_path.to_string_lossy().to_string() })
+}
+
+/// Delete a worktree
+pub async fn delete_worktree(
+    git_root: &Path,
+    name: &str,
+    options: DeleteWorktreeOptions,
+) -> Result<DeleteWorktreeSuccess> {
+    use crate::core::executors::RealCommandExecutor;
+    delete_worktree_with_executor(Arc::new(RealCommandExecutor), git_root, name, options).await
 }
 
 /// Delete a worktree using a GitBackend

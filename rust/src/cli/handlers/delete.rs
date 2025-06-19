@@ -1,9 +1,9 @@
 use crate::cli::commands::delete::{DeleteArgs, DeleteResult};
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
-use crate::git::libs::get_current_worktree::get_current_worktree;
+use crate::git::libs::get_current_worktree::get_current_worktree_with_executor;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::worktree::delete::delete_worktree;
+use crate::worktree::delete::delete_worktree_with_executor;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::{PhantomError, Result};
@@ -34,7 +34,7 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
 
     // Get worktree name
     let worktree_name = if args.current {
-        let current = get_current_worktree(&git_root).await?;
+        let current = get_current_worktree_with_executor(context.executor.clone(), &git_root).await?;
         match current {
             Some(name) => name,
             None => {
@@ -58,7 +58,7 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
     // Delete the worktree
     let options = DeleteWorktreeOptions { force: args.force };
 
-    match delete_worktree(&git_root, &worktree_name, options).await {
+    match delete_worktree_with_executor(context.executor.clone(), &git_root, &worktree_name, options).await {
         Ok(result) => {
             if args.json {
                 let json_result = DeleteResult {
@@ -89,3 +89,7 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "delete_test.rs"]
+mod tests;

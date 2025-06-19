@@ -12,18 +12,22 @@ This document tracks the migration of git operations to use CommandExecutor for 
 - `get_current_branch` - Migrated with `get_current_branch_with_executor`
 - `branch_exists` - Migrated with `branch_exists_with_executor`
 - `attach_worktree` - Migrated with `attach_worktree_with_executor`
+- `get_current_worktree` - Migrated with `get_current_worktree_with_executor`
 - Functions in `worktree/list.rs`:
   - `get_worktree_branch` - Migrated with `get_worktree_branch_with_executor`
   - `get_worktree_status` - Migrated with `get_worktree_status_with_executor`
   - `get_worktree_info` - Migrated with `get_worktree_info_with_executor`
   - `list_worktrees` - Migrated with `list_worktrees_with_executor`
+- Functions in `worktree/delete.rs`:
+  - `delete_worktree` - Migrated with `delete_worktree_with_executor`
+  - `get_worktree_status` - Migrated with `get_worktree_status_with_executor`
 
 ### 🔄 Need Migration (Priority Order)
 
 #### Priority 1: Blocking Other Handlers
-1. **`get_current_worktree`** (src/git/libs/get_current_worktree.rs)
-   - Used by: Various handlers
-   - Dependencies: Uses `list_worktrees` (already migrated)
+1. **`create_branch`** (src/git/libs/create_branch.rs)
+   - Used by: create handler for branch creation
+   - Critical for enabling create handler mock tests
 
 ## Migration Pattern
 

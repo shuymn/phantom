@@ -66,13 +66,13 @@ Find all places that create `GitExecutor::new()` or `GitExecutor::with_cwd()` an
 These operations are directly called by handlers and must be migrated first:
 
 - [x] `list_worktrees` - Used by list handler - **COMPLETED**
-- [ ] `get_worktree_branch` - Used by list handler  
-- [ ] `get_worktree_status` - Used by list and delete handlers
+- [x] `get_worktree_branch` - Used by list handler - **COMPLETED**
+- [x] `get_worktree_status` - Used by list and delete handlers - **COMPLETED**
 - [x] `attach_worktree` - Used by attach handler - **COMPLETED**
-- [ ] `delete_worktree` / `remove_worktree` - Used by delete handler
+- [x] `delete_worktree` / `remove_worktree` - Used by delete handler - **COMPLETED**
 - [x] `branch_exists` - Used by create and attach handlers - **COMPLETED**
 - [x] `get_current_branch` - **COMPLETED** - Migrated with `get_current_branch_with_executor`
-- [ ] `get_current_worktree` - Used by multiple handlers
+- [x] `get_current_worktree` - Used by multiple handlers - **COMPLETED**
 
 ### High Priority (Core Operations)
 
