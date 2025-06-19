@@ -1,6 +1,7 @@
 use crate::cli::commands::exec::ExecArgs;
+use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
-use crate::git::libs::get_git_root::get_git_root;
+use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::process::exec::exec_in_worktree;
 use crate::process::kitty::{
     execute_kitty_command, is_inside_kitty, KittyOptions, KittySplitDirection,
@@ -13,7 +14,7 @@ use crate::{PhantomError, Result};
 use std::process;
 
 /// Handle the exec command
-pub async fn handle(args: ExecArgs) -> Result<()> {
+pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
     // Parse command from arguments
     let (worktree_name_pos, command_args) = if args.fzf {
         // With --fzf, all args are command args
@@ -82,7 +83,7 @@ pub async fn handle(args: ExecArgs) -> Result<()> {
     }
 
     // Get git root
-    let git_root = get_git_root().await?;
+    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
 
     // Get worktree name
     let worktree_name = if args.fzf {

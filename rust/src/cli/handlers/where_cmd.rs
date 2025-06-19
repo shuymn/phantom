@@ -1,12 +1,13 @@
 use crate::cli::commands::where_cmd::{WhereArgs, WhereResult};
+use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
-use crate::git::libs::get_git_root::get_git_root;
+use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::worktree::locate::where_worktree;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::{PhantomError, Result};
 
 /// Handle the where command
-pub async fn handle(args: WhereArgs) -> Result<()> {
+pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
     // Validate args
     if args.name.is_none() && !args.fzf {
         return Err(PhantomError::Validation(
@@ -21,7 +22,7 @@ pub async fn handle(args: WhereArgs) -> Result<()> {
     }
 
     // Get git root
-    let git_root = get_git_root().await?;
+    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
 
     // Get worktree name
     let worktree_name = if args.fzf {

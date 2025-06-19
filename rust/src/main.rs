@@ -20,15 +20,18 @@ async fn main() {
         }
     }
 
+    // Create handler context
+    let context = HandlerContext::default();
+
     // Handle commands
     let result = match cli.command {
-        Commands::Create(args) => cli::handlers::create::handle(args).await,
-        Commands::Attach(args) => cli::handlers::attach::handle(args).await,
-        Commands::List(args) => cli::handlers::list::handle(args).await,
-        Commands::Where(args) => cli::handlers::where_cmd::handle(args).await,
-        Commands::Delete(args) => cli::handlers::delete::handle(args).await,
-        Commands::Exec(args) => cli::handlers::exec::handle(args).await,
-        Commands::Shell(args) => cli::handlers::shell::handle(args).await,
+        Commands::Create(args) => cli::handlers::create::handle(args, context.clone()).await,
+        Commands::Attach(args) => cli::handlers::attach::handle(args, context.clone()).await,
+        Commands::List(args) => cli::handlers::list::handle(args, context.clone()).await,
+        Commands::Where(args) => cli::handlers::where_cmd::handle(args, context.clone()).await,
+        Commands::Delete(args) => cli::handlers::delete::handle(args, context.clone()).await,
+        Commands::Exec(args) => cli::handlers::exec::handle(args, context.clone()).await,
+        Commands::Shell(args) => cli::handlers::shell::handle(args, context.clone()).await,
         Commands::Version(args) => {
             cli::handlers::version::handle(args);
             Ok(())

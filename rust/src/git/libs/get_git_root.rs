@@ -1,14 +1,16 @@
-use crate::git::executor::GitExecutor;
+use crate::core::command_executor::CommandExecutor;
+use crate::git::git_executor_adapter::GitExecutor;
 use crate::Result;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tracing::debug;
 
 /// Get the main git repository root (not the worktree root)
-pub async fn get_git_root() -> Result<PathBuf> {
-    let executor = GitExecutor::new();
+pub async fn get_git_root_with_executor(executor: Arc<dyn CommandExecutor>) -> Result<PathBuf> {
+    let git_executor = GitExecutor::new(executor);
 
     // First try to get the git common directory
-    let common_dir = executor.run(&["rev-parse", "--git-common-dir"]).await?;
+    let common_dir = git_executor.run(&["rev-parse", "--git-common-dir"]).await?;
     let common_dir = common_dir.trim();
 
     debug!("Git common dir: {}", common_dir);
@@ -27,10 +29,16 @@ pub async fn get_git_root() -> Result<PathBuf> {
     }
 
     // Fall back to show-toplevel for the main repository
-    let toplevel = executor.run(&["rev-parse", "--show-toplevel"]).await?;
+    let toplevel = git_executor.run(&["rev-parse", "--show-toplevel"]).await?;
     let toplevel = toplevel.trim();
 
     Ok(PathBuf::from(toplevel))
+}
+
+/// Get the main git repository root using the default executor
+pub async fn get_git_root() -> Result<PathBuf> {
+    use crate::core::executors::RealCommandExecutor;
+    get_git_root_with_executor(Arc::new(RealCommandExecutor)).await
 }
 
 #[cfg(test)]

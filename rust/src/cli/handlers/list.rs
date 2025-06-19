@@ -1,6 +1,7 @@
 use crate::cli::commands::list::ListArgs;
+use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
-use crate::git::libs::get_git_root::get_git_root;
+use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::worktree::list::list_worktrees;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::Result;
@@ -20,8 +21,8 @@ struct WorktreeJsonItem {
 }
 
 /// Handle the list command
-pub async fn handle(args: ListArgs) -> Result<()> {
-    let git_root = get_git_root().await?;
+pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
+    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
 
     if args.fzf {
         // Use fzf for interactive selection

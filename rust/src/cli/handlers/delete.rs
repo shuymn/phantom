@@ -1,14 +1,15 @@
 use crate::cli::commands::delete::{DeleteArgs, DeleteResult};
+use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::git::libs::get_current_worktree::get_current_worktree;
-use crate::git::libs::get_git_root::get_git_root;
+use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::worktree::delete::delete_worktree;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::{PhantomError, Result};
 
 /// Handle the delete command
-pub async fn handle(args: DeleteArgs) -> Result<()> {
+pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
     // Validate args
     if args.name.is_none() && !args.current && !args.fzf {
         return Err(PhantomError::Validation(
@@ -29,7 +30,7 @@ pub async fn handle(args: DeleteArgs) -> Result<()> {
     }
 
     // Get git root
-    let git_root = get_git_root().await?;
+    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
 
     // Get worktree name
     let worktree_name = if args.current {

@@ -1,7 +1,8 @@
 use crate::cli::commands::attach::AttachArgs;
+use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::git::libs::branch_exists::branch_exists;
-use crate::git::libs::get_git_root::get_git_root;
+use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::process::exec::exec_in_dir;
 use crate::process::shell::shell_in_dir;
 use crate::worktree::attach::attach_worktree;
@@ -20,12 +21,12 @@ struct AttachJsonOutput {
 }
 
 /// Handle the attach command
-pub async fn handle(args: AttachArgs) -> Result<()> {
+pub async fn handle(args: AttachArgs, context: HandlerContext) -> Result<()> {
     // Validate branch name
     validate_worktree_name(&args.branch)?;
 
     // Get git root
-    let git_root = get_git_root().await?;
+    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
 
     // Check if worktree already exists
     let worktree_path = get_worktree_path(&git_root, &args.branch);

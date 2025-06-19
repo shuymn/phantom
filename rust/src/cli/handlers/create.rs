@@ -1,7 +1,8 @@
 use crate::cli::commands::create::{CreateArgs, CreateResult};
+use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::config::loader::load_config;
-use crate::git::libs::get_git_root::get_git_root;
+use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::process::exec::exec_in_dir;
 use crate::process::multiplexer::{execute_in_multiplexer, MultiplexerOptions, SplitDirection};
 use crate::process::shell::shell_in_dir;
@@ -11,9 +12,9 @@ use crate::worktree::types::CreateWorktreeOptions;
 use crate::Result;
 
 /// Handle the create command
-pub async fn handle(args: CreateArgs) -> Result<()> {
+pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
     // Get git root
-    let git_root = match get_git_root().await {
+    let git_root = match get_git_root_with_executor(context.executor.clone()).await {
         Ok(root) => root,
         Err(e) => {
             if args.json {
