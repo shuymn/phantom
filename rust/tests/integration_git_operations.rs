@@ -14,8 +14,8 @@ async fn create_real_git_repo() -> tempfile::TempDir {
 
     let executor = GitExecutor::with_cwd(repo_path);
 
-    // Initialize git repo
-    executor.run(&["init"]).await.expect("Failed to init git repo");
+    // Initialize git repo with main as default branch
+    executor.run(&["init", "-b", "main"]).await.expect("Failed to init git repo");
 
     // Set user config for commits
     executor.run(&["config", "user.email", "test@example.com"]).await.expect("Failed to set email");
