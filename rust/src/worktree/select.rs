@@ -1,9 +1,9 @@
-use crate::git::libs::list_worktrees::list_worktrees;
-use crate::worktree::delete::get_worktree_status;
+use crate::core::command_executor::CommandExecutor;
+use crate::git::libs::list_worktrees::list_worktrees_with_executor;
+use crate::worktree::delete::get_worktree_status_with_executor;
 use crate::{PhantomError, Result};
-use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::sync::Arc;
 use tracing::{debug, info};
 
 /// Result of selecting a worktree
@@ -22,23 +22,36 @@ pub struct FzfOptions {
     pub preview_command: Option<String>,
 }
 
+/// Select a worktree interactively using fzf with CommandExecutor
+pub async fn select_worktree_with_fzf_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    git_root: &Path,
+) -> Result<Option<SelectWorktreeResult>> {
+    select_worktree_with_fzf_and_options_with_executor(executor, git_root, FzfOptions::default())
+        .await
+}
+
 /// Select a worktree interactively using fzf
 pub async fn select_worktree_with_fzf(git_root: &Path) -> Result<Option<SelectWorktreeResult>> {
     select_worktree_with_fzf_and_options(git_root, FzfOptions::default()).await
 }
 
-/// Select a worktree interactively using fzf with custom options
-pub async fn select_worktree_with_fzf_and_options(
+/// Select a worktree interactively using fzf with custom options and CommandExecutor
+pub async fn select_worktree_with_fzf_and_options_with_executor(
+    executor: Arc<dyn CommandExecutor>,
     git_root: &Path,
     options: FzfOptions,
 ) -> Result<Option<SelectWorktreeResult>> {
     info!("Selecting worktree with fzf");
 
     // List all worktrees
-    let worktrees = list_worktrees(git_root).await?;
+    let mut worktrees = list_worktrees_with_executor(executor.clone(), git_root).await?;
+
+    // Filter out the main worktree (we only want to select additional worktrees)
+    worktrees.retain(|wt| wt.path != git_root);
 
     if worktrees.is_empty() {
-        debug!("No worktrees found");
+        debug!("No additional worktrees found");
         return Ok(None);
     }
 
@@ -46,7 +59,7 @@ pub async fn select_worktree_with_fzf_and_options(
     let mut worktree_statuses = Vec::new();
     for worktree in &worktrees {
         let path = PathBuf::from(&worktree.path);
-        let status = get_worktree_status(&path).await;
+        let status = get_worktree_status_with_executor(executor.clone(), &path).await;
         worktree_statuses.push(!status.has_uncommitted_changes);
     }
 
@@ -62,7 +75,7 @@ pub async fn select_worktree_with_fzf_and_options(
         .collect();
 
     // Run fzf
-    let selected = run_fzf(&formatted_worktrees, options)?;
+    let selected = run_fzf_with_executor(executor, &formatted_worktrees, options).await?;
 
     match selected {
         Some(selection) => {
@@ -94,86 +107,109 @@ pub async fn select_worktree_with_fzf_and_options(
     }
 }
 
-/// Run fzf with the given items and options
-fn run_fzf(items: &[String], options: FzfOptions) -> Result<Option<String>> {
+/// Select a worktree interactively using fzf with custom options
+pub async fn select_worktree_with_fzf_and_options(
+    git_root: &Path,
+    options: FzfOptions,
+) -> Result<Option<SelectWorktreeResult>> {
+    use crate::core::executors::RealCommandExecutor;
+    select_worktree_with_fzf_and_options_with_executor(
+        Arc::new(RealCommandExecutor),
+        git_root,
+        options,
+    )
+    .await
+}
+
+/// Run fzf with the given items and options using CommandExecutor
+async fn run_fzf_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    items: &[String],
+    options: FzfOptions,
+) -> Result<Option<String>> {
     // Check if fzf is available
-    if !is_fzf_available() {
+    if !is_fzf_available_with_executor(executor.clone()).await {
         return Err(PhantomError::Validation(
             "fzf command not found. Please install fzf first.".to_string(),
         ));
     }
 
-    let mut cmd = Command::new("fzf");
+    let mut args = Vec::new();
 
     // Add options
     if let Some(prompt) = options.prompt {
-        cmd.args(["--prompt", &prompt]);
+        args.push("--prompt".to_string());
+        args.push(prompt);
     } else {
-        cmd.args(["--prompt", "Select worktree> "]);
+        args.push("--prompt".to_string());
+        args.push("Select worktree> ".to_string());
     }
 
     if let Some(header) = options.header {
-        cmd.args(["--header", &header]);
+        args.push("--header".to_string());
+        args.push(header);
     } else {
-        cmd.args(["--header", "Git Worktrees"]);
+        args.push("--header".to_string());
+        args.push("Git Worktrees".to_string());
     }
 
     if let Some(preview) = options.preview_command {
-        cmd.args(["--preview", &preview]);
+        args.push("--preview".to_string());
+        args.push(preview);
     }
 
-    // Set up pipes
-    cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+    // Join items with newlines for stdin
+    let stdin_data = items.join("\n");
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| PhantomError::ProcessExecution(format!("Failed to spawn fzf: {}", e)))?;
+    // Execute fzf with stdin data
+    let config = crate::core::command_executor::CommandConfig::new("fzf")
+        .with_args(args)
+        .with_stdin_data(stdin_data);
 
-    // Write items to fzf's stdin
-    if let Some(mut stdin) = child.stdin.take() {
-        let input = items.join("\n");
-        stdin.write_all(input.as_bytes()).map_err(|e| {
-            PhantomError::ProcessExecution(format!("Failed to write to fzf stdin: {}", e))
-        })?;
-    }
-
-    // Wait for fzf to complete
-    let output = child
-        .wait_with_output()
-        .map_err(|e| PhantomError::ProcessExecution(format!("Failed to wait for fzf: {}", e)))?;
-
-    match output.status.code() {
-        Some(0) => {
-            // Success - user selected an item
-            let selected = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            Ok(if selected.is_empty() { None } else { Some(selected) })
+    match executor.execute(config).await {
+        Ok(output) => {
+            match output.exit_code {
+                0 => {
+                    // Success - user selected an item
+                    let selected = output.stdout.trim().to_string();
+                    Ok(if selected.is_empty() { None } else { Some(selected) })
+                }
+                1 => {
+                    // No match found
+                    Ok(None)
+                }
+                130 => {
+                    // User pressed Ctrl-C
+                    Ok(None)
+                }
+                _ => Err(PhantomError::ProcessExecution(format!(
+                    "fzf exited with code {}: {}",
+                    output.exit_code, output.stderr
+                ))),
+            }
         }
-        Some(1) => {
-            // No match found
-            Ok(None)
+        Err(e) => {
+            if e.to_string().contains("command not found") || e.to_string().contains("No such file")
+            {
+                Err(PhantomError::ProcessExecution(
+                    "fzf command not found. Please install fzf first.".to_string(),
+                ))
+            } else {
+                Err(e)
+            }
         }
-        Some(130) => {
-            // User pressed Ctrl-C
-            Ok(None)
-        }
-        Some(code) => {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(PhantomError::ProcessExecution(format!(
-                "fzf exited with code {}: {}",
-                code, stderr
-            )))
-        }
-        None => Err(PhantomError::ProcessExecution("fzf terminated by signal".to_string())),
     }
 }
 
-/// Check if fzf command is available
-fn is_fzf_available() -> bool {
-    Command::new("fzf")
-        .arg("--version")
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
+/// Check if fzf command is available with CommandExecutor
+async fn is_fzf_available_with_executor(executor: Arc<dyn CommandExecutor>) -> bool {
+    let config = crate::core::command_executor::CommandConfig::new("fzf")
+        .with_args(vec!["--version".to_string()]);
+
+    match executor.execute(config).await {
+        Ok(output) => output.exit_code == 0,
+        Err(_) => false,
+    }
 }
 
 #[cfg(test)]
@@ -185,6 +221,7 @@ mod tests {
     fn test_is_fzf_available() {
         // This test will pass or fail depending on whether fzf is installed
         // We just verify that the function doesn't panic
+        use crate::process::fzf::is_fzf_available;
         let _ = is_fzf_available();
     }
 
@@ -478,34 +515,94 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_worktree_with_fzf_empty() {
+        use crate::core::executors::MockCommandExecutor;
         use crate::test_utils::TestRepo;
 
         // Create a test repo with no worktrees
         let repo = TestRepo::new().await.unwrap();
 
-        // Should return None when no worktrees exist
-        let result = select_worktree_with_fzf(repo.path()).await;
+        let mut mock = MockCommandExecutor::new();
 
-        // If fzf is not available, it should return an error
-        // If fzf is available but there are no worktrees, it should return Ok(None)
+        // Mock git worktree list - only main worktree exists
+        mock.expect_command("git")
+            .with_args(&["worktree", "list", "--porcelain"])
+            .in_dir(repo.path().to_path_buf())
+            .returns_output(
+                &format!(
+                    "worktree {}\nHEAD abc123\nbranch refs/heads/main\n",
+                    repo.path().display()
+                ),
+                "",
+                0,
+            );
+
+        // Should return None when only main worktree exists
+        let result = select_worktree_with_fzf_with_executor(Arc::new(mock), repo.path()).await;
         match result {
-            Ok(None) => {} // Expected when no worktrees
-            Err(e) => {
-                // Expected when fzf is not installed
-                assert!(e.to_string().contains("fzf"));
-            }
+            Ok(None) => {} // Expected - no worktrees to select
             Ok(Some(_)) => panic!("Should not select a worktree when none exist"),
+            Err(e) => panic!("Unexpected error: {:?}", e),
         }
     }
 
     #[tokio::test]
-    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_worktree_with_custom_options() {
+        use crate::core::executors::MockCommandExecutor;
         use crate::test_utils::TestRepo;
+        use crate::worktree::create::create_worktree;
+        use crate::worktree::types::CreateWorktreeOptions;
 
         let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        // Create a worktree
+        let create_options = CreateWorktreeOptions::default();
+        create_worktree(repo.path(), "feature-1", create_options).await.unwrap();
+
+        let mut mock = MockCommandExecutor::new();
+
+        // Mock git worktree list - show main and feature-1
+        mock.expect_command("git")
+            .with_args(&["worktree", "list", "--porcelain"])
+            .in_dir(repo.path().to_path_buf())
+            .returns_output(
+                &format!(
+                    "worktree {}\nHEAD abc123\nbranch refs/heads/main\n\nworktree {}\nHEAD def456\nbranch refs/heads/feature-1\n",
+                    repo.path().display(),
+                    repo.path().join(".phantom").join("feature-1").display()
+                ),
+                "",
+                0,
+            );
+
+        // Mock git status for main worktree
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir(repo.path().to_path_buf())
+            .returns_output("", "", 0);
+
+        // Mock git status for feature-1 worktree
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir(repo.path().join(".phantom").join("feature-1"))
+            .returns_output("", "", 0);
+
+        // Mock fzf availability check
+        mock.expect_command("fzf").with_args(&["--version"]).returns_output("0.42.0", "", 0);
+
+        // Mock fzf selection with custom options
+        mock.expect_command("fzf")
+            .with_args(&[
+                "--prompt",
+                "Custom prompt> ",
+                "--header",
+                "Custom header",
+                "--preview",
+                "echo preview",
+            ])
+            .with_stdin_data("feature-1 (feature-1)")
+            .returns_output("feature-1 (feature-1)\n", "", 0);
 
         let options = FzfOptions {
             prompt: Some("Custom prompt> ".to_string()),
@@ -514,17 +611,16 @@ mod tests {
         };
 
         // Test with custom options
-        let result = select_worktree_with_fzf_and_options(repo.path(), options).await;
-
-        // Similar to above - depends on fzf availability
-        match result {
-            Ok(None) => {} // Expected when no worktrees
-            Err(e) => {
-                // Expected when fzf is not installed
-                assert!(e.to_string().contains("fzf"));
-            }
-            Ok(Some(_)) => panic!("Should not select a worktree when none exist"),
-        }
+        let result = select_worktree_with_fzf_and_options_with_executor(
+            Arc::new(mock),
+            repo.path(),
+            options,
+        )
+        .await;
+        assert!(result.is_ok());
+        let selected = result.unwrap();
+        assert!(selected.is_some());
+        assert_eq!(selected.unwrap().name, "feature-1");
     }
 
     #[test]
@@ -590,6 +686,7 @@ mod tests {
     #[test]
     fn test_command_creation() {
         // Test that command builder works correctly
+        use std::process::Command;
         let mut cmd = Command::new("echo");
         cmd.arg("test");
 
