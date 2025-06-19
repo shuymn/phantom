@@ -76,6 +76,8 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 - [ ] Switch handler - write mock tests
 - [ ] Other handlers - write mock tests
 
+**⚠️ Known Issue**: Some integration tests fail with `--all-features` due to race conditions. Temporary fix applied with `#[serial_test::serial]`. See [TEST_RACE_CONDITION_FIX.md](./rust/TEST_RACE_CONDITION_FIX.md).
+
 ### 🔧 Priority 2: Address Testing Limitations
 
 **Problem**: Filesystem operations (fs::metadata, fs::read_dir, etc.) prevent complete mock testing.
