@@ -22,15 +22,6 @@ throughout all handlers.
 
 ### Remaining from Immediate Tasks
 - [ ] Move validation logic from integration tests to unit tests
-- [ ] Remove serial test execution from get_git_root tests
-  - Currently using `#[serial]` as a workaround for tests that change working directory
-  - Should refactor to avoid changing global state or use a different approach
-  - Tests should be able to run in parallel for better performance
-- [ ] Implement proper tmux testing approach
-  - Extract command building logic from execution
-  - Test command construction without actual execution
-  - Use dependency injection for tmux operations
-  - Mock tmux process execution in tests
 
 ### Ready to Start: Architecture Refactoring
 The test cleanup and safety implementation are complete. We can now proceed with
@@ -60,6 +51,17 @@ the architecture refactoring to implement proper dependency injection.
 - [ ] Set up separate CI jobs for different test types
 
 ## 📅 Future Work (Low Priority)
+
+### Testing Improvements (Deferred)
+- [ ] Remove serial test execution from get_git_root tests
+  - Currently using `#[serial]` as a workaround for tests that change working directory
+  - Should refactor to avoid changing global state or use a different approach
+  - Tests should be able to run in parallel for better performance
+- [ ] Implement proper tmux testing approach
+  - Extract command building logic from execution
+  - Test command construction without actual execution
+  - Use dependency injection for tmux operations
+  - Mock tmux process execution in tests
 
 ### Release & Communication
 
