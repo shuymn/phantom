@@ -17,25 +17,29 @@ Essential guides for understanding the codebase:
 
 ## 📋 Future Enhancements
 
-These are potential improvements that could be added to phantom in the future:
+### 🔴 High Priority
 
-### Native Git Support
+#### Native Git Support
 - [ ] Integrate libgit2 for native git operations
 - [ ] Remove dependency on git CLI commands
 - [ ] Improve performance for git operations
+- [ ] Better error handling and recovery
 
-### Performance Improvements  
+#### Performance Improvements  
 - [ ] Implement parallel worktree operations
 - [ ] Add concurrent file copying with progress
 - [ ] Optimize worktree listing for large repositories
+- [ ] Reduce startup time with lazy loading
 
-### Plugin System
+### 🟡 Medium Priority
+
+#### Plugin System
 - [ ] Design plugin API for extensibility
 - [ ] Support lifecycle hooks (pre/post create, delete, switch)
 - [ ] Enable custom commands and integrations
 - [ ] Allow UI/UX customization plugins
 
-### Configuration Profiles
+#### Configuration Profiles
 - [ ] Support multiple configuration profiles
 - [ ] Per-project configuration overrides  
 - [ ] Team-shared configuration templates
