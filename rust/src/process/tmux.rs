@@ -1,10 +1,13 @@
+use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
+use std::sync::Arc;
 
-use super::spawn::{execute_command, spawn_process, SpawnConfig, SpawnSuccess};
+use super::spawn::SpawnSuccess;
 
 /// Direction for tmux split operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,8 +37,11 @@ pub async fn is_inside_tmux() -> bool {
     env::var("TMUX").is_ok()
 }
 
-/// Execute a command in tmux
-pub async fn execute_tmux_command(options: TmuxOptions) -> Result<TmuxSuccess> {
+/// Execute a command in tmux with CommandExecutor
+pub async fn execute_tmux_command_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    options: TmuxOptions,
+) -> Result<()> {
     let mut tmux_args = Vec::new();
 
     // Set up the tmux command based on direction
@@ -80,19 +86,23 @@ pub async fn execute_tmux_command(options: TmuxOptions) -> Result<TmuxSuccess> {
     }
 
     // Execute the tmux command
-    let config = SpawnConfig {
-        command: "tmux".to_string(),
-        args: tmux_args,
-        cwd: None,
-        env: None,
-        inherit_stdio: true,
-        timeout_ms: None,
-    };
-    spawn_process(config).await
+    let config = CommandConfig::new("tmux").with_args(tmux_args);
+    executor.execute(config).await?;
+    Ok(())
 }
 
-/// Create a new tmux session
-pub async fn create_tmux_session(session_name: &str, cwd: Option<&Path>) -> Result<TmuxSuccess> {
+/// Execute a command in tmux (backward compatible)
+pub async fn execute_tmux_command(options: TmuxOptions) -> Result<TmuxSuccess> {
+    execute_tmux_command_with_executor(Arc::new(RealCommandExecutor), options).await?;
+    Ok(SpawnSuccess { exit_code: 0 })
+}
+
+/// Create a new tmux session with CommandExecutor
+pub async fn create_tmux_session_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    session_name: &str,
+    cwd: Option<&Path>,
+) -> Result<()> {
     let mut args = vec![
         "new-session".to_string(),
         "-d".to_string(),
@@ -105,64 +115,81 @@ pub async fn create_tmux_session(session_name: &str, cwd: Option<&Path>) -> Resu
         args.push(cwd.to_string_lossy().to_string());
     }
 
-    let config = SpawnConfig {
-        command: "tmux".to_string(),
-        args,
-        cwd: None,
-        env: None,
-        inherit_stdio: true,
-        timeout_ms: None,
-    };
-    spawn_process(config).await
+    let config = CommandConfig::new("tmux").with_args(args);
+    executor.execute(config).await?;
+    Ok(())
 }
 
-/// Attach to a tmux session
-pub async fn attach_tmux_session(session_name: &str) -> Result<TmuxSuccess> {
+/// Create a new tmux session (backward compatible)
+pub async fn create_tmux_session(session_name: &str, cwd: Option<&Path>) -> Result<TmuxSuccess> {
+    create_tmux_session_with_executor(Arc::new(RealCommandExecutor), session_name, cwd).await?;
+    Ok(SpawnSuccess { exit_code: 0 })
+}
+
+/// Attach to a tmux session with CommandExecutor
+pub async fn attach_tmux_session_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    session_name: &str,
+) -> Result<()> {
     let args = vec!["attach-session".to_string(), "-t".to_string(), session_name.to_string()];
-    let config = SpawnConfig {
-        command: "tmux".to_string(),
-        args,
-        cwd: None,
-        env: None,
-        inherit_stdio: true,
-        timeout_ms: None,
-    };
-    spawn_process(config).await
+    let config = CommandConfig::new("tmux").with_args(args);
+    executor.execute(config).await?;
+    Ok(())
 }
 
-/// List tmux sessions
-pub async fn list_tmux_sessions() -> Result<Vec<String>> {
-    let args: Vec<&str> = vec!["list-sessions", "-F", "#{session_name}"];
-    let output = execute_command("tmux", args, None).await?;
+/// Attach to a tmux session (backward compatible)
+pub async fn attach_tmux_session(session_name: &str) -> Result<TmuxSuccess> {
+    attach_tmux_session_with_executor(Arc::new(RealCommandExecutor), session_name).await?;
+    Ok(SpawnSuccess { exit_code: 0 })
+}
 
-    let sessions = output.lines().map(|s| s.to_string()).filter(|s| !s.is_empty()).collect();
+/// List tmux sessions with CommandExecutor
+pub async fn list_tmux_sessions_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+) -> Result<Vec<String>> {
+    let args = vec!["list-sessions".to_string(), "-F".to_string(), "#{session_name}".to_string()];
+    let config = CommandConfig::new("tmux").with_args(args);
+    let output = executor.execute(config).await?;
+
+    let sessions = output.stdout.lines().map(|s| s.to_string()).filter(|s| !s.is_empty()).collect();
 
     Ok(sessions)
 }
 
-/// Check if a tmux session exists
-pub async fn tmux_session_exists(session_name: &str) -> Result<bool> {
-    let config = SpawnConfig {
-        command: "tmux".to_string(),
-        args: vec!["has-session".to_string(), "-t".to_string(), session_name.to_string()],
-        cwd: None,
-        env: None,
-        inherit_stdio: false,
-        timeout_ms: None,
-    };
+/// List tmux sessions (backward compatible)
+pub async fn list_tmux_sessions() -> Result<Vec<String>> {
+    list_tmux_sessions_with_executor(Arc::new(RealCommandExecutor)).await
+}
 
-    match spawn_process(config).await {
-        Ok(result) => {
+/// Check if a tmux session exists with CommandExecutor
+pub async fn tmux_session_exists_with_executor(
+    executor: Arc<dyn CommandExecutor>,
+    session_name: &str,
+) -> Result<bool> {
+    let args = vec!["has-session".to_string(), "-t".to_string(), session_name.to_string()];
+    let config = CommandConfig::new("tmux").with_args(args);
+    
+    match executor.execute(config).await {
+        Ok(output) => {
             // tmux has-session returns 0 if session exists, non-zero if it doesn't
-            Ok(result.exit_code == 0)
+            Ok(output.exit_code == 0)
         }
-        Err(e) => Err(e),
+        Err(_) => {
+            // If tmux command fails to execute (e.g., tmux not installed)
+            Err(crate::PhantomError::ProcessExecution("Failed to execute tmux".to_string()))
+        }
     }
+}
+
+/// Check if a tmux session exists (backward compatible)
+pub async fn tmux_session_exists(session_name: &str) -> Result<bool> {
+    tmux_session_exists_with_executor(Arc::new(RealCommandExecutor), session_name).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::MockCommandExecutor;
 
     #[tokio::test]
     async fn test_is_inside_tmux() {
@@ -338,6 +365,120 @@ mod tests {
 
         assert_eq!(options.window_name, Some("System Monitor".to_string()));
         assert_eq!(options.direction, TmuxSplitDirection::New);
+    }
+
+    // Mock tests for CommandExecutor functions
+    #[tokio::test]
+    async fn test_execute_tmux_command_new_window() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("tmux")
+            .with_args(&[
+                "new-window",
+                "-n",
+                "TestWindow",
+                "-c",
+                "/workspace",
+                "-e",
+                "VAR1=value1",
+                "vim",
+                "file.txt",
+            ])
+            .returns_output("", "", 0);
+
+        let options = TmuxOptions {
+            direction: TmuxSplitDirection::New,
+            command: "vim".to_string(),
+            args: Some(vec!["file.txt".to_string()]),
+            cwd: Some("/workspace".to_string()),
+            env: Some(HashMap::from([("VAR1".to_string(), "value1".to_string())])),
+            window_name: Some("TestWindow".to_string()),
+        };
+
+        let result = execute_tmux_command_with_executor(Arc::new(mock), options).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_tmux_command_split_vertical() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("tmux")
+            .with_args(&["split-window", "-v", "htop"])
+            .returns_output("", "", 0);
+
+        let options = TmuxOptions {
+            direction: TmuxSplitDirection::Vertical,
+            command: "htop".to_string(),
+            args: None,
+            cwd: None,
+            env: None,
+            window_name: None,
+        };
+
+        let result = execute_tmux_command_with_executor(Arc::new(mock), options).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_tmux_session_with_cwd() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("tmux")
+            .with_args(&["new-session", "-d", "-s", "test-session", "-c", "/workspace"])
+            .returns_output("", "", 0);
+
+        let result = create_tmux_session_with_executor(
+            Arc::new(mock),
+            "test-session",
+            Some(Path::new("/workspace")),
+        )
+        .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_attach_tmux_session() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("tmux")
+            .with_args(&["attach-session", "-t", "my-session"])
+            .returns_output("", "", 0);
+
+        let result = attach_tmux_session_with_executor(Arc::new(mock), "my-session").await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_list_tmux_sessions() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("tmux")
+            .with_args(&["list-sessions", "-F", "#{session_name}"])
+            .returns_output("session1\nsession2\nsession3\n", "", 0);
+
+        let result = list_tmux_sessions_with_executor(Arc::new(mock)).await.unwrap();
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0], "session1");
+        assert_eq!(result[1], "session2");
+        assert_eq!(result[2], "session3");
+    }
+
+    #[tokio::test]
+    async fn test_tmux_session_exists_true() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("tmux")
+            .with_args(&["has-session", "-t", "existing-session"])
+            .returns_output("", "", 0);
+
+        let result = tmux_session_exists_with_executor(Arc::new(mock), "existing-session").await.unwrap();
+        assert!(result);
+    }
+
+    #[tokio::test]
+    async fn test_tmux_session_exists_false() {
+        let mut mock = MockCommandExecutor::new();
+        mock.expect_command("tmux")
+            .with_args(&["has-session", "-t", "nonexistent-session"])
+            .returns_error("session not found: nonexistent-session");
+
+        let result = tmux_session_exists_with_executor(Arc::new(mock), "nonexistent-session").await.unwrap();
+        assert!(!result);
     }
 
     #[tokio::test]
