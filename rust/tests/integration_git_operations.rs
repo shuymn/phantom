@@ -25,12 +25,16 @@ async fn create_real_git_repo() -> tempfile::TempDir {
     fs::write(repo_path.join("README.md"), "# Test Repository").expect("Failed to write README");
     executor.run(&["add", "README.md"]).await.expect("Failed to add README");
     executor.run(&["commit", "-m", "Initial commit"]).await.expect("Failed to commit");
-    
+
     // Ensure we're on main branch (rename if needed)
-    let current_branch = executor.run(&["branch", "--show-current"]).await.expect("Failed to get branch");
+    let current_branch =
+        executor.run(&["branch", "--show-current"]).await.expect("Failed to get branch");
     let current_branch = current_branch.trim();
     if current_branch != "main" {
-        executor.run(&["branch", "-m", current_branch, "main"]).await.expect("Failed to rename branch");
+        executor
+            .run(&["branch", "-m", current_branch, "main"])
+            .await
+            .expect("Failed to rename branch");
     }
 
     temp_dir
