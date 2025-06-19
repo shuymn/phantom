@@ -65,55 +65,42 @@ See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation p
 
 ## 📋 Next Steps
 
-### 🚨 Priority 1: Complete Git Operations Migration
+### 🎯 Priority 1: Complete Handler Testing
 
-**Critical Insight**: Mock tests cannot work until ALL git operations use CommandExecutor.
-
-- [x] Create CommandExecutor trait and implementations ✅
-- [x] Update handlers to accept HandlerContext ✅
-- [x] Create GitExecutor adapter ✅
-- [x] Document migration pattern in GIT_OPERATIONS_MIGRATION_GUIDE.md ✅
-- [x] **COMPLETED**: Migrate all git operations ✅ (see [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md))
-  - [x] get_git_root ✅ (template example)
-  - [x] add_worktree ✅ (template example)
-  - [x] list_worktrees ✅ (list handler now testable)
-  - [x] get_worktree_branch, get_worktree_status ✅ (list handler fully testable)
-  - [x] attach_worktree ✅ (attach handler now testable)
-  - [x] delete_worktree ✅ (delete handler partially testable - filesystem ops limit)
-  - [x] branch_exists, get_current_branch, get_current_worktree ✅
-  - [x] create_branch ✅ (create handler now partially testable)
-  - [x] is_inside_work_tree ✅
-  - [x] current_commit ✅
-  - [x] list_branches ✅
-  - [x] remove_worktree ✅
-- [x] Write mock tests for list and attach handlers ✅
-- [x] Write mock tests for create handler ✅ (partial - filesystem ops limit)
-- [ ] Write mock tests for remaining handlers after migration
-
-Progress: Infrastructure complete, all 13 git operations migrated (100%), 3 handlers with mock tests. Process operations remain.
-
-### Priority 2: Continue Handler Testing
+**Current Status**: All git and process operations now use CommandExecutor, enabling comprehensive mock testing.
 
 - [x] List handler - 5 comprehensive mock tests ✅
 - [x] Attach handler - 5 comprehensive mock tests ✅
 - [x] Create handler - 5 mock tests ✅ (partial - filesystem ops limit)
-- [ ] Delete handler - tests written but limited by filesystem operations
-- [ ] Other handlers - blocked by remaining migrations
+- [ ] Delete handler - write mock tests (limited by filesystem operations)
+- [ ] Switch handler - write mock tests
+- [ ] Other handlers - write mock tests
 
-### Priority 3: Address Testing Limitations
+### 🔧 Priority 2: Address Testing Limitations
 
-- [ ] Abstract filesystem operations (fs::metadata, etc.) for complete testability
-- [ ] Consider creating FileSystem trait similar to CommandExecutor
+**Problem**: Filesystem operations (fs::metadata, fs::read_dir, etc.) prevent complete mock testing.
+
+- [ ] Abstract filesystem operations for complete testability
+- [ ] Create FileSystem trait similar to CommandExecutor
 - [ ] Update validate_worktree_exists to use abstractions
+- [ ] Enable full mock testing for all handlers
 
-### ✅ Process Operations Migration (Complete)
+### ✅ Completed Migrations
 
-**All process operations have been successfully migrated!** See [PROCESS_OPERATIONS_MIGRATION.md](./rust/PROCESS_OPERATIONS_MIGRATION.md) for details.
+#### Git Operations (100% Complete)
+All 13 git operations successfully migrated to use CommandExecutor. See [GIT_OPERATIONS_MIGRATION_GUIDE.md](./rust/GIT_OPERATIONS_MIGRATION_GUIDE.md).
 
-- [x] Migrate tmux operations to use CommandExecutor ✅
-- [x] Migrate fzf operations to use CommandExecutor ✅
-- [x] Migrate kitty operations to use CommandExecutor ✅
-- [x] Migrate shell operations to use CommandExecutor ✅
+#### Process Operations (100% Complete)  
+All process operations successfully migrated to use CommandExecutor. See [PROCESS_OPERATIONS_MIGRATION.md](./rust/PROCESS_OPERATIONS_MIGRATION.md).
+
+**Migration Summary**:
+- ✅ CommandExecutor trait and implementations
+- ✅ HandlerContext for dependency injection
+- ✅ GitExecutor adapter
+- ✅ All git operations (13/13)
+- ✅ All process operations (tmux, fzf, kitty, shell)
+- ✅ Mock tests for 3 handlers
+- 📊 Added 83 new tests across process operations
 
 ## 🔧 Architecture Refactoring (Complete)
 
