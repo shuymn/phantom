@@ -39,30 +39,101 @@ impl CommandExecutor for RealCommandExecutor {
             command.envs(env);
         }
 
-        let output = if let Some(timeout) = config.timeout {
-            match tokio::time::timeout(timeout, command.output()).await {
-                Ok(Ok(output)) => output,
-                Ok(Err(e)) => {
-                    return Err(PhantomError::ProcessExecution(format!(
-                        "Failed to execute command '{}': {}",
-                        config.program, e
-                    )));
-                }
-                Err(_) => {
-                    error!("Command timeout after {:?}, killing process", timeout);
-                    return Err(PhantomError::ProcessExecution(format!(
-                        "Command '{}' timed out after {:?}",
-                        config.program, timeout
-                    )));
-                }
-            }
+        // Configure stdin based on whether stdin_data is provided
+        if config.stdin_data.is_some() {
+            command.stdin(Stdio::piped());
         } else {
-            command.output().await.map_err(|e| {
+            command.stdin(Stdio::null());
+        }
+
+        // Always capture stdout and stderr for CommandOutput
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+
+        // Handle execution with or without stdin_data
+        let output = if let Some(stdin_data) = config.stdin_data {
+            debug!("Executing command with stdin data: {} bytes", stdin_data.len());
+
+            // Spawn the process to get access to stdin
+            let mut child = command.spawn().map_err(|e| {
                 PhantomError::ProcessExecution(format!(
-                    "Failed to execute command '{}': {}",
+                    "Failed to spawn command '{}': {}",
                     config.program, e
                 ))
-            })?
+            })?;
+
+            // Write stdin data
+            if let Some(mut stdin) = child.stdin.take() {
+                use tokio::io::AsyncWriteExt;
+                stdin.write_all(stdin_data.as_bytes()).await.map_err(|e| {
+                    PhantomError::ProcessExecution(format!(
+                        "Failed to write stdin to '{}': {}",
+                        config.program, e
+                    ))
+                })?;
+                stdin.shutdown().await.map_err(|e| {
+                    PhantomError::ProcessExecution(format!(
+                        "Failed to close stdin for '{}': {}",
+                        config.program, e
+                    ))
+                })?;
+            }
+
+            // Wait for completion with optional timeout
+            if let Some(timeout) = config.timeout {
+                match tokio::time::timeout(timeout, child.wait_with_output()).await {
+                    Ok(Ok(output)) => output,
+                    Ok(Err(e)) => {
+                        return Err(PhantomError::ProcessExecution(format!(
+                            "Failed to wait for command '{}': {}",
+                            config.program, e
+                        )));
+                    }
+                    Err(_) => {
+                        error!("Command timeout after {:?}", timeout);
+                        // The child process is consumed by wait_with_output, so we can't kill it
+                        // The timeout itself should cause the process to be terminated
+                        return Err(PhantomError::ProcessExecution(format!(
+                            "Command '{}' timed out after {:?}",
+                            config.program, timeout
+                        )));
+                    }
+                }
+            } else {
+                child.wait_with_output().await.map_err(|e| {
+                    PhantomError::ProcessExecution(format!(
+                        "Failed to wait for command '{}': {}",
+                        config.program, e
+                    ))
+                })?
+            }
+        } else {
+            // No stdin data, use simpler output() method
+            if let Some(timeout) = config.timeout {
+                match tokio::time::timeout(timeout, command.output()).await {
+                    Ok(Ok(output)) => output,
+                    Ok(Err(e)) => {
+                        return Err(PhantomError::ProcessExecution(format!(
+                            "Failed to execute command '{}': {}",
+                            config.program, e
+                        )));
+                    }
+                    Err(_) => {
+                        error!("Command timeout after {:?}, killing process", timeout);
+                        return Err(PhantomError::ProcessExecution(format!(
+                            "Command '{}' timed out after {:?}",
+                            config.program, timeout
+                        )));
+                    }
+                }
+            } else {
+                command.output().await.map_err(|e| {
+                    PhantomError::ProcessExecution(format!(
+                        "Failed to execute command '{}': {}",
+                        config.program, e
+                    ))
+                })?
+            }
         };
 
         let exit_code = output.status.code().unwrap_or(-1);
@@ -251,5 +322,50 @@ mod tests {
 
         assert!(result1.is_ok());
         assert!(result2.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_stdin_data() {
+        let executor = RealCommandExecutor::new();
+        let config = CommandConfig::new("cat").with_stdin_data("hello from stdin".to_string());
+
+        let result = executor.execute(config).await;
+        assert!(result.is_ok());
+
+        let output = result.unwrap();
+        assert_eq!(output.exit_code, 0);
+        assert_eq!(output.stdout.trim(), "hello from stdin");
+        assert!(output.stderr.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_stdin_data_and_args() {
+        let executor = RealCommandExecutor::new();
+        let config = CommandConfig::new("grep")
+            .with_args(vec!["hello".to_string()])
+            .with_stdin_data("hello world\ngoodbye world\nhello again".to_string());
+
+        let result = executor.execute(config).await;
+        assert!(result.is_ok());
+
+        let output = result.unwrap();
+        assert_eq!(output.exit_code, 0);
+        assert!(output.stdout.contains("hello world"));
+        assert!(output.stdout.contains("hello again"));
+        assert!(!output.stdout.contains("goodbye"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_stdin_data_timeout() {
+        let executor = RealCommandExecutor::new();
+        // Use a command that will block waiting for more input
+        let config = CommandConfig::new("sh")
+            .with_args(vec!["-c".to_string(), "cat && sleep 10".to_string()])
+            .with_stdin_data("test".to_string())
+            .with_timeout(Duration::from_millis(100));
+
+        let result = executor.execute(config).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("timed out"));
     }
 }
