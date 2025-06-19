@@ -11,6 +11,9 @@
 use crate::cli::commands::delete::DeleteArgs;
 use crate::cli::context::HandlerContext;
 use crate::core::executors::MockCommandExecutor;
+use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
+use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[tokio::test]
@@ -27,6 +30,7 @@ async fn test_delete_not_in_git_repo() {
     let context = HandlerContext::new(
         Arc::new(mock),
         Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        Arc::new(crate::core::exit_handler::MockExitHandler::new()),
     );
     let args = DeleteArgs {
         name: Some("test".to_string()),
@@ -47,7 +51,7 @@ async fn test_delete_with_current_flag_not_in_worktree() {
     // Mock git root check
     mock.expect_command("git")
         .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output(".git", "", 0);
+        .returns_output("/repo/.git", "", 0);
 
     // Mock get_current_worktree - not in a worktree
     mock.expect_command("git")
@@ -63,6 +67,7 @@ async fn test_delete_with_current_flag_not_in_worktree() {
     let context = HandlerContext::new(
         Arc::new(mock),
         Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        Arc::new(crate::core::exit_handler::MockExitHandler::new()),
     );
     let args = DeleteArgs { name: None, current: true, force: false, fzf: false, json: false };
 
@@ -71,14 +76,14 @@ async fn test_delete_with_current_flag_not_in_worktree() {
 }
 
 #[tokio::test]
-#[ignore = "Requires filesystem mocking - validate_worktree_exists uses fs::metadata"]
 async fn test_delete_worktree_success() {
     let mut mock = MockCommandExecutor::new();
+    let mock_fs = MockFileSystem::new();
 
     // Mock git root check
     mock.expect_command("git")
         .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output(".git", "", 0);
+        .returns_output("/repo/.git", "", 0);
 
     // Mock validate_worktree_exists (via list_worktrees)
     mock.expect_command("git")
@@ -89,6 +94,16 @@ async fn test_delete_worktree_success() {
                 "",
                 0
             );
+
+    // Mock filesystem check for worktree existence
+    mock_fs.expect(FileSystemExpectation {
+        operation: FileSystemOperation::IsDir,
+        path: Some(PathBuf::from("/repo/.git/phantom/worktrees/feature")),
+        from_path: None,
+        to_path: None,
+        contents: None,
+        result: Ok(MockResult::Bool(true)), // Directory exists
+    });
 
     // Mock get_worktree_status
     mock.expect_command("git")
@@ -110,7 +125,8 @@ async fn test_delete_worktree_success() {
 
     let context = HandlerContext::new(
         Arc::new(mock),
-        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        Arc::new(mock_fs),
+        Arc::new(crate::core::exit_handler::MockExitHandler::new()),
     );
     let args = DeleteArgs {
         name: Some("feature".to_string()),
@@ -125,14 +141,14 @@ async fn test_delete_worktree_success() {
 }
 
 #[tokio::test]
-#[ignore = "Requires filesystem mocking - validate_worktree_exists uses fs::metadata"]
 async fn test_delete_worktree_with_uncommitted_changes_no_force() {
     let mut mock = MockCommandExecutor::new();
+    let mock_fs = MockFileSystem::new();
 
     // Mock git root check
     mock.expect_command("git")
         .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output(".git", "", 0);
+        .returns_output("/repo/.git", "", 0);
 
     // Mock validate_worktree_exists
     mock.expect_command("git")
@@ -144,6 +160,16 @@ async fn test_delete_worktree_with_uncommitted_changes_no_force() {
                 0
             );
 
+    // Mock filesystem check for worktree existence
+    mock_fs.expect(FileSystemExpectation {
+        operation: FileSystemOperation::IsDir,
+        path: Some(PathBuf::from("/repo/.git/phantom/worktrees/feature")),
+        from_path: None,
+        to_path: None,
+        contents: None,
+        result: Ok(MockResult::Bool(true)), // Directory exists
+    });
+
     // Mock get_worktree_status - has uncommitted changes
     mock.expect_command("git")
         .with_args(&["status", "--porcelain"])
@@ -152,7 +178,8 @@ async fn test_delete_worktree_with_uncommitted_changes_no_force() {
 
     let context = HandlerContext::new(
         Arc::new(mock),
-        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        Arc::new(mock_fs),
+        Arc::new(crate::core::exit_handler::MockExitHandler::new()),
     );
     let args = DeleteArgs {
         name: Some("feature".to_string()),
@@ -171,14 +198,14 @@ async fn test_delete_worktree_with_uncommitted_changes_no_force() {
 }
 
 #[tokio::test]
-#[ignore = "Requires filesystem mocking - validate_worktree_exists uses fs::metadata"]
 async fn test_delete_worktree_with_force() {
     let mut mock = MockCommandExecutor::new();
+    let mock_fs = MockFileSystem::new();
 
     // Mock git root check
     mock.expect_command("git")
         .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output(".git", "", 0);
+        .returns_output("/repo/.git", "", 0);
 
     // Mock validate_worktree_exists
     mock.expect_command("git")
@@ -189,6 +216,16 @@ async fn test_delete_worktree_with_force() {
                 "",
                 0
             );
+
+    // Mock filesystem check for worktree existence
+    mock_fs.expect(FileSystemExpectation {
+        operation: FileSystemOperation::IsDir,
+        path: Some(PathBuf::from("/repo/.git/phantom/worktrees/feature")),
+        from_path: None,
+        to_path: None,
+        contents: None,
+        result: Ok(MockResult::Bool(true)), // Directory exists
+    });
 
     // Mock get_worktree_status - has uncommitted changes
     mock.expect_command("git")
@@ -216,7 +253,8 @@ async fn test_delete_worktree_with_force() {
 
     let context = HandlerContext::new(
         Arc::new(mock),
-        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        Arc::new(mock_fs),
+        Arc::new(crate::core::exit_handler::MockExitHandler::new()),
     );
     let args = DeleteArgs {
         name: Some("feature".to_string()),
@@ -231,14 +269,14 @@ async fn test_delete_worktree_with_force() {
 }
 
 #[tokio::test]
-#[ignore = "Requires filesystem mocking - validate_worktree_exists uses fs::metadata"]
 async fn test_delete_json_output_success() {
     let mut mock = MockCommandExecutor::new();
+    let mock_fs = MockFileSystem::new();
 
     // Mock git root check
     mock.expect_command("git")
         .with_args(&["rev-parse", "--git-common-dir"])
-        .returns_output(".git", "", 0);
+        .returns_output("/repo/.git", "", 0);
 
     // Mock validate_worktree_exists
     mock.expect_command("git")
@@ -249,6 +287,16 @@ async fn test_delete_json_output_success() {
                 "",
                 0
             );
+
+    // Mock filesystem check for worktree existence
+    mock_fs.expect(FileSystemExpectation {
+        operation: FileSystemOperation::IsDir,
+        path: Some(PathBuf::from("/repo/.git/phantom/worktrees/feature")),
+        from_path: None,
+        to_path: None,
+        contents: None,
+        result: Ok(MockResult::Bool(true)), // Directory exists
+    });
 
     // Mock get_worktree_status
     mock.expect_command("git")
@@ -270,7 +318,8 @@ async fn test_delete_json_output_success() {
 
     let context = HandlerContext::new(
         Arc::new(mock),
-        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        Arc::new(mock_fs),
+        Arc::new(crate::core::exit_handler::MockExitHandler::new()),
     );
     let args = DeleteArgs {
         name: Some("feature".to_string()),

@@ -39,10 +39,11 @@ mod tests {
         let args =
             AttachArgs { branch: "test-branch".to_string(), json: false, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-            filesystem: Arc::new(crate::core::filesystems::MockFileSystem::new()),
-        };
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        );
 
         let result = handle(args, context).await;
         if let Err(e) = &result {
@@ -74,10 +75,11 @@ mod tests {
         let args =
             AttachArgs { branch: "nonexistent".to_string(), json: false, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-            filesystem: Arc::new(crate::core::filesystems::MockFileSystem::new()),
-        };
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        );
 
         let result = handle(args, context).await;
         assert!(result.is_err());
@@ -115,10 +117,11 @@ mod tests {
             exec: None,
         };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-            filesystem: Arc::new(crate::core::filesystems::MockFileSystem::new()),
-        };
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        );
 
         let result = handle(args, context).await;
         assert!(result.is_err());
@@ -136,10 +139,11 @@ mod tests {
 
         let args = AttachArgs { branch: "".to_string(), json: false, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-            filesystem: Arc::new(crate::core::filesystems::MockFileSystem::new()),
-        };
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        );
 
         let result = handle(args, context).await;
         assert!(result.is_err());
@@ -180,10 +184,11 @@ mod tests {
         let args =
             AttachArgs { branch: "json-branch".to_string(), json: true, shell: false, exec: None };
 
-        let context = HandlerContext {
-            executor: Arc::new(mock),
-            filesystem: Arc::new(crate::core::filesystems::MockFileSystem::new()),
-        };
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        );
 
         let result = handle(args, context).await;
         if let Err(e) = &result {

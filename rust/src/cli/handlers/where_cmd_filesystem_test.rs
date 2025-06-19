@@ -34,6 +34,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { 
             name: Some("test".to_string()), 
@@ -68,6 +69,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { 
             name: Some("nonexistent".to_string()), 

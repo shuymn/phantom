@@ -74,6 +74,9 @@ pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
+    use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
+    use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+    use std::path::PathBuf;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -90,6 +93,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: false };
 
@@ -102,6 +106,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { name: None, fzf: false, json: false };
 
@@ -115,6 +120,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { name: Some("test".to_string()), fzf: true, json: false };
 
@@ -124,9 +130,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires filesystem mocking - where_worktree uses validate_worktree_exists which uses fs::metadata"]
     async fn test_where_worktree_exists() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -135,22 +141,20 @@ mod tests {
             0,
         );
 
-        // Mock worktree list for where_worktree
-        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
-            "worktree /repo\n\
-                 HEAD abc123\n\
-                 branch refs/heads/main\n\
-                 \n\
-                 worktree /repo/.phantom/test\n\
-                 HEAD def456\n\
-                 branch refs/heads/test\n",
-            "",
-            0,
-        );
+        // Mock filesystem check for worktree existence
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)), // Directory exists
+        });
 
         let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: false };
 
@@ -160,9 +164,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires filesystem mocking - where_worktree uses validate_worktree_exists which uses fs::metadata"]
     async fn test_where_worktree_not_found() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -182,7 +186,8 @@ mod tests {
 
         let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { name: Some("nonexistent".to_string()), fzf: false, json: false };
 
@@ -191,9 +196,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires filesystem mocking - where_worktree uses validate_worktree_exists which uses fs::metadata"]
     async fn test_where_json_output_success() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -202,22 +207,20 @@ mod tests {
             0,
         );
 
-        // Mock worktree list
-        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
-            "worktree /repo\n\
-                 HEAD abc123\n\
-                 branch refs/heads/main\n\
-                 \n\
-                 worktree /repo/.phantom/test\n\
-                 HEAD def456\n\
-                 branch refs/heads/test\n",
-            "",
-            0,
-        );
+        // Mock filesystem check for worktree existence
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)), // Directory exists
+        });
 
         let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: true };
 
@@ -227,9 +230,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires filesystem mocking - where_worktree uses validate_worktree_exists which uses fs::metadata"]
     async fn test_where_json_output_not_found() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -249,7 +252,8 @@ mod tests {
 
         let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = WhereArgs { name: Some("nonexistent".to_string()), fzf: false, json: true };
 
@@ -302,6 +306,7 @@ mod tests {
         let _context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let _args = WhereArgs { name: None, fzf: true, json: false };
 

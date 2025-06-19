@@ -13,8 +13,9 @@ pub async fn validate_worktree_exists(
 ) -> Result<WorktreeExistsSuccess> {
     let worktree_path = get_worktree_path(git_root, name);
 
-    match filesystem.metadata(&worktree_path).await {
-        Ok(_) => Ok(WorktreeExistsSuccess { path: worktree_path }),
+    match filesystem.is_dir(&worktree_path).await {
+        Ok(true) => Ok(WorktreeExistsSuccess { path: worktree_path }),
+        Ok(false) => Err(WorktreeError::NotFound(name.to_string()).into()),
         Err(_) => Err(WorktreeError::NotFound(name.to_string()).into()),
     }
 }
@@ -27,8 +28,9 @@ pub async fn validate_worktree_does_not_exist(
 ) -> Result<WorktreeDoesNotExistSuccess> {
     let worktree_path = get_worktree_path(git_root, name);
 
-    match filesystem.metadata(&worktree_path).await {
-        Ok(_) => Err(WorktreeError::AlreadyExists(name.to_string()).into()),
+    match filesystem.is_dir(&worktree_path).await {
+        Ok(true) => Err(WorktreeError::AlreadyExists(name.to_string()).into()),
+        Ok(false) => Ok(WorktreeDoesNotExistSuccess { path: worktree_path }),
         Err(_) => Ok(WorktreeDoesNotExistSuccess { path: worktree_path }),
     }
 }
@@ -39,7 +41,7 @@ pub async fn validate_phantom_directory_exists(
     filesystem: &dyn FileSystem,
 ) -> bool {
     let phantom_dir = get_phantom_directory(git_root);
-    filesystem.metadata(&phantom_dir).await.is_ok()
+    filesystem.is_dir(&phantom_dir).await.unwrap_or(false)
 }
 
 /// Validate worktree name

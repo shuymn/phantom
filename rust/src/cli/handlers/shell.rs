@@ -11,7 +11,6 @@ use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, Tm
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::validate::validate_worktree_exists;
 use crate::{PhantomError, Result};
-use std::process;
 
 /// Handle the shell command
 pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
@@ -146,13 +145,16 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
         spawn_shell_in_worktree(&git_root, &worktree_name, context.filesystem.as_ref()).await?;
 
     // Exit with the same code as the shell
-    process::exit(result.exit_code);
+    context.exit_handler.exit(result.exit_code);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
+    use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
+    use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+    use std::path::PathBuf;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -169,6 +171,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -194,6 +197,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ShellArgs {
             name: None,
@@ -220,6 +224,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -246,6 +251,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -276,6 +282,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -302,9 +309,11 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires filesystem mocking - validate_worktree_exists uses fs::metadata"]
+    #[ignore = "Requires refactoring - spawn_shell_in_worktree uses spawn_process directly instead of CommandExecutor"]
+    #[should_panic(expected = "MockExitHandler::exit called with code 0")]
     async fn test_shell_normal_execution() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -313,20 +322,43 @@ mod tests {
             0,
         );
 
+
+        // Mock filesystem check for worktree existence
+        // Note: validate_worktree_exists is called twice - once in the handler and once in spawn_shell_in_worktree
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)), // Directory exists
+        });
+        
+        // Second expectation for the same path (called from spawn_shell_in_worktree)
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)), // Directory exists
+        });
+
         // Mock shell detection would happen via detect_shell()
         // Mock shell spawn
         let mut env = std::collections::HashMap::new();
         env.insert("PHANTOM_WORKTREE".to_string(), "test".to_string());
-        env.insert("PHANTOM_WORKTREE_PATH".to_string(), "/repo/.phantom/test".to_string());
+        env.insert("PHANTOM_WORKTREE_PATH".to_string(), "/repo/.git/phantom/worktrees/test".to_string());
 
         mock.expect_command("/bin/bash") // Or whatever shell is detected
-            .in_dir("/repo/.phantom/test")
+            .in_dir("/repo/.git/phantom/worktrees/test")
             .with_env(env)
             .returns_output("", "", 0);
 
         let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -343,8 +375,8 @@ mod tests {
             kitty_h: false,
         };
 
-        // This test would call process::exit, so we can't easily test the success case
-        // without refactoring the handler to return the exit code instead
+        // This will panic with MockExitHandler
+        handle(args, context).await.unwrap();
     }
 
     #[tokio::test]
@@ -371,11 +403,12 @@ mod tests {
             ])
             .returns_pid(12345);
 
-        let context = HandlerContext::new(
+        let _context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
-        let args = ShellArgs {
+        let _args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
             tmux: true,
@@ -417,11 +450,12 @@ mod tests {
             ])
             .returns_pid(12345);
 
-        let context = HandlerContext::new(
+        let _context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
-        let args = ShellArgs {
+        let _args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
             tmux: false,
@@ -453,6 +487,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),

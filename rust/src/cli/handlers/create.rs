@@ -167,6 +167,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -210,6 +211,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -260,6 +262,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -319,6 +322,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -359,6 +363,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = CreateArgs {
             name: "invalid name with spaces".to_string(),

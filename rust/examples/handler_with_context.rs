@@ -51,9 +51,18 @@ async fn main() {
         0,
     );
 
+    // Create a simple mock exit handler for the example
+    struct SimpleExitHandler;
+    impl phantom::core::exit_handler::ExitHandler for SimpleExitHandler {
+        fn exit(&self, code: i32) -> ! {
+            std::process::exit(code)
+        }
+    }
+
     let test_context = HandlerContext::new(
         Arc::new(mock),
         Arc::new(phantom::core::filesystems::MockFileSystem::new()),
+        Arc::new(SimpleExitHandler),
     );
     let test_handler = StatusHandler::new(test_context.clone());
 

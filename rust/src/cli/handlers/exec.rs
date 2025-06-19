@@ -11,7 +11,6 @@ use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, Tm
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::validate::validate_worktree_exists;
 use crate::{PhantomError, Result};
-use std::process;
 
 /// Handle the exec command
 pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
@@ -168,13 +167,16 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
     .await?;
 
     // Exit with the same code as the executed command
-    process::exit(result.exit_code);
+    context.exit_handler.exit(result.exit_code);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
+    use crate::core::filesystems::{MockFileSystem, FileSystemExpectation};
+    use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
+    use std::path::PathBuf;
     use std::sync::Arc;
 
     #[tokio::test]
@@ -191,6 +193,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ExecArgs {
             name: Some("test".to_string()),
@@ -217,6 +220,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ExecArgs {
             name: None,
@@ -245,6 +249,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(MockCommandExecutor::new()),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ExecArgs {
             name: None,
@@ -278,6 +283,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ExecArgs {
             name: Some("test".to_string()),
@@ -305,9 +311,11 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires filesystem mocking - validate_worktree_exists uses fs::metadata"]
+    #[ignore = "Requires refactoring - exec_in_worktree uses spawn_process directly instead of CommandExecutor"]
+    #[should_panic(expected = "MockExitHandler::exit called with code 0")]
     async fn test_exec_success_normal() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -316,18 +324,40 @@ mod tests {
             0,
         );
 
-        // Mock worktree validation (would need filesystem mock)
+
+        // Mock filesystem check for worktree existence
+        // Note: validate_worktree_exists is called twice - once in the handler and once in exec_in_worktree
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)), // Directory exists
+        });
+        
+        // Second expectation for the same path (called from exec_in_worktree)
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)), // Directory exists
+        });
+
         // Mock command execution
         mock.expect_command("echo")
             .with_args(&["hello"])
-            .in_dir("/repo/.phantom/test")
+            .in_dir("/repo/.git/phantom/worktrees/test")
             .returns_output("hello\n", "", 0);
 
-        let _context = HandlerContext::new(
+        let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
-        let _args = ExecArgs {
+        let args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
             fzf: false,
@@ -343,8 +373,8 @@ mod tests {
             kitty_h: false,
         };
 
-        // This test would call process::exit, so we can't easily test the success case
-        // without refactoring the handler to return the exit code instead
+        // This will panic with MockExitHandler
+        handle(args, context).await.unwrap();
     }
 
     #[tokio::test]
@@ -364,11 +394,12 @@ mod tests {
             .with_args(&["new-window", "-n", "test", "-c", "/repo/.phantom/test", "echo hello"])
             .returns_pid(12345);
 
-        let context = HandlerContext::new(
+        let _context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
-        let args = ExecArgs {
+        let _args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
             fzf: false,
@@ -401,6 +432,7 @@ mod tests {
         let context = HandlerContext::new(
             Arc::new(mock),
             Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
         let args = ExecArgs {
             name: None, // Name will be taken from first command arg

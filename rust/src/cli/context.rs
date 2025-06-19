@@ -1,4 +1,5 @@
 use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
 use std::sync::Arc;
 
@@ -9,12 +10,22 @@ pub struct HandlerContext {
     pub executor: Arc<dyn CommandExecutor>,
     /// Filesystem abstraction for file operations
     pub filesystem: Arc<dyn FileSystem>,
+    /// Exit handler for process termination
+    pub exit_handler: Arc<dyn ExitHandler>,
 }
 
 impl HandlerContext {
-    /// Create a new handler context with the given executor and filesystem
-    pub fn new(executor: Arc<dyn CommandExecutor>, filesystem: Arc<dyn FileSystem>) -> Self {
-        Self { executor, filesystem }
+    /// Create a new handler context with the given executor, filesystem, and exit handler
+    pub fn new(
+        executor: Arc<dyn CommandExecutor>,
+        filesystem: Arc<dyn FileSystem>,
+        exit_handler: Arc<dyn ExitHandler>,
+    ) -> Self {
+        Self {
+            executor,
+            filesystem,
+            exit_handler,
+        }
     }
 }
 
@@ -23,6 +34,7 @@ impl Default for HandlerContext {
         Self::new(
             Arc::new(crate::core::executors::RealCommandExecutor),
             Arc::new(crate::core::filesystems::RealFileSystem::new()),
+            Arc::new(crate::core::exit_handler::RealExitHandler::new()),
         )
     }
 }
@@ -37,9 +49,12 @@ mod tests {
         let executor: Arc<dyn CommandExecutor> = Arc::new(MockCommandExecutor::new());
         let filesystem: Arc<dyn FileSystem> =
             Arc::new(crate::core::filesystems::MockFileSystem::new());
-        let context = HandlerContext::new(executor.clone(), filesystem.clone());
+        let exit_handler: Arc<dyn ExitHandler> =
+            Arc::new(crate::core::exit_handler::MockExitHandler::new());
+        let context = HandlerContext::new(executor.clone(), filesystem.clone(), exit_handler.clone());
         assert!(Arc::ptr_eq(&context.executor, &executor));
         assert!(Arc::ptr_eq(&context.filesystem, &filesystem));
+        assert!(Arc::ptr_eq(&context.exit_handler, &exit_handler));
     }
 
     #[test]
@@ -53,11 +68,13 @@ mod tests {
     fn test_handler_context_clone() {
         let executor = Arc::new(MockCommandExecutor::new());
         let filesystem = Arc::new(crate::core::filesystems::MockFileSystem::new());
-        let context1 = HandlerContext::new(executor, filesystem);
+        let exit_handler = Arc::new(crate::core::exit_handler::MockExitHandler::new());
+        let context1 = HandlerContext::new(executor, filesystem, exit_handler);
         let context2 = context1.clone();
 
-        // Both contexts should share the same executor and filesystem
+        // Both contexts should share the same executor, filesystem, and exit handler
         assert!(Arc::ptr_eq(&context1.executor, &context2.executor));
         assert!(Arc::ptr_eq(&context1.filesystem, &context2.filesystem));
+        assert!(Arc::ptr_eq(&context1.exit_handler, &context2.exit_handler));
     }
 }
