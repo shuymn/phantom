@@ -5,11 +5,13 @@ Active tasks for the Phantom Rust implementation.
 - Completed tasks: [ARCHIVE.md](./ARCHIVE.md)
 - Test strategy details: [TEST_STRATEGY.md](./TEST_STRATEGY.md)
 
-## 🚨 Critical: Architecture Fix Required
+## 🚨 Critical: Mock-Based Testing Strategy Required
 
-**Problem**: Tests that execute git commands are inherently unreliable across
-environments. **Solution**: Implement proper abstractions (GitBackend trait)
-throughout all handlers.
+**Problem**: Tests are frequently failing in CI due to environment differences,
+missing commands, and race conditions. **Solution**: Replace all external command
+calls with mocks that verify expected arguments instead of executing commands.
+
+See [MOCK_TESTING_PLAN.md](./MOCK_TESTING_PLAN.md) for detailed implementation plan.
 
 ### Progress Update (2025-06-19)
 - ✅ Removed 9 redundant CLI test files (1,291 lines)
@@ -20,20 +22,34 @@ throughout all handlers.
 
 ## 📋 Next Steps
 
-### Remaining from Immediate Tasks
+### 🚨 Priority 1: Implement Mock Testing Infrastructure (1-2 weeks)
+
+- [ ] Create CommandExecutor trait and implementations
+- [ ] Implement MockCommandExecutor with expectation builder
+- [ ] Refactor GitExecutor to use CommandExecutor trait
+- [ ] Update process operations to use CommandExecutor
+- [ ] Migrate tests to use mocks instead of real commands
+
+This is now the highest priority to resolve CI reliability issues.
+
+### Priority 2: Complete Test Migration
+
 - [ ] Move validation logic from integration tests to unit tests
+- [ ] Convert all command-executing tests to use mocks
+- [ ] Create separate integration test suite with `#[ignore]`
+- [ ] Update CI to run appropriate test suites
 
-### Ready to Start: Architecture Refactoring
-The test cleanup and safety implementation are complete. We can now proceed with
-the architecture refactoring to implement proper dependency injection.
+### Priority 3: Architecture Refactoring (After Mock Implementation)
 
-## 🔧 Architecture Refactoring (Next 2-3 Weeks)
+The dependency injection work naturally aligns with the mock testing infrastructure.
+
+## 🔧 Architecture Refactoring (Depends on Mock Infrastructure)
 
 ### Phase 1: Enable Dependency Injection
 
-- [ ] Add `backend: Arc<dyn GitBackend>` parameter to all handlers
+- [ ] Add `executor: Arc<dyn CommandExecutor>` to all handlers
 - [ ] Create `HandlerContext` struct for dependency passing
-- [ ] Update CLI main to inject `CommandBackend` by default
+- [ ] Update CLI main to inject `RealCommandExecutor` by default
 - [ ] Ensure backward compatibility
 
 ### Phase 2: Implement Test Infrastructure
