@@ -77,10 +77,8 @@ impl MockCommandExecutor {
 
         for expectation in expectations.iter() {
             if let Some(expected_times) = expectation.times {
-                let actual_calls = calls
-                    .iter()
-                    .filter(|call| self.matches_expectation(call, expectation))
-                    .count();
+                let actual_calls =
+                    calls.iter().filter(|call| self.matches_expectation(call, expectation)).count();
 
                 if actual_calls != expected_times {
                     return Err(PhantomError::ProcessExecution(format!(
@@ -139,11 +137,7 @@ impl MockCommandExecutor {
         true
     }
 
-    fn matches_spawn_expectation(
-        &self,
-        call: &SpawnCall,
-        expectation: &SpawnExpectation,
-    ) -> bool {
+    fn matches_spawn_expectation(&self, call: &SpawnCall, expectation: &SpawnExpectation) -> bool {
         if call.program != expectation.program {
             return false;
         }
@@ -274,11 +268,8 @@ impl CommandExpectationBuilder {
     }
 
     pub fn returns_output(mut self, stdout: &str, stderr: &str, exit_code: i32) {
-        self.expectation.returns = CommandOutput::new(
-            stdout.to_string(),
-            stderr.to_string(),
-            exit_code,
-        );
+        self.expectation.returns =
+            CommandOutput::new(stdout.to_string(), stderr.to_string(), exit_code);
         self.expectations.lock().unwrap().push(self.expectation);
     }
 
@@ -345,13 +336,14 @@ mod tests {
     #[tokio::test]
     async fn test_mock_command_success() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("echo")
-            .with_args(&["hello", "world"])
-            .times(1)
-            .returns_output("hello world\n", "", 0);
+        mock.expect_command("echo").with_args(&["hello", "world"]).times(1).returns_output(
+            "hello world\n",
+            "",
+            0,
+        );
 
-        let config = CommandConfig::new("echo")
-            .with_args(vec!["hello".to_string(), "world".to_string()]);
+        let config =
+            CommandConfig::new("echo").with_args(vec!["hello".to_string(), "world".to_string()]);
 
         let result = mock.execute(config).await;
         assert!(result.is_ok());
@@ -369,9 +361,7 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
         let cwd = PathBuf::from("/tmp");
 
-        mock.expect_command("ls")
-            .in_dir(&cwd)
-            .returns_output("file1\nfile2\n", "", 0);
+        mock.expect_command("ls").in_dir(&cwd).returns_output("file1\nfile2\n", "", 0);
 
         let config = CommandConfig::new("ls").with_cwd(cwd);
 
@@ -389,22 +379,15 @@ mod tests {
 
         let result = mock.execute(config).await;
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Unexpected command execution"));
+        assert!(result.unwrap_err().to_string().contains("Unexpected command execution"));
     }
 
     #[tokio::test]
     async fn test_mock_verify_times() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .with_args(&["status"])
-            .times(2)
-            .returns_success();
+        mock.expect_command("git").with_args(&["status"]).times(2).returns_success();
 
-        let config = CommandConfig::new("git")
-            .with_args(vec!["status".to_string()]);
+        let config = CommandConfig::new("git").with_args(vec!["status".to_string()]);
 
         mock.execute(config.clone()).await.unwrap();
 
@@ -422,12 +405,9 @@ mod tests {
     #[tokio::test]
     async fn test_mock_spawn_success() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_spawn("sleep")
-            .with_args(&["1"])
-            .returns_pid(9999);
+        mock.expect_spawn("sleep").with_args(&["1"]).returns_pid(9999);
 
-        let config = SpawnConfig::new("sleep")
-            .with_args(vec!["1".to_string()]);
+        let config = SpawnConfig::new("sleep").with_args(vec!["1".to_string()]);
 
         let result = mock.spawn(config).await;
         assert!(result.is_ok());
@@ -461,8 +441,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_returns_error() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("false")
-            .returns_error("Command failed");
+        mock.expect_command("false").returns_error("Command failed");
 
         let config = CommandConfig::new("false");
 
@@ -477,13 +456,10 @@ mod tests {
     #[tokio::test]
     async fn test_mock_calls_tracking() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .returns_success();
+        mock.expect_command("git").returns_success();
 
-        let config1 = CommandConfig::new("git")
-            .with_args(vec!["status".to_string()]);
-        let config2 = CommandConfig::new("git")
-            .with_args(vec!["log".to_string()]);
+        let config1 = CommandConfig::new("git").with_args(vec!["status".to_string()]);
+        let config2 = CommandConfig::new("git").with_args(vec!["log".to_string()]);
 
         mock.execute(config1).await.unwrap();
         mock.execute(config2).await.unwrap();

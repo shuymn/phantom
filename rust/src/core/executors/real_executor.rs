@@ -77,11 +77,7 @@ impl CommandExecutor for RealCommandExecutor {
             stderr.len()
         );
 
-        Ok(CommandOutput {
-            stdout,
-            stderr,
-            exit_code,
-        })
+        Ok(CommandOutput { stdout, stderr, exit_code })
     }
 
     async fn spawn(&self, config: SpawnConfig) -> Result<SpawnOutput> {
@@ -98,23 +94,11 @@ impl CommandExecutor for RealCommandExecutor {
             command.envs(env);
         }
 
-        command.stdin(if config.stdin {
-            Stdio::inherit()
-        } else {
-            Stdio::null()
-        });
+        command.stdin(if config.stdin { Stdio::inherit() } else { Stdio::null() });
 
-        command.stdout(if config.stdout {
-            Stdio::inherit()
-        } else {
-            Stdio::null()
-        });
+        command.stdout(if config.stdout { Stdio::inherit() } else { Stdio::null() });
 
-        command.stderr(if config.stderr {
-            Stdio::inherit()
-        } else {
-            Stdio::null()
-        });
+        command.stderr(if config.stderr { Stdio::inherit() } else { Stdio::null() });
 
         let child = command.spawn().map_err(|e| {
             PhantomError::ProcessExecution(format!(
@@ -139,8 +123,8 @@ mod tests {
     #[tokio::test]
     async fn test_execute_success() {
         let executor = RealCommandExecutor::new();
-        let config = CommandConfig::new("echo")
-            .with_args(vec!["hello".to_string(), "world".to_string()]);
+        let config =
+            CommandConfig::new("echo").with_args(vec!["hello".to_string(), "world".to_string()]);
 
         let result = executor.execute(config).await;
         assert!(result.is_ok());
@@ -194,10 +178,7 @@ mod tests {
 
         let result = executor.execute(config).await;
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Failed to execute command"));
+        assert!(result.unwrap_err().to_string().contains("Failed to execute command"));
     }
 
     #[tokio::test]
@@ -255,10 +236,7 @@ mod tests {
 
         let result = executor.spawn(config).await;
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Failed to spawn process"));
+        assert!(result.unwrap_err().to_string().contains("Failed to spawn process"));
     }
 
     #[tokio::test]

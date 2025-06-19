@@ -17,6 +17,11 @@ rust-version = "1.75.0"
 name = "phantom"
 path = "src/main.rs"
 
+[workspace.lints.clippy]
+all = "deny"
+pedantic = "warn"
+nursery = "warn"
+
 [dependencies]
 # Core
 clap = { version = "4", features = ["derive", "cargo"] }

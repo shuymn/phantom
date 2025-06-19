@@ -16,13 +16,7 @@ pub struct CommandConfig {
 
 impl CommandConfig {
     pub fn new(program: impl Into<String>) -> Self {
-        Self {
-            program: program.into(),
-            args: Vec::new(),
-            cwd: None,
-            env: None,
-            timeout: None,
-        }
+        Self { program: program.into(), args: Vec::new(), cwd: None, env: None, timeout: None }
     }
 
     pub fn with_args(mut self, args: Vec<String>) -> Self {
@@ -59,11 +53,7 @@ impl CommandOutput {
     }
 
     pub fn new(stdout: String, stderr: String, exit_code: i32) -> Self {
-        Self {
-            stdout,
-            stderr,
-            exit_code,
-        }
+        Self { stdout, stderr, exit_code }
     }
 }
 
