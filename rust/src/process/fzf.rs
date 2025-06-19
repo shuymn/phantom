@@ -15,7 +15,7 @@ pub struct FzfOptions {
 
 /// Select an item from a list using fzf with CommandExecutor
 pub async fn select_with_fzf_with_executor(
-    _executor: Arc<dyn CommandExecutor>,
+    executor: Arc<dyn CommandExecutor>,
     items: Vec<String>,
     options: FzfOptions,
 ) -> Result<Option<String>> {
@@ -44,16 +44,57 @@ pub async fn select_with_fzf_with_executor(
         args.push(preview_command.clone());
     }
 
-    // For testing, we'll simulate fzf behavior
-    // In real implementation, this would need to handle stdin/stdout properly
-    if cfg!(test) {
-        // In test mode, return the first item for simplicity
-        return Ok(items.first().cloned());
-    }
+    // Join items with newlines for stdin
+    let stdin_data = items.join("\n");
 
-    // For now, fall back to the original implementation
-    // TODO: Implement proper spawn-based execution with stdin/stdout handling
-    select_with_fzf(items, options).await
+    // Execute fzf with stdin data
+    let config = crate::core::command_executor::CommandConfig::new("fzf")
+        .with_args(args)
+        .with_stdin_data(stdin_data);
+
+    match executor.execute(config).await {
+        Ok(output) => {
+            match output.exit_code {
+                0 => {
+                    // Success - user selected an item
+                    let selected = output.stdout.trim().to_string();
+                    Ok(if selected.is_empty() { None } else { Some(selected) })
+                }
+                1 => {
+                    // No match found
+                    debug!("No match found in fzf");
+                    Ok(None)
+                }
+                2 => {
+                    // Error
+                    error!("fzf returned an error: {}", output.stderr);
+                    Err(PhantomError::ProcessExecution(format!("fzf error: {}", output.stderr)))
+                }
+                130 => {
+                    // User cancelled (Ctrl+C)
+                    debug!("User cancelled fzf selection");
+                    Ok(None)
+                }
+                _ => {
+                    error!("fzf exited with unexpected code: {}", output.exit_code);
+                    Err(PhantomError::ProcessExecution(format!(
+                        "fzf exited with code {}",
+                        output.exit_code
+                    )))
+                }
+            }
+        }
+        Err(e) => {
+            if e.to_string().contains("command not found") || e.to_string().contains("No such file")
+            {
+                Err(PhantomError::ProcessExecution(
+                    "fzf command not found. Please install fzf first.".to_string(),
+                ))
+            } else {
+                Err(e)
+            }
+        }
+    }
 }
 
 /// Select an item from a list using fzf (backward compatible)
@@ -244,10 +285,13 @@ mod tests {
     }
 
     #[tokio::test]
-    #[cfg(test)]
     async fn test_select_with_fzf_with_executor_returns_first() {
-        let mock = MockCommandExecutor::new();
+        let mut mock = MockCommandExecutor::new();
         let items = vec!["item1".to_string(), "item2".to_string()];
+
+        // Set up expectation for fzf command
+        mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("item1\n", "", 0);
+
         let result =
             select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
         assert!(result.is_ok());
@@ -279,24 +323,27 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_with_fzf_single_item() {
+        let mut mock = MockCommandExecutor::new();
         let items = vec!["single-item".to_string()];
-        let result = select_with_fzf(items, FzfOptions::default()).await;
 
-        // The result depends on whether fzf is available
-        match result {
-            Ok(_) => {} // Either Some or None is acceptable
-            Err(e) => {
-                // Should only error if fzf is not found
-                assert!(e.to_string().contains("fzf command not found"));
-            }
-        }
+        // Expect fzf to be called with the single item as stdin
+        mock.expect_command("fzf").with_stdin_data("single-item").returns_output(
+            "single-item\n",
+            "",
+            0,
+        );
+
+        let result =
+            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Some("single-item".to_string()));
     }
 
     #[tokio::test]
-    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_with_fzf_with_options() {
+        let mut mock = MockCommandExecutor::new();
         let items = vec!["item1".to_string(), "item2".to_string()];
         let options = FzfOptions {
             prompt: Some("Choose: ".to_string()),
@@ -304,15 +351,53 @@ mod tests {
             preview_command: Some("echo preview: {}".to_string()),
         };
 
-        let result = select_with_fzf(items, options).await;
+        // Expect fzf to be called with correct options and stdin
+        mock.expect_command("fzf")
+            .with_args(&[
+                "--prompt",
+                "Choose: ",
+                "--header",
+                "Items",
+                "--preview",
+                "echo preview: {}",
+            ])
+            .with_stdin_data("item1\nitem2")
+            .returns_output("item2\n", "", 0);
 
-        match result {
-            Ok(_) => {} // Either Some or None is acceptable
-            Err(e) => {
-                // Should only error if fzf is not found
-                assert!(e.to_string().contains("fzf"));
-            }
-        }
+        let result = select_with_fzf_with_executor(Arc::new(mock), items, options).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Some("item2".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_select_with_fzf_user_cancelled() {
+        let mut mock = MockCommandExecutor::new();
+        let items = vec!["item1".to_string(), "item2".to_string()];
+
+        // Simulate user pressing Ctrl+C (exit code 130)
+        mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("", "", 130);
+
+        let result =
+            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn test_select_with_fzf_no_match() {
+        let mut mock = MockCommandExecutor::new();
+        let items = vec!["item1".to_string(), "item2".to_string()];
+
+        // Simulate no match found (exit code 1)
+        mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("", "", 1);
+
+        let result =
+            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), None);
     }
 
     #[test]
@@ -397,12 +482,22 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "This test requires fzf and runs interactively"]
     async fn test_select_with_fzf_multiple_items() {
+        let mut mock = MockCommandExecutor::new();
         let items =
             vec!["option-one".to_string(), "option-two".to_string(), "option-three".to_string()];
 
-        let _result = select_with_fzf(items.clone(), FzfOptions::default()).await;
+        // Simulate user selecting the second option
+        mock.expect_command("fzf")
+            .with_stdin_data("option-one\noption-two\noption-three")
+            .returns_output("option-two\n", "", 0);
+
+        let result =
+            select_with_fzf_with_executor(Arc::new(mock), items.clone(), FzfOptions::default())
+                .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Some("option-two".to_string()));
 
         // Verify the input would be formatted correctly
         let expected_input = items.join("\n");
