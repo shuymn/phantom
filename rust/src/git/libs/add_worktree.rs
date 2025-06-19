@@ -1,16 +1,19 @@
-use crate::git::executor::GitExecutor;
+use crate::core::command_executor::CommandExecutor;
+use crate::git::git_executor_adapter::GitExecutor;
 use crate::{PhantomError, Result};
 use std::path::Path;
+use std::sync::Arc;
 use tracing::info;
 
-/// Add a new git worktree
-pub async fn add_worktree(
+/// Add a new git worktree with executor
+pub async fn add_worktree_with_executor(
+    executor: Arc<dyn CommandExecutor>,
     repo_path: &Path,
     worktree_path: &Path,
     branch: Option<&str>,
     new_branch: bool,
 ) -> Result<()> {
-    let executor = GitExecutor::with_cwd(repo_path);
+    let git_executor = GitExecutor::new(executor).with_cwd(repo_path);
 
     let mut args = vec!["worktree", "add"];
 
@@ -38,9 +41,20 @@ pub async fn add_worktree(
     }
 
     info!("Creating worktree at {:?} for branch {:?}", worktree_path, branch);
-    executor.run(&args).await?;
+    git_executor.run(&args).await?;
 
     Ok(())
+}
+
+/// Add a new git worktree using the default executor
+pub async fn add_worktree(
+    repo_path: &Path,
+    worktree_path: &Path,
+    branch: Option<&str>,
+    new_branch: bool,
+) -> Result<()> {
+    use crate::core::executors::RealCommandExecutor;
+    add_worktree_with_executor(Arc::new(RealCommandExecutor), repo_path, worktree_path, branch, new_branch).await
 }
 
 /// Add a new worktree with automatic branch name
@@ -83,7 +97,8 @@ mod tests {
         repo.create_branch("existing-branch").await.unwrap();
 
         // Switch back to main branch to allow worktree creation
-        let executor = GitExecutor::with_cwd(repo.path());
+        use crate::core::executors::RealCommandExecutor;
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.ok();
 
         let temp_dir = tempdir().unwrap();
