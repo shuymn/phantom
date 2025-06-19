@@ -238,7 +238,9 @@ mod tests {
 
     impl Drop for TestWorkingDir {
         fn drop(&mut self) {
-            env::set_current_dir(&self.original).unwrap();
+            // Try to restore the original directory, but don't panic if it no longer exists
+            // This can happen when testing with temporary directories that get cleaned up
+            let _ = env::set_current_dir(&self.original);
         }
     }
 }
