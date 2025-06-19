@@ -9,7 +9,7 @@ use crate::process::kitty::{
 };
 use crate::process::shell::{detect_shell, get_phantom_env};
 use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
-use crate::worktree::select::select_worktree_with_fzf;
+use crate::worktree::select::{select_worktree_with_fzf, select_worktree_with_fzf_with_executor};
 use crate::worktree::validate::validate_worktree_exists;
 use crate::{PhantomError, Result};
 
@@ -68,7 +68,13 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        match select_worktree_with_fzf(&git_root).await? {
+        let result = if cfg!(test) {
+            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?
+        } else {
+            select_worktree_with_fzf(&git_root).await?
+        };
+
+        match result {
             Some(worktree) => worktree.name,
             None => {
                 // User cancelled selection

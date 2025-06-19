@@ -3,7 +3,7 @@ use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::worktree::locate::where_worktree;
-use crate::worktree::select::select_worktree_with_fzf;
+use crate::worktree::select::{select_worktree_with_fzf, select_worktree_with_fzf_with_executor};
 use crate::{PhantomError, Result};
 
 /// Handle the where command
@@ -26,7 +26,13 @@ pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        match select_worktree_with_fzf(&git_root).await? {
+        let result = if cfg!(test) {
+            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?
+        } else {
+            select_worktree_with_fzf(&git_root).await?
+        };
+
+        match result {
             Some(worktree) => worktree.name,
             None => {
                 // User cancelled selection
@@ -263,9 +269,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore = "Requires fzf command mocking - select_worktree_with_fzf uses process execution"]
     async fn test_where_with_fzf_selection() {
         let mut mock = MockCommandExecutor::new();
+        let mock_fs = MockFileSystem::new();
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -287,31 +293,45 @@ mod tests {
             0,
         );
 
+        // Mock git status for main worktree
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir(PathBuf::from("/repo"))
+            .returns_output("", "", 0);
+
+        // Mock git status for test worktree
+        mock.expect_command("git")
+            .with_args(&["status", "--porcelain"])
+            .in_dir(PathBuf::from("/repo/.phantom/test"))
+            .returns_output("", "", 0);
+
+        // Mock fzf availability check
+        mock.expect_command("fzf").with_args(&["--version"]).returns_output("0.42.0", "", 0);
+
         // Mock fzf selection
-        mock.expect_command("fzf").returns_output("test", "", 0);
+        mock.expect_command("fzf")
+            .with_args(&["--prompt", "Select worktree> ", "--header", "Git Worktrees"])
+            .with_stdin_data("test (test)")
+            .returns_output("test (test)\n", "", 0);
 
-        // Mock second worktree list for where_worktree
-        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
-            "worktree /repo\n\
-                 HEAD abc123\n\
-                 branch refs/heads/main\n\
-                 \n\
-                 worktree /repo/.phantom/test\n\
-                 HEAD def456\n\
-                 branch refs/heads/test\n",
-            "",
-            0,
-        );
+        // Mock filesystem check for worktree existence
+        mock_fs.expect(FileSystemExpectation {
+            operation: FileSystemOperation::IsDir,
+            path: Some(PathBuf::from("/repo/.git/phantom/worktrees/test")),
+            from_path: None,
+            to_path: None,
+            contents: None,
+            result: Ok(MockResult::Bool(true)), // Directory exists
+        });
 
-        let _context = HandlerContext::new(
+        let context = HandlerContext::new(
             Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+            Arc::new(mock_fs),
             Arc::new(crate::core::exit_handler::MockExitHandler::new()),
         );
-        let _args = WhereArgs { name: None, fzf: true, json: false };
+        let args = WhereArgs { name: None, fzf: true, json: false };
 
-        // This test requires fzf process mocking
-        // let result = handle(args, context).await;
-        // assert!(result.is_ok());
+        let result = handle(args, context).await;
+        assert!(result.is_ok());
     }
 }
