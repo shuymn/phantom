@@ -10,6 +10,7 @@ dist
 
 # Rust
 rust/target/
+target/
 rust/Cargo.lock
 **/*.rs.bk
 *.pdb
