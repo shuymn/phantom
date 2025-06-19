@@ -54,7 +54,14 @@ pub async fn add_worktree(
     new_branch: bool,
 ) -> Result<()> {
     use crate::core::executors::RealCommandExecutor;
-    add_worktree_with_executor(Arc::new(RealCommandExecutor), repo_path, worktree_path, branch, new_branch).await
+    add_worktree_with_executor(
+        Arc::new(RealCommandExecutor),
+        repo_path,
+        worktree_path,
+        branch,
+        new_branch,
+    )
+    .await
 }
 
 /// Add a new worktree with automatic branch name

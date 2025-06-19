@@ -13,10 +13,11 @@ impl HandlerContext {
     pub fn new(executor: Arc<dyn CommandExecutor>) -> Self {
         Self { executor }
     }
+}
 
-    /// Create a default handler context with RealCommandExecutor
-    pub fn default() -> Self {
-        Self::new(Arc::new(crate::core::executors::RealCommandExecutor::new()))
+impl Default for HandlerContext {
+    fn default() -> Self {
+        Self::new(Arc::new(crate::core::executors::RealCommandExecutor))
     }
 }
 
@@ -27,7 +28,7 @@ mod tests {
 
     #[test]
     fn test_handler_context_new() {
-        let executor = Arc::new(MockCommandExecutor::new());
+        let executor: Arc<dyn CommandExecutor> = Arc::new(MockCommandExecutor::new());
         let context = HandlerContext::new(executor.clone());
         assert!(Arc::ptr_eq(&context.executor, &executor));
     }
@@ -44,7 +45,7 @@ mod tests {
         let executor = Arc::new(MockCommandExecutor::new());
         let context1 = HandlerContext::new(executor);
         let context2 = context1.clone();
-        
+
         // Both contexts should share the same executor
         assert!(Arc::ptr_eq(&context1.executor, &context2.executor));
     }

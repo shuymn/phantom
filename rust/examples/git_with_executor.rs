@@ -20,8 +20,8 @@ impl GitOperations {
     }
 
     async fn status(&self) -> Result<String, Box<dyn std::error::Error>> {
-        let mut config = CommandConfig::new("git")
-            .with_args(vec!["status".to_string(), "--short".to_string()]);
+        let mut config =
+            CommandConfig::new("git").with_args(vec!["status".to_string(), "--short".to_string()]);
 
         if let Some(ref cwd) = self.cwd {
             config = config.with_cwd(cwd.into());
@@ -63,8 +63,8 @@ impl GitOperations {
     }
 
     async fn list_worktrees(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-        let mut config = CommandConfig::new("git")
-            .with_args(vec!["worktree".to_string(), "list".to_string()]);
+        let mut config =
+            CommandConfig::new("git").with_args(vec!["worktree".to_string(), "list".to_string()]);
 
         if let Some(ref cwd) = self.cwd {
             config = config.with_cwd(cwd.into());
@@ -86,36 +86,40 @@ async fn main() {
 
     // Test scenario with mocks
     println!("1. Testing git operations with mocks:");
-    
+
     let mut mock = MockCommandExecutor::new();
-    
+
     // Set up expectations
-    mock.expect_command("git")
-        .with_args(&["status", "--short"])
-        .returns_output("M  file.txt\n", "", 0);
-    
+    mock.expect_command("git").with_args(&["status", "--short"]).returns_output(
+        "M  file.txt\n",
+        "",
+        0,
+    );
+
     mock.expect_command("git")
         .with_args(&["worktree", "add", "-b", "feature/test", "phantoms/feature-test"])
         .returns_success();
-    
-    mock.expect_command("git")
-        .with_args(&["worktree", "list"])
-        .returns_output("/path/to/main  abc123 [main]\n/path/to/feature-test  def456 [feature/test]\n", "", 0);
+
+    mock.expect_command("git").with_args(&["worktree", "list"]).returns_output(
+        "/path/to/main  abc123 [main]\n/path/to/feature-test  def456 [feature/test]\n",
+        "",
+        0,
+    );
 
     let git = GitOperations::new(Arc::new(mock));
-    
+
     // Test status
     match git.status().await {
         Ok(status) => println!("  Status: {}", status.trim()),
         Err(e) => println!("  Status error: {}", e),
     }
-    
+
     // Test add worktree
     match git.add_worktree("phantoms/feature-test", "feature/test").await {
         Ok(()) => println!("  ✓ Worktree added successfully"),
         Err(e) => println!("  ✗ Add worktree error: {}", e),
     }
-    
+
     // Test list worktrees
     match git.list_worktrees().await {
         Ok(worktrees) => {

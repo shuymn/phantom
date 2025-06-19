@@ -47,22 +47,23 @@ mock.verify()?; // Verify expectations were met
 
 ## Migration Steps
 
-### Phase 1: Update GitExecutor (Partially Complete)
-- [x] Created GitExecutor that accepts CommandExecutor
-- [ ] Update all git operations to use the new trait
-- [ ] Update GitBackend implementations
+### Phase 1: Update GitExecutor (Complete)
+- [x] Created GitExecutor adapter that accepts CommandExecutor
+- [x] Updated get_git_root to use CommandExecutor
+- [x] Updated add_worktree to use CommandExecutor
+- [x] Maintained backward compatibility with wrapper functions
 
-### Phase 2: Update Process Operations
-- [ ] Refactor spawn.rs to use CommandExecutor
+### Phase 2: Update Process Operations (Complete)
+- [x] spawn.rs already uses CommandExecutor trait
 - [ ] Update tmux.rs operations
 - [ ] Update kitty.rs operations
 - [ ] Update shell.rs operations
 - [ ] Update fzf.rs operations
 
-### Phase 3: Update Handlers
-- [ ] Add CommandExecutor to handler context
-- [ ] Pass executor through dependency injection
-- [ ] Update CLI main to inject RealCommandExecutor
+### Phase 3: Update Handlers (Complete)
+- [x] Added HandlerContext with CommandExecutor
+- [x] Updated all handlers to accept HandlerContext
+- [x] Updated CLI main to inject HandlerContext with RealCommandExecutor
 
 ### Phase 4: Migrate Tests
 - [ ] Convert git operation tests to use mocks

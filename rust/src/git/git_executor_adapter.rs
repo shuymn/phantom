@@ -19,11 +19,7 @@ pub struct GitExecutor {
 impl GitExecutor {
     /// Create a new GitExecutor with a CommandExecutor
     pub fn new(executor: Arc<dyn CommandExecutor>) -> Self {
-        Self {
-            executor,
-            cwd: None,
-            timeout_duration: DEFAULT_GIT_TIMEOUT,
-        }
+        Self { executor, cwd: None, timeout_duration: DEFAULT_GIT_TIMEOUT }
     }
 
     /// Create a GitExecutor with a specific working directory
@@ -86,14 +82,16 @@ impl GitExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::executors::{MockCommandExecutor, RealCommandExecutor};
+    use crate::core::executors::MockCommandExecutor;
 
     #[tokio::test]
     async fn test_git_executor_with_mock() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .with_args(&["status", "--short"])
-            .returns_output("M file.txt\n", "", 0);
+        mock.expect_command("git").with_args(&["status", "--short"]).returns_output(
+            "M file.txt\n",
+            "",
+            0,
+        );
 
         let executor = GitExecutor::new(Arc::new(mock));
         let result = executor.run(&["status", "--short"]).await.unwrap();
@@ -103,10 +101,7 @@ mod tests {
     #[tokio::test]
     async fn test_git_executor_with_cwd() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .with_args(&["status"])
-            .with_cwd("/test/repo")
-            .returns_success();
+        mock.expect_command("git").with_args(&["status"]).in_dir("/test/repo").returns_success();
 
         let executor = GitExecutor::new(Arc::new(mock)).with_cwd("/test/repo");
         let result = executor.run(&["status"]).await.unwrap();
@@ -116,9 +111,11 @@ mod tests {
     #[tokio::test]
     async fn test_git_executor_error() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .with_args(&["invalid"])
-            .returns_output("", "git: 'invalid' is not a git command", 1);
+        mock.expect_command("git").with_args(&["invalid"]).returns_output(
+            "",
+            "git: 'invalid' is not a git command",
+            1,
+        );
 
         let executor = GitExecutor::new(Arc::new(mock));
         let result = executor.run(&["invalid"]).await;
@@ -136,9 +133,11 @@ mod tests {
     #[tokio::test]
     async fn test_run_lines() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .with_args(&["branch", "-a"])
-            .returns_output("main\n  feature/test\n  feature/another\n", "", 0);
+        mock.expect_command("git").with_args(&["branch", "-a"]).returns_output(
+            "main\n  feature/test\n  feature/another\n",
+            "",
+            0,
+        );
 
         let executor = GitExecutor::new(Arc::new(mock));
         let lines = executor.run_lines(&["branch", "-a"]).await.unwrap();
@@ -159,9 +158,11 @@ mod tests {
     #[tokio::test]
     async fn test_is_not_in_git_repo() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-dir"])
-            .returns_output("", "fatal: not a git repository", 128);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-dir"]).returns_output(
+            "",
+            "fatal: not a git repository",
+            128,
+        );
 
         let executor = GitExecutor::new(Arc::new(mock));
         assert!(!executor.is_in_git_repo().await);
