@@ -33,7 +33,6 @@ pub struct MockCommandExecutor {
     calls: Arc<Mutex<Vec<CommandCall>>>,
 }
 
-
 impl MockCommandExecutor {
     pub fn new() -> Self {
         Self {
@@ -45,7 +44,6 @@ impl MockCommandExecutor {
     pub fn expect_command(&mut self, program: &str) -> CommandExpectationBuilder {
         CommandExpectationBuilder::new(self.expectations.clone(), program)
     }
-
 
     pub fn verify(&self) -> Result<()> {
         let expectations = self.expectations.lock().unwrap();
@@ -64,7 +62,6 @@ impl MockCommandExecutor {
                 }
             }
         }
-
 
         Ok(())
     }
@@ -137,7 +134,6 @@ impl CommandExecutor for MockCommandExecutor {
             config.program, config.args
         )))
     }
-
 }
 
 pub struct CommandExpectationBuilder {
@@ -200,7 +196,6 @@ impl CommandExpectationBuilder {
         self.returns_output("", stderr, 1)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -275,7 +270,6 @@ mod tests {
         mock.execute(config).await.unwrap();
         assert!(mock.verify().is_ok());
     }
-
 
     #[tokio::test]
     async fn test_mock_with_env() {

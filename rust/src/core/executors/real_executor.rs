@@ -241,7 +241,6 @@ mod tests {
         assert_eq!(output.exit_code, 1);
     }
 
-
     #[tokio::test]
     async fn test_default_impl() {
         let executor1 = RealCommandExecutor::new();
