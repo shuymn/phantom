@@ -79,7 +79,7 @@ impl MockFileSystem {
     pub fn expect(&self, expectation: FileSystemExpectation) {
         let key = self.expectation_key(&expectation);
         let mut expectations = self.expectations.lock().unwrap();
-        expectations.entry(key).or_insert_with(Vec::new).push(expectation);
+        expectations.entry(key).or_default().push(expectation);
     }
 
     fn expectation_key(&self, expectation: &FileSystemExpectation) -> String {
