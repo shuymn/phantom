@@ -114,7 +114,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ListArgs { fzf: false, json: false, names: false };
 
         let result = handle(args, context).await;
@@ -139,7 +142,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ListArgs { fzf: false, json: false, names: false };
 
         let result = handle(args, context).await;
@@ -185,7 +191,10 @@ mod tests {
             .in_dir("/home/user/project/.phantom/feature-2")
             .returns_output("M README.md\n", "", 0); // Dirty
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ListArgs { fzf: false, json: false, names: false };
 
         let result = handle(args, context).await;
@@ -222,7 +231,10 @@ mod tests {
             .in_dir("/home/user/project/.phantom/feature-1")
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ListArgs { fzf: false, json: true, names: false };
 
         let result = handle(args, context).await;
@@ -259,7 +271,10 @@ mod tests {
             .in_dir("/home/user/project/.phantom/feature-1")
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = ListArgs { fzf: false, json: false, names: true };
 
         let result = handle(args, context).await;

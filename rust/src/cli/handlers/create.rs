@@ -164,7 +164,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = CreateArgs {
             name: "feature".to_string(),
             branch: None,
@@ -204,7 +207,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = CreateArgs {
             name: "feature".to_string(),
             branch: None,
@@ -251,7 +257,10 @@ mod tests {
                 0,
             );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = CreateArgs {
             name: "feature".to_string(),
             branch: None,
@@ -307,7 +316,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = CreateArgs {
             name: "feature".to_string(),
             branch: Some("custom-feature".to_string()),
@@ -344,7 +356,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(Arc::new(mock));
+        let context = HandlerContext::new(
+            Arc::new(mock),
+            Arc::new(crate::core::filesystems::MockFileSystem::new()),
+        );
         let args = CreateArgs {
             name: "invalid name with spaces".to_string(),
             branch: None,

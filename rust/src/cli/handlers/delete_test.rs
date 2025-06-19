@@ -24,7 +24,10 @@ async fn test_delete_not_in_git_repo() {
         128,
     );
 
-    let context = HandlerContext::new(Arc::new(mock));
+    let context = HandlerContext::new(
+        Arc::new(mock),
+        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+    );
     let args = DeleteArgs {
         name: Some("test".to_string()),
         current: false,
@@ -57,7 +60,10 @@ async fn test_delete_with_current_flag_not_in_worktree() {
         0,
     );
 
-    let context = HandlerContext::new(Arc::new(mock));
+    let context = HandlerContext::new(
+        Arc::new(mock),
+        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+    );
     let args = DeleteArgs { name: None, current: true, force: false, fzf: false, json: false };
 
     let result = super::handle(args, context).await;
@@ -102,7 +108,10 @@ async fn test_delete_worktree_success() {
         .in_dir("/repo")
         .returns_success();
 
-    let context = HandlerContext::new(Arc::new(mock));
+    let context = HandlerContext::new(
+        Arc::new(mock),
+        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+    );
     let args = DeleteArgs {
         name: Some("feature".to_string()),
         current: false,
@@ -141,7 +150,10 @@ async fn test_delete_worktree_with_uncommitted_changes_no_force() {
         .in_dir("/repo/.git/phantom/worktrees/feature")
         .returns_output("M  file.txt\n?? new.txt\n", "", 0);
 
-    let context = HandlerContext::new(Arc::new(mock));
+    let context = HandlerContext::new(
+        Arc::new(mock),
+        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+    );
     let args = DeleteArgs {
         name: Some("feature".to_string()),
         current: false,
@@ -202,7 +214,10 @@ async fn test_delete_worktree_with_force() {
         .in_dir("/repo")
         .returns_success();
 
-    let context = HandlerContext::new(Arc::new(mock));
+    let context = HandlerContext::new(
+        Arc::new(mock),
+        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+    );
     let args = DeleteArgs {
         name: Some("feature".to_string()),
         current: false,
@@ -253,7 +268,10 @@ async fn test_delete_json_output_success() {
         .in_dir("/repo")
         .returns_success();
 
-    let context = HandlerContext::new(Arc::new(mock));
+    let context = HandlerContext::new(
+        Arc::new(mock),
+        Arc::new(crate::core::filesystems::MockFileSystem::new()),
+    );
     let args = DeleteArgs {
         name: Some("feature".to_string()),
         current: false,
