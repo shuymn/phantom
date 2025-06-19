@@ -51,7 +51,10 @@ async fn main() {
         0,
     );
 
-    let test_context = HandlerContext::new(Arc::new(mock));
+    let test_context = HandlerContext::new(
+        Arc::new(mock),
+        Arc::new(phantom::core::filesystems::MockFileSystem::new()),
+    );
     let test_handler = StatusHandler::new(test_context.clone());
 
     match test_handler.handle().await {
