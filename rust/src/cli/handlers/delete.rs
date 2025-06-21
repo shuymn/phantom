@@ -1,6 +1,9 @@
 use crate::cli::commands::delete::{DeleteArgs, DeleteResult};
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_current_worktree::get_current_worktree_with_executor;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::worktree::delete::delete_worktree_with_executor;
@@ -9,7 +12,12 @@ use crate::worktree::types::DeleteWorktreeOptions;
 use crate::{PhantomError, Result};
 
 /// Handle the delete command
-pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
+pub async fn handle<E, F, H>(args: DeleteArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
     // Validate args
     if args.name.is_none() && !args.current && !args.fzf {
         return Err(PhantomError::Validation(
@@ -30,12 +38,16 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
     }
 
     // Get git root
-    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
+    let git_root =
+        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     // Get worktree name
     let worktree_name = if args.current {
-        let current =
-            get_current_worktree_with_executor(context.executor.clone(), &git_root).await?;
+        let current = get_current_worktree_with_executor(
+            std::sync::Arc::new(context.executor.clone()),
+            &git_root,
+        )
+        .await?;
         match current {
             Some(name) => name,
             None => {
@@ -60,11 +72,11 @@ pub async fn handle(args: DeleteArgs, context: HandlerContext) -> Result<()> {
     let options = DeleteWorktreeOptions { force: args.force };
 
     match delete_worktree_with_executor(
-        context.executor.clone(),
+        std::sync::Arc::new(context.executor.clone()),
         &git_root,
         &worktree_name,
         options,
-        context.filesystem.as_ref(),
+        &context.filesystem,
     )
     .await
     {

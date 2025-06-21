@@ -13,13 +13,14 @@ use tracing::debug;
 /// # Example
 /// ```no_run
 /// use phantom::git::libs::current_commit::current_commit_with_executor;
-/// use phantom::cli::context::HandlerContext;
+/// use phantom::cli::context::ProductionContext;
 /// use phantom::Result;
 /// use std::path::Path;
+/// use std::sync::Arc;
 ///
-/// async fn handle_something(context: HandlerContext) -> Result<()> {
+/// async fn handle_something(context: ProductionContext) -> Result<()> {
 ///     let commit = current_commit_with_executor(
-///         context.executor.clone(),
+///         Arc::new(context.executor),
 ///         Path::new("/repo/path")
 ///     ).await?;
 ///     println!("Current commit: {}", commit);

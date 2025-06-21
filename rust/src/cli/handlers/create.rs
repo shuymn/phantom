@@ -2,6 +2,9 @@ use crate::cli::commands::create::{CreateArgs, CreateResult};
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::config::loader::load_config;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::process::exec::exec_in_dir;
 use crate::process::multiplexer::{execute_in_multiplexer, MultiplexerOptions, SplitDirection};
@@ -12,27 +15,33 @@ use crate::worktree::types::CreateWorktreeOptions;
 use crate::Result;
 
 /// Handle the create command
-pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
+pub async fn handle<E, F, H>(args: CreateArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
     // Get git root
-    let git_root = match get_git_root_with_executor(context.executor.clone()).await {
-        Ok(root) => root,
-        Err(e) => {
-            if args.json {
-                let result = CreateResult {
-                    success: false,
-                    name: args.name.clone(),
-                    branch: args.branch.clone().unwrap_or_else(|| args.name.clone()),
-                    path: String::new(),
-                    copied_files: None,
-                    error: Some(e.to_string()),
-                };
-                output().json(&result)?;
-                return Err(e);
-            } else {
-                return Err(e);
+    let git_root =
+        match get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await {
+            Ok(root) => root,
+            Err(e) => {
+                if args.json {
+                    let result = CreateResult {
+                        success: false,
+                        name: args.name.clone(),
+                        branch: args.branch.clone().unwrap_or_else(|| args.name.clone()),
+                        path: String::new(),
+                        copied_files: None,
+                        error: Some(e.to_string()),
+                    };
+                    output().json(&result)?;
+                    return Err(e);
+                } else {
+                    return Err(e);
+                }
             }
-        }
-    };
+        };
 
     // Load config for copy files
     let config = load_config(&git_root).await.ok().flatten();
@@ -163,7 +172,7 @@ mod tests {
             128,
         );
 
-        let context = crate::cli::context::TestHandlerContext::create(
+        let context = HandlerContext::new(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -207,7 +216,7 @@ mod tests {
             128,
         );
 
-        let context = crate::cli::context::TestHandlerContext::create(
+        let context = HandlerContext::new(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -258,7 +267,7 @@ mod tests {
                 0,
             );
 
-        let context = crate::cli::context::TestHandlerContext::create(
+        let context = HandlerContext::new(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -318,7 +327,7 @@ mod tests {
             0,
         );
 
-        let context = crate::cli::context::TestHandlerContext::create(
+        let context = HandlerContext::new(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -359,7 +368,7 @@ mod tests {
             0,
         );
 
-        let context = crate::cli::context::TestHandlerContext::create(
+        let context = HandlerContext::new(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),

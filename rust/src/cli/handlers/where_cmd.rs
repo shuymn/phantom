@@ -1,13 +1,21 @@
 use crate::cli::commands::where_cmd::{WhereArgs, WhereResult};
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::worktree::locate::where_worktree;
-use crate::worktree::select::{select_worktree_with_fzf, select_worktree_with_fzf_with_executor};
+use crate::worktree::select::select_worktree_with_fzf_with_executor;
 use crate::{PhantomError, Result};
 
 /// Handle the where command
-pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
+pub async fn handle<E, F, H>(args: WhereArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
     // Validate args
     if args.name.is_none() && !args.fzf {
         return Err(PhantomError::Validation(
@@ -22,15 +30,16 @@ pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
     }
 
     // Get git root
-    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
+    let git_root =
+        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result = if cfg!(test) {
-            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?
-        } else {
-            select_worktree_with_fzf(&git_root).await?
-        };
+        let result = select_worktree_with_fzf_with_executor(
+            std::sync::Arc::new(context.executor.clone()),
+            &git_root,
+        )
+        .await?;
 
         match result {
             Some(worktree) => worktree.name,
@@ -44,7 +53,7 @@ pub async fn handle(args: WhereArgs, context: HandlerContext) -> Result<()> {
     };
 
     // Get the worktree path
-    match where_worktree(&git_root, &worktree_name, context.filesystem.as_ref()).await {
+    match where_worktree(&git_root, &worktree_name, &context.filesystem).await {
         Ok(result) => {
             if args.json {
                 let json_result = WhereResult {
@@ -83,7 +92,6 @@ mod tests {
     use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
     use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
     use std::path::PathBuf;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_where_not_in_git_repo() {
@@ -97,9 +105,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: false };
 
@@ -110,9 +118,9 @@ mod tests {
     #[tokio::test]
     async fn test_where_invalid_usage_no_name_no_fzf() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = WhereArgs { name: None, fzf: false, json: false };
 
@@ -124,9 +132,9 @@ mod tests {
     #[tokio::test]
     async fn test_where_both_name_and_fzf() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = WhereArgs { name: Some("test".to_string()), fzf: true, json: false };
 
@@ -157,11 +165,8 @@ mod tests {
             result: Ok(MockResult::Bool(true)), // Directory exists
         });
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: false };
 
         let result = handle(args, context).await;
@@ -190,11 +195,8 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = WhereArgs { name: Some("nonexistent".to_string()), fzf: false, json: false };
 
         let result = handle(args, context).await;
@@ -223,11 +225,8 @@ mod tests {
             result: Ok(MockResult::Bool(true)), // Directory exists
         });
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = WhereArgs { name: Some("test".to_string()), fzf: false, json: true };
 
         let result = handle(args, context).await;
@@ -256,11 +255,8 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = WhereArgs { name: Some("nonexistent".to_string()), fzf: false, json: true };
 
         let result = handle(args, context).await;
@@ -324,11 +320,8 @@ mod tests {
             result: Ok(MockResult::Bool(true)), // Directory exists
         });
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = WhereArgs { name: None, fzf: true, json: false };
 
         let result = handle(args, context).await;

@@ -1,6 +1,9 @@
 use crate::cli::commands::list::ListArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::worktree::list::list_worktrees_with_executor;
 use crate::worktree::select::select_worktree_with_fzf;
@@ -21,8 +24,14 @@ struct WorktreeJsonItem {
 }
 
 /// Handle the list command
-pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
-    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
+pub async fn handle<E, F, H>(args: ListArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
+    let git_root =
+        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     if args.fzf {
         // Use fzf for interactive selection
@@ -36,7 +45,9 @@ pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
         }
     } else {
         // List all worktrees
-        let result = list_worktrees_with_executor(context.executor.clone(), &git_root).await?;
+        let result =
+            list_worktrees_with_executor(std::sync::Arc::new(context.executor.clone()), &git_root)
+                .await?;
 
         if result.worktrees.is_empty() {
             if args.json {
@@ -91,7 +102,6 @@ pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use std::sync::Arc;
 
     // IMPORTANT: Mock testing lesson learned
     //
@@ -115,9 +125,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: false };
 
@@ -144,9 +154,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: false };
 
@@ -194,9 +204,9 @@ mod tests {
             .returns_output("M README.md\n", "", 0); // Dirty
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: false };
 
@@ -235,9 +245,9 @@ mod tests {
             .returns_output("", "", 0);
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: true, names: false };
 
@@ -276,9 +286,9 @@ mod tests {
             .returns_output("", "", 0);
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: true };
 

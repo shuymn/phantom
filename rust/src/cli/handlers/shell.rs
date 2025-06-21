@@ -73,12 +73,16 @@ where
     }
 
     // Get git root
-    let git_root = get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
+    let git_root =
+        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result = 
-            select_worktree_with_fzf_with_executor(std::sync::Arc::new(context.executor.clone()), &git_root).await?;
+        let result = select_worktree_with_fzf_with_executor(
+            std::sync::Arc::new(context.executor.clone()),
+            &git_root,
+        )
+        .await?;
 
         match result {
             Some(worktree) => worktree.name,
@@ -121,7 +125,8 @@ where
             },
         };
 
-        execute_tmux_command_with_executor(std::sync::Arc::new(context.executor.clone()), options).await?;
+        execute_tmux_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
+            .await?;
         return Ok(());
     }
 
@@ -146,7 +151,8 @@ where
             },
         };
 
-        execute_kitty_command_with_executor(std::sync::Arc::new(context.executor.clone()), options).await?;
+        execute_kitty_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
+            .await?;
         return Ok(());
     }
 
@@ -365,11 +371,8 @@ mod tests {
             .in_dir(std::path::PathBuf::from("/repo/.git/phantom/worktrees/test"))
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(
-            mock,
-            mock_fs,
-            crate::core::exit_handler::MockExitHandler::new(),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -433,11 +436,8 @@ mod tests {
             ])
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(
-            mock,
-            mock_fs,
-            crate::core::exit_handler::MockExitHandler::new(),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -501,11 +501,8 @@ mod tests {
             ])
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(
-            mock,
-            mock_fs,
-            crate::core::exit_handler::MockExitHandler::new(),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,

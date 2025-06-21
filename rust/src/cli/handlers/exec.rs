@@ -92,7 +92,8 @@ where
     }
 
     // Get git root
-    let git_root = get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
+    let git_root =
+        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     // Get worktree name
     let worktree_name = if args.fzf {
@@ -137,7 +138,8 @@ where
             },
         };
 
-        execute_tmux_command_with_executor(std::sync::Arc::new(context.executor.clone()), options).await?;
+        execute_tmux_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
+            .await?;
         return Ok(());
     }
 
@@ -162,7 +164,8 @@ where
             },
         };
 
-        execute_kitty_command_with_executor(std::sync::Arc::new(context.executor.clone()), options).await?;
+        execute_kitty_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
+            .await?;
         return Ok(());
     }
 
@@ -360,11 +363,8 @@ mod tests {
             .in_dir("/repo/.git/phantom/worktrees/test")
             .returns_output("hello\n", "", 0);
 
-        let context = HandlerContext::new(
-            mock,
-            mock_fs,
-            crate::core::exit_handler::MockExitHandler::new(),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],
@@ -429,11 +429,8 @@ mod tests {
             ])
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(
-            mock,
-            mock_fs,
-            crate::core::exit_handler::MockExitHandler::new(),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ExecArgs {
             name: Some("test".to_string()),
             command: vec!["echo".to_string(), "hello".to_string()],

@@ -62,8 +62,8 @@ pub type TestContext = HandlerContext<
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use crate::core::filesystems::MockFileSystem;
     use crate::core::exit_handler::MockExitHandler;
+    use crate::core::filesystems::MockFileSystem;
 
     #[test]
     fn test_handler_context_new() {
@@ -139,9 +139,9 @@ mod tests {
             MockFileSystem::new(),
             MockExitHandler::new(),
         );
-        
+
         process_with_context(test_context);
-        
+
         let prod_context = ProductionContext::default();
         process_with_context(prod_context);
     }

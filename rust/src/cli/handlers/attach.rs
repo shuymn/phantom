@@ -34,7 +34,8 @@ where
     validate_worktree_name(&args.branch)?;
 
     // Get git root
-    let git_root = get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
+    let git_root =
+        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     // Check if worktree already exists
     let worktree_path = get_worktree_path(&git_root, &args.branch);
@@ -43,12 +44,23 @@ where
     }
 
     // Check if branch exists
-    if !branch_exists_with_executor(std::sync::Arc::new(context.executor.clone()), &git_root, &args.branch).await? {
+    if !branch_exists_with_executor(
+        std::sync::Arc::new(context.executor.clone()),
+        &git_root,
+        &args.branch,
+    )
+    .await?
+    {
         return Err(PhantomError::BranchNotFound { branch: args.branch.clone() });
     }
 
     // Attach the worktree
-    attach_worktree_with_executor(std::sync::Arc::new(context.executor.clone()), &git_root, &args.branch).await?;
+    attach_worktree_with_executor(
+        std::sync::Arc::new(context.executor.clone()),
+        &git_root,
+        &args.branch,
+    )
+    .await?;
 
     if args.json {
         let json_output = AttachJsonOutput {
