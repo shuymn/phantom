@@ -1,7 +1,8 @@
-use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::core::command_executor::{CommandArgs, CommandConfig, CommandExecutor};
 use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use serde::{Deserialize, Serialize};
+use smallvec::smallvec;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
@@ -42,7 +43,7 @@ pub async fn execute_kitty_command_with_executor(
     executor: Arc<dyn CommandExecutor>,
     options: KittyOptions,
 ) -> Result<()> {
-    let mut kitty_args = vec!["@".to_string(), "launch".to_string()];
+    let mut kitty_args: CommandArgs = smallvec!["@".to_string(), "launch".to_string()];
 
     // Set up the kitty command based on direction
     match options.direction {
@@ -88,7 +89,7 @@ pub async fn execute_kitty_command_with_executor(
     }
 
     // Execute the kitty command
-    let config = CommandConfig::new("kitty").with_args(kitty_args);
+    let config = CommandConfig::new("kitty").with_args_smallvec(kitty_args);
     executor.execute(config).await?;
     Ok(())
 }

@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -6,10 +7,14 @@ use std::time::Duration;
 
 use crate::core::result::Result;
 
+/// Type alias for command arguments using SmallVec
+/// Most git commands use 2-4 arguments, so we optimize for 4 inline elements
+pub type CommandArgs = SmallVec<[String; 4]>;
+
 #[derive(Debug, Clone)]
 pub struct CommandConfig {
     pub program: String,
-    pub args: Vec<String>,
+    pub args: CommandArgs,
     pub cwd: Option<PathBuf>,
     pub env: Option<HashMap<String, String>>,
     pub timeout: Option<Duration>,
@@ -20,7 +25,7 @@ impl CommandConfig {
     pub fn new(program: impl Into<String>) -> Self {
         Self {
             program: program.into(),
-            args: Vec::new(),
+            args: SmallVec::new(),
             cwd: None,
             env: None,
             timeout: None,
@@ -29,6 +34,11 @@ impl CommandConfig {
     }
 
     pub fn with_args(mut self, args: Vec<String>) -> Self {
+        self.args = SmallVec::from_vec(args);
+        self
+    }
+
+    pub fn with_args_smallvec(mut self, args: CommandArgs) -> Self {
         self.args = args;
         self
     }

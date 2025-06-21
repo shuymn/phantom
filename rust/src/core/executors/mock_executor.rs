@@ -114,7 +114,7 @@ impl CommandExecutor for MockCommandExecutor {
     async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
         let call = CommandCall {
             program: config.program.clone(),
-            args: config.args.clone(),
+            args: config.args.to_vec(),
             cwd: config.cwd.clone(),
             env: config.env.clone(),
             stdin_data: config.stdin_data.clone(),

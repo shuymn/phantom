@@ -1,7 +1,8 @@
-use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::core::command_executor::{CommandArgs, CommandConfig, CommandExecutor};
 use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use serde::{Deserialize, Serialize};
+use smallvec::smallvec;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
@@ -42,7 +43,7 @@ pub async fn execute_tmux_command_with_executor(
     executor: Arc<dyn CommandExecutor>,
     options: TmuxOptions,
 ) -> Result<()> {
-    let mut tmux_args = Vec::new();
+    let mut tmux_args: CommandArgs = smallvec![];
 
     // Set up the tmux command based on direction
     match options.direction {
@@ -90,7 +91,7 @@ pub async fn execute_tmux_command_with_executor(
     }
 
     // Execute the tmux command
-    let config = CommandConfig::new("tmux").with_args(tmux_args);
+    let config = CommandConfig::new("tmux").with_args_smallvec(tmux_args);
     executor.execute(config).await?;
     Ok(())
 }
@@ -107,7 +108,7 @@ pub async fn create_tmux_session_with_executor(
     session_name: &str,
     cwd: Option<&Path>,
 ) -> Result<()> {
-    let mut args = vec![
+    let mut args: CommandArgs = smallvec![
         "new-session".to_string(),
         "-d".to_string(),
         "-s".to_string(),
@@ -119,7 +120,7 @@ pub async fn create_tmux_session_with_executor(
         args.push(cwd.to_string_lossy().to_string());
     }
 
-    let config = CommandConfig::new("tmux").with_args(args);
+    let config = CommandConfig::new("tmux").with_args_smallvec(args);
     executor.execute(config).await?;
     Ok(())
 }
@@ -135,8 +136,8 @@ pub async fn attach_tmux_session_with_executor(
     executor: Arc<dyn CommandExecutor>,
     session_name: &str,
 ) -> Result<()> {
-    let args = vec!["attach-session".to_string(), "-t".to_string(), session_name.to_string()];
-    let config = CommandConfig::new("tmux").with_args(args);
+    let args = smallvec!["attach-session".to_string(), "-t".to_string(), session_name.to_string()];
+    let config = CommandConfig::new("tmux").with_args_smallvec(args);
     executor.execute(config).await?;
     Ok(())
 }
@@ -151,8 +152,9 @@ pub async fn attach_tmux_session(session_name: &str) -> Result<TmuxSuccess> {
 pub async fn list_tmux_sessions_with_executor(
     executor: Arc<dyn CommandExecutor>,
 ) -> Result<Vec<String>> {
-    let args = vec!["list-sessions".to_string(), "-F".to_string(), "#{session_name}".to_string()];
-    let config = CommandConfig::new("tmux").with_args(args);
+    let args =
+        smallvec!["list-sessions".to_string(), "-F".to_string(), "#{session_name}".to_string()];
+    let config = CommandConfig::new("tmux").with_args_smallvec(args);
     let output = executor.execute(config).await?;
 
     let sessions = output.stdout.lines().map(|s| s.to_string()).filter(|s| !s.is_empty()).collect();
@@ -170,8 +172,8 @@ pub async fn tmux_session_exists_with_executor(
     executor: Arc<dyn CommandExecutor>,
     session_name: &str,
 ) -> Result<bool> {
-    let args = vec!["has-session".to_string(), "-t".to_string(), session_name.to_string()];
-    let config = CommandConfig::new("tmux").with_args(args);
+    let args = smallvec!["has-session".to_string(), "-t".to_string(), session_name.to_string()];
+    let config = CommandConfig::new("tmux").with_args_smallvec(args);
 
     match executor.execute(config).await {
         Ok(output) => {

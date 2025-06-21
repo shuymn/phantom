@@ -1,5 +1,6 @@
-use crate::core::command_executor::CommandExecutor;
+use crate::core::command_executor::{CommandArgs, CommandExecutor};
 use crate::{PhantomError, Result};
+use smallvec::smallvec;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -26,7 +27,7 @@ pub async fn select_with_fzf_with_executor(
         return Ok(None);
     }
 
-    let mut args = Vec::new();
+    let mut args: CommandArgs = smallvec![];
 
     // Add options
     if let Some(prompt) = &options.prompt {
@@ -49,7 +50,7 @@ pub async fn select_with_fzf_with_executor(
 
     // Execute fzf with stdin data
     let config = crate::core::command_executor::CommandConfig::new("fzf")
-        .with_args(args)
+        .with_args_smallvec(args)
         .with_stdin_data(stdin_data);
 
     match executor.execute(config).await {
@@ -191,7 +192,7 @@ pub async fn select_with_fzf(items: Vec<String>, options: FzfOptions) -> Result<
 pub async fn is_fzf_available_with_executor(executor: Arc<dyn CommandExecutor>) -> bool {
     use crate::core::command_executor::CommandConfig;
 
-    let config = CommandConfig::new("fzf").with_args(vec!["--version".to_string()]);
+    let config = CommandConfig::new("fzf").with_args_smallvec(smallvec!["--version".to_string()]);
 
     match executor.execute(config).await {
         Ok(output) => output.exit_code == 0,

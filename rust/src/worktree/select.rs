@@ -1,7 +1,8 @@
-use crate::core::command_executor::CommandExecutor;
+use crate::core::command_executor::{CommandArgs, CommandExecutor};
 use crate::git::libs::list_worktrees::list_worktrees_with_executor;
 use crate::worktree::delete::get_worktree_status_with_executor;
 use crate::{PhantomError, Result};
+use smallvec::smallvec;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::{debug, info};
@@ -134,7 +135,7 @@ async fn run_fzf_with_executor(
         ));
     }
 
-    let mut args = Vec::new();
+    let mut args: CommandArgs = smallvec![];
 
     // Add options
     if let Some(prompt) = options.prompt {
@@ -163,7 +164,7 @@ async fn run_fzf_with_executor(
 
     // Execute fzf with stdin data
     let config = crate::core::command_executor::CommandConfig::new("fzf")
-        .with_args(args)
+        .with_args_smallvec(args)
         .with_stdin_data(stdin_data);
 
     match executor.execute(config).await {
@@ -204,7 +205,7 @@ async fn run_fzf_with_executor(
 /// Check if fzf command is available with CommandExecutor
 async fn is_fzf_available_with_executor(executor: Arc<dyn CommandExecutor>) -> bool {
     let config = crate::core::command_executor::CommandConfig::new("fzf")
-        .with_args(vec!["--version".to_string()]);
+        .with_args_smallvec(smallvec!["--version".to_string()]);
 
     match executor.execute(config).await {
         Ok(output) => output.exit_code == 0,
