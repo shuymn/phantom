@@ -8,6 +8,7 @@ pub trait ExitHandler: Send + Sync {
 }
 
 /// Real exit handler that calls std::process::exit
+#[derive(Clone)]
 pub struct RealExitHandler;
 
 impl RealExitHandler {

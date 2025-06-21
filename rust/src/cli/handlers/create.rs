@@ -141,7 +141,6 @@ pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use std::sync::Arc;
 
     // IMPORTANT: Create handler testing limitations
     //
@@ -164,10 +163,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        let context = crate::cli::context::TestHandlerContext::new(
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -208,10 +207,10 @@ mod tests {
             128,
         );
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        let context = crate::cli::context::TestHandlerContext::new(
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -259,10 +258,10 @@ mod tests {
                 0,
             );
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        let context = crate::cli::context::TestHandlerContext::new(
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -319,10 +318,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        let context = crate::cli::context::TestHandlerContext::new(
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -360,10 +359,10 @@ mod tests {
             0,
         );
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+        let context = crate::cli::context::TestHandlerContext::new(
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "invalid name with spaces".to_string(),

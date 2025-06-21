@@ -7,6 +7,7 @@ use crate::core::command_executor::{CommandConfig, CommandExecutor, CommandOutpu
 use crate::core::error::PhantomError;
 use crate::core::result::Result;
 
+#[derive(Clone)]
 pub struct RealCommandExecutor;
 
 impl RealCommandExecutor {
