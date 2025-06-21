@@ -61,9 +61,9 @@ mod select_integration_tests {
                      worktree {}\nHEAD ghi789\nbranch refs/heads/feature-2\n\n\
                      worktree {}\nHEAD jkl012\nbranch refs/heads/bugfix-1\n",
                     repo.path().display(),
-                    repo.path().join(".phantom").join("feature-1").display(),
-                    repo.path().join(".phantom").join("feature-2").display(),
-                    repo.path().join(".phantom").join("bugfix-1").display()
+                    repo.path().join(".git/phantom/worktrees").join("feature-1").display(),
+                    repo.path().join(".git/phantom/worktrees").join("feature-2").display(),
+                    repo.path().join(".git/phantom/worktrees").join("bugfix-1").display()
                 ),
                 "",
                 0,
@@ -77,17 +77,17 @@ mod select_integration_tests {
 
         mock.expect_command("git")
             .with_args(&["status", "--porcelain"])
-            .in_dir(repo.path().join(".phantom").join("feature-1"))
+            .in_dir(repo.path().join(".git/phantom/worktrees").join("feature-1"))
             .returns_output("", "", 0);
 
         mock.expect_command("git")
             .with_args(&["status", "--porcelain"])
-            .in_dir(repo.path().join(".phantom").join("feature-2"))
+            .in_dir(repo.path().join(".git/phantom/worktrees").join("feature-2"))
             .returns_output("M file.txt\n", "", 0); // dirty
 
         mock.expect_command("git")
             .with_args(&["status", "--porcelain"])
-            .in_dir(repo.path().join(".phantom").join("bugfix-1"))
+            .in_dir(repo.path().join(".git/phantom/worktrees").join("bugfix-1"))
             .returns_output("", "", 0);
 
         // Mock fzf availability check

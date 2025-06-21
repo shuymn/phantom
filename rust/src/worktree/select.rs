@@ -559,7 +559,7 @@ mod tests {
                 &format!(
                     "worktree {}\nHEAD abc123\nbranch refs/heads/main\n\nworktree {}\nHEAD def456\nbranch refs/heads/feature-1\n",
                     repo.path().display(),
-                    repo.path().join(".phantom").join("feature-1").display()
+                    repo.path().join(".git/phantom/worktrees").join("feature-1").display()
                 ),
                 "",
                 0,
@@ -574,7 +574,7 @@ mod tests {
         // Mock git status for feature-1 worktree
         mock.expect_command("git")
             .with_args(&["status", "--porcelain"])
-            .in_dir(repo.path().join(".phantom").join("feature-1"))
+            .in_dir(repo.path().join(".git/phantom/worktrees").join("feature-1"))
             .returns_output("", "", 0);
 
         // Mock fzf availability check
