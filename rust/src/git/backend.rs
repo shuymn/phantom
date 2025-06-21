@@ -1,3 +1,4 @@
+use crate::core::sealed::Sealed;
 use crate::core::types::Worktree;
 use crate::Result;
 use async_trait::async_trait;
@@ -5,8 +6,10 @@ use std::path::{Path, PathBuf};
 
 /// Trait defining the interface for Git operations
 /// This abstraction allows for different implementations (command-line, libgit2, etc.)
+/// 
+/// This trait is sealed to prevent downstream implementations and maintain API stability
 #[async_trait]
-pub trait GitBackend: Send + Sync {
+pub trait GitBackend: Sealed + Send + Sync {
     /// Get the current branch name
     async fn current_branch(&self) -> Result<String>;
 

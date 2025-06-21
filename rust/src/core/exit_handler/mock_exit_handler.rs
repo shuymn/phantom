@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::sealed::Sealed;
 use std::sync::{Arc, Mutex};
 
 /// Mock exit handler for testing
@@ -27,6 +28,9 @@ impl MockExitHandler {
         !self.exits.lock().unwrap().is_empty()
     }
 }
+
+// Implement the sealed trait
+impl Sealed for MockExitHandler {}
 
 #[async_trait]
 impl ExitHandler for MockExitHandler {

@@ -1,3 +1,4 @@
+use crate::core::sealed::Sealed;
 use crate::core::types::Worktree;
 use crate::git::backend::{GitBackend, GitConfig};
 use crate::git::libs::{
@@ -28,6 +29,9 @@ impl Default for CommandBackend {
         Self::new(GitConfig::default())
     }
 }
+
+// Implement the sealed trait to allow CommandBackend to implement GitBackend
+impl Sealed for CommandBackend {}
 
 #[async_trait]
 impl GitBackend for CommandBackend {

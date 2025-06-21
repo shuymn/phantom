@@ -4,9 +4,13 @@ use std::path::{Path, PathBuf};
 use tokio::fs::DirEntry;
 
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
+/// File system abstraction trait for testing and modularity
+/// 
+/// This trait is sealed to prevent downstream implementations
 #[async_trait]
-pub trait FileSystem: Send + Sync {
+pub trait FileSystem: Sealed + Send + Sync {
     /// Check if a path exists
     async fn exists(&self, path: &Path) -> Result<bool>;
 

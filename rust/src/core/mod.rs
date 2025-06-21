@@ -6,5 +6,6 @@ pub mod extension_traits;
 pub mod filesystem;
 pub mod filesystems;
 pub mod result;
+pub mod sealed;
 pub mod types;
 pub mod utils;

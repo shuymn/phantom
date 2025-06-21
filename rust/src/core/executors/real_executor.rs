@@ -6,6 +6,7 @@ use tracing::{debug, error, info};
 use crate::core::command_executor::{CommandConfig, CommandExecutor, CommandOutput};
 use crate::core::error::PhantomError;
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
 #[derive(Clone)]
 pub struct RealCommandExecutor;
@@ -21,6 +22,9 @@ impl Default for RealCommandExecutor {
         Self::new()
     }
 }
+
+// Implement the sealed trait
+impl Sealed for RealCommandExecutor {}
 
 #[async_trait]
 impl CommandExecutor for RealCommandExecutor {

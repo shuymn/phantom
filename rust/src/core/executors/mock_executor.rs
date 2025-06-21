@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use crate::core::command_executor::{CommandConfig, CommandExecutor, CommandOutput};
 use crate::core::error::PhantomError;
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
 #[derive(Debug, Clone)]
 pub struct CommandExpectation {
@@ -108,6 +109,9 @@ impl Default for MockCommandExecutor {
         Self::new()
     }
 }
+
+// Implement the sealed trait
+impl Sealed for MockCommandExecutor {}
 
 #[async_trait]
 impl CommandExecutor for MockCommandExecutor {

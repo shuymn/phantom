@@ -1,8 +1,11 @@
 use async_trait::async_trait;
+use crate::core::sealed::Sealed;
 
 /// Trait for handling process exits
+/// 
+/// This trait is sealed to prevent downstream implementations
 #[async_trait]
-pub trait ExitHandler: Send + Sync {
+pub trait ExitHandler: Sealed + Send + Sync {
     /// Exit the process with the given code
     fn exit(&self, code: i32) -> !;
 }
@@ -22,6 +25,9 @@ impl Default for RealExitHandler {
         Self::new()
     }
 }
+
+// Implement the sealed trait
+impl Sealed for RealExitHandler {}
 
 #[async_trait]
 impl ExitHandler for RealExitHandler {

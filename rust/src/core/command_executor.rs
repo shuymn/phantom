@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
 /// Type alias for command arguments using SmallVec
 /// Most git commands use 2-4 arguments, so we optimize for 4 inline elements
@@ -102,7 +103,10 @@ impl CommandOutput {
     }
 }
 
+/// Trait for executing system commands
+/// 
+/// This trait is sealed to prevent downstream implementations
 #[async_trait]
-pub trait CommandExecutor: Send + Sync {
+pub trait CommandExecutor: Sealed + Send + Sync {
     async fn execute(&self, config: CommandConfig) -> Result<CommandOutput>;
 }

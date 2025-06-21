@@ -8,6 +8,7 @@ use tokio::fs::DirEntry;
 use crate::core::error::PhantomError;
 use crate::core::filesystem::FileSystem;
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
 #[derive(Debug, Clone)]
 pub enum FileSystemOperation {
@@ -67,6 +68,9 @@ pub struct MockFileSystem {
     expectations: Arc<Mutex<HashMap<String, Vec<FileSystemExpectation>>>>,
     current_dir: Arc<Mutex<PathBuf>>,
 }
+
+// Implement the sealed trait
+impl Sealed for MockFileSystem {}
 
 impl MockFileSystem {
     pub fn new() -> Self {

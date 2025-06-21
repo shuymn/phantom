@@ -6,6 +6,7 @@ use tokio::fs::{self, DirEntry};
 use crate::core::error::PhantomError;
 use crate::core::filesystem::FileSystem;
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
 #[derive(Debug, Clone)]
 pub struct RealFileSystem;
@@ -15,6 +16,9 @@ impl RealFileSystem {
         Self
     }
 }
+
+// Implement the sealed trait
+impl Sealed for RealFileSystem {}
 
 #[async_trait]
 impl FileSystem for RealFileSystem {
