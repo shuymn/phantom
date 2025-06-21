@@ -83,15 +83,6 @@ pub mod timeouts {
 
     /// Default timeout for git operations (30 seconds)
     pub const GIT_OPERATION_TIMEOUT: Duration = Duration::from_secs(30);
-
-    /// Timeout for quick git operations like status (5 seconds)
-    pub const GIT_QUICK_TIMEOUT: Duration = Duration::from_secs(5);
-
-    /// Timeout for long operations like clone or fetch (5 minutes)
-    pub const GIT_LONG_TIMEOUT: Duration = Duration::from_secs(300);
-
-    /// Timeout for shell operations (2 minutes)
-    pub const SHELL_TIMEOUT: Duration = Duration::from_secs(120);
 }
 
 #[cfg(test)]

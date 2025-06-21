@@ -1,5 +1,6 @@
 use crate::config::errors::ConfigError;
 use crate::config::types::{Multiplexer, PhantomConfig, PostCreateConfig};
+use crate::core::const_utils::{const_starts_with, is_valid_path_component};
 use crate::Result;
 
 /// Validate a PhantomConfig instance
@@ -30,7 +31,7 @@ fn validate_post_create(post_create: &PostCreateConfig) -> Result<()> {
             }
 
             // Disallow absolute paths for security
-            if file.starts_with('/') || file.starts_with('\\') {
+            if const_starts_with(file, "/") || const_starts_with(file, "\\") {
                 return Err(ConfigError::ValidationError(format!(
                     "postCreate.copyFiles cannot contain absolute paths: {}",
                     file
@@ -38,13 +39,16 @@ fn validate_post_create(post_create: &PostCreateConfig) -> Result<()> {
                 .into());
             }
 
-            // Disallow parent directory references
-            if file.contains("..") {
-                return Err(ConfigError::ValidationError(format!(
-                    "postCreate.copyFiles cannot contain parent directory references: {}",
-                    file
-                ))
-                .into());
+            // Validate path components (disallows .., empty components, etc)
+            let components = file.split('/');
+            for component in components {
+                if !is_valid_path_component(component) {
+                    return Err(ConfigError::ValidationError(format!(
+                        "postCreate.copyFiles cannot contain invalid path components: {}",
+                        file
+                    ))
+                    .into());
+                }
             }
         }
     }
@@ -136,10 +140,7 @@ mod tests {
 
         let result = validate_config(&config);
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("cannot contain parent directory references"));
+        assert!(result.unwrap_err().to_string().contains("cannot contain invalid path components"));
     }
 
     #[test]
