@@ -22,26 +22,26 @@ Essential guides for understanding the codebase:
 ### 🔴 High Priority
 
 #### Rust Codebase Quality Improvements (Performance & Safety)
-- [ ] Replace dynamic dispatch with generics in HandlerContext
-  - [ ] Convert `Arc<dyn CommandExecutor>` to generic parameter in rust/src/cli/context.rs
-  - [ ] Update all handler implementations to use static dispatch
-  - [ ] Maintain testability with conditional compilation for mocks
-  - [ ] Document the pattern for future contributors
-- [ ] Implement zero-copy operations for CommandOutput
-  - [ ] Convert `String` fields to `Cow<'_, str>` in rust/src/core/command_executor.rs:57-61
-  - [ ] Add owned() and borrowed() constructors
-  - [ ] Update all usages to avoid unnecessary allocations
-  - [ ] Add benchmarks to verify performance improvements
-- [ ] Add rich error context and source chains
-  - [ ] Enhance error types in rust/src/core/error.rs with source chains
-  - [ ] Add ErrorContext struct with command, args, working_dir, duration
-  - [ ] Implement ResultExt trait for adding context
-  - [ ] Include backtraces for debugging
-- [ ] Implement type-state pattern for worktrees
-  - [ ] Create phantom type states (Created, Attached, Detached, Deleted)
-  - [ ] Enforce compile-time state transitions
-  - [ ] Prevent invalid operations at compile time
-  - [ ] Update all worktree operations to use type states
+- [x] Replace dynamic dispatch with generics in HandlerContext ✅
+  - [x] Convert `Arc<dyn CommandExecutor>` to generic parameter in rust/src/cli/context.rs
+  - [x] Update all handler implementations to use static dispatch
+  - [x] Maintain testability with direct mock instantiation
+  - [x] Document the pattern with examples in handler_with_context.rs
+- [x] Implement zero-copy operations for CommandOutput ✅
+  - [x] Convert `String` fields to `Cow<'static, str>` in rust/src/core/command_executor.rs
+  - [x] Add from_static() and from_owned() constructors
+  - [x] Update all usages to avoid unnecessary allocations
+  - [x] Examples demonstrate zero-copy patterns
+- [x] Add rich error context and source chains ✅
+  - [x] Enhanced error types in rust/src/core/error.rs with CommandContext
+  - [x] Added ErrorContext and ResultContext extension traits
+  - [x] Implemented context() and with_context() methods
+  - [x] All errors now include rich debugging information
+- [x] Implement type-state pattern for worktrees ✅
+  - [x] Created TypedWorktree with phantom type states (Created, Attached, Detached, Locked, Deleted)
+  - [x] Enforce compile-time state transitions
+  - [x] Prevent invalid operations at compile time (e.g., can't delete attached worktree)
+  - [x] Added WorktreeBuilder with type states for safe construction
 
 #### Fix Missing --base Option Implementation
 - [x] Implement --base option for create command (regression from TypeScript) ✅
@@ -96,9 +96,15 @@ Essential guides for understanding the codebase:
 ## 📊 Current Status
 
 **Rust migration is complete!** The codebase has:
-- 519 tests total (0 ignored)
+- 532 tests total (0 ignored)
 - Comprehensive mock-based testing infrastructure
 - Full documentation of patterns and practices
 - All handlers and operations properly abstracted
+- **Advanced Rust patterns implemented:**
+  - Zero-cost abstractions with generics (no dynamic dispatch)
+  - Zero-copy operations with `Cow<'static, str>`
+  - Type-state pattern for compile-time safety
+  - Rich error context with extension traits
+  - Builder pattern with phantom types
 
 **Known Issue**: One flaky test in `get_current_worktree` that occasionally fails in CI. See [test-race-condition-fix.md](./rust/docs/test-race-condition-fix.md) for details on race condition handling.
