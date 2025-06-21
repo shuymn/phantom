@@ -1,11 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use phantom::core::command_executor::{CommandConfig, CommandExecutor};
 use phantom::core::executors::RealCommandExecutor;
-use phantom::core::extension_traits::{CommandExecutorExt, StrExt, WorktreeExt};
-use phantom::core::types::Worktree;
 use phantom::worktree::builder::build_worktree;
 use phantom::worktree::validate::validate_worktree_name;
-use std::path::PathBuf;
 use std::time::Duration;
 
 /// Benchmark command execution patterns
@@ -17,7 +14,8 @@ fn bench_command_execution(c: &mut Criterion) {
     group.bench_function("echo_simple", |b| {
         b.iter(|| {
             tokio::runtime::Runtime::new().unwrap().block_on(async {
-                let _ = executor.run_simple("echo", &["test"]).await;
+                let config = CommandConfig::new("echo").with_args(vec!["test".to_string()]);
+                let _ = executor.execute(config).await;
             });
         });
     });
@@ -61,25 +59,6 @@ fn bench_string_validation(c: &mut Criterion) {
         );
     }
 
-    // Benchmark string extension trait methods
-    group.bench_function("is_branch_like", |b| {
-        b.iter(|| {
-            black_box("feature/branch-123").is_branch_like();
-        });
-    });
-
-    group.bench_function("is_commit_like", |b| {
-        b.iter(|| {
-            black_box("abc123def456").is_commit_like();
-        });
-    });
-
-    group.bench_function("sanitize_worktree_name", |b| {
-        b.iter(|| {
-            black_box("feature@branch#123!").sanitize_worktree_name();
-        });
-    });
-
     group.finish();
 }
 
@@ -111,44 +90,6 @@ fn bench_builder_pattern(c: &mut Criterion) {
     group.bench_function("build_with_validation", |b| {
         b.iter(|| {
             let _ = build_worktree().name("feature").validate().map(|v| v.build());
-        });
-    });
-
-    group.finish();
-}
-
-/// Benchmark worktree operations
-fn bench_worktree_operations(c: &mut Criterion) {
-    let mut group = c.benchmark_group("worktree_operations");
-
-    // Create test worktree
-    let worktree = Worktree {
-        name: "feature".to_string(),
-        path: PathBuf::from("/repo/.git/phantom/worktrees/feature"),
-        branch: Some("feature/new-ui".to_string()),
-        commit: "abc123def456".to_string(),
-        is_bare: false,
-        is_detached: false,
-        is_locked: false,
-        is_prunable: false,
-    };
-
-    // Benchmark extension trait methods
-    group.bench_function("is_main", |b| {
-        b.iter(|| {
-            black_box(&worktree).is_main();
-        });
-    });
-
-    group.bench_function("display_name", |b| {
-        b.iter(|| {
-            black_box(&worktree).display_name();
-        });
-    });
-
-    group.bench_function("relative_path", |b| {
-        b.iter(|| {
-            black_box(&worktree).relative_path();
         });
     });
 
@@ -260,7 +201,6 @@ criterion_group!(
     bench_command_execution,
     bench_string_validation,
     bench_builder_pattern,
-    bench_worktree_operations,
     bench_concurrent_operations,
     bench_memory_patterns,
     bench_startup_time

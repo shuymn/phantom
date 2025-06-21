@@ -3,7 +3,6 @@ pub mod const_utils;
 pub mod error;
 pub mod executors;
 pub mod exit_handler;
-pub mod extension_traits;
 pub mod filesystem;
 pub mod filesystems;
 pub mod result;
