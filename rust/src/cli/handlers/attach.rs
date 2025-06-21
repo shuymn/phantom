@@ -5,7 +5,7 @@ use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
 use crate::git::libs::branch_exists::branch_exists_with_executor;
-use crate::git::libs::get_git_root::get_git_root_with_executor;
+use crate::git::libs::get_git_root_generic::get_git_root;
 use crate::process::exec::exec_in_dir;
 use crate::process::shell::shell_in_dir;
 use crate::worktree::attach::attach_worktree_with_executor;
@@ -34,8 +34,7 @@ where
     validate_worktree_name(&args.branch)?;
 
     // Get git root
-    let git_root =
-        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
+    let git_root = get_git_root(context.executor.clone()).await?;
 
     // Check if worktree already exists
     let worktree_path = get_worktree_path(&git_root, &args.branch);

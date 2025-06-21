@@ -4,7 +4,7 @@ use crate::cli::output::output;
 use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
-use crate::git::libs::get_git_root::get_git_root_with_executor;
+use crate::git::libs::get_git_root_generic::get_git_root;
 use crate::worktree::locate::where_worktree;
 use crate::worktree::select::select_worktree_with_fzf_with_executor;
 use crate::{PhantomError, Result};
@@ -30,8 +30,7 @@ where
     }
 
     // Get git root
-    let git_root =
-        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
+    let git_root = get_git_root(context.executor.clone()).await?;
 
     // Get worktree name
     let worktree_name = if args.fzf {

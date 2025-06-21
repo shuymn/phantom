@@ -1,3 +1,6 @@
+//! DEPRECATED: This module uses dynamic dispatch and is kept only for benchmarking comparisons.
+//! Use get_git_root_generic instead for better performance through static dispatch.
+
 use crate::core::command_executor::CommandExecutor;
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::Result;

@@ -3,7 +3,7 @@ use phantom::git::git_executor_adapter::GitExecutor;
 use phantom::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
-    get_git_root::get_git_root, list_worktrees::list_worktrees,
+    get_git_root_generic::get_git_root_default, list_worktrees::list_worktrees,
 };
 use std::fs;
 use std::sync::Arc;
@@ -49,7 +49,7 @@ async fn test_real_git_operations_workflow() {
 
     // Test get_git_root - it finds git root from current directory
     std::env::set_current_dir(repo_path).expect("Failed to set current dir");
-    let git_root = get_git_root().await.expect("Failed to get git root");
+    let git_root = get_git_root_default().await.expect("Failed to get git root");
     assert_eq!(git_root.canonicalize().unwrap(), repo_path.canonicalize().unwrap());
 
     // Test get_current_branch

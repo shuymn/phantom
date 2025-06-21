@@ -4,7 +4,7 @@ use crate::cli::output::output;
 use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
-use crate::git::libs::get_git_root::get_git_root_with_executor;
+use crate::git::libs::get_git_root_generic::get_git_root;
 use crate::worktree::concurrent::list_worktrees_concurrent_with_executor;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::Result;
@@ -30,8 +30,7 @@ where
     F: FileSystem + Clone + 'static,
     H: ExitHandler + Clone + 'static,
 {
-    let git_root =
-        get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
+    let git_root = get_git_root(context.executor.clone()).await?;
 
     if args.fzf {
         // Use fzf for interactive selection

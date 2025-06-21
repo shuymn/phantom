@@ -48,6 +48,13 @@ where
     Ok(absolute.canonicalize().unwrap_or(absolute))
 }
 
+/// Get the main git repository root using the default executor
+/// This is a convenience function that uses RealCommandExecutor
+pub async fn get_git_root_default() -> Result<PathBuf> {
+    use crate::core::executors::RealCommandExecutor;
+    get_git_root(RealCommandExecutor::new()).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
