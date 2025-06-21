@@ -1,9 +1,10 @@
 /// Concurrent operations for worktree management
 /// These functions use async concurrency to improve performance when dealing with multiple worktrees
-
 use crate::core::command_executor::CommandExecutor;
 use crate::git::libs::list_worktrees::list_worktrees_with_executor as git_list_worktrees_with_executor;
-use crate::worktree::list::{get_worktree_status_with_executor, WorktreeInfo, ListWorktreesSuccess};
+use crate::worktree::list::{
+    get_worktree_status_with_executor, ListWorktreesSuccess, WorktreeInfo,
+};
 use crate::worktree::paths::get_phantom_directory;
 use crate::Result;
 use futures::future::join_all;
@@ -28,7 +29,8 @@ pub async fn list_worktrees_concurrent_with_executor(
     let phantom_worktrees_filtered: Vec<_> = git_worktrees
         .into_iter()
         .filter_map(|worktree| {
-            let worktree_path_canonical = worktree.path.canonicalize().unwrap_or(worktree.path.clone());
+            let worktree_path_canonical =
+                worktree.path.canonicalize().unwrap_or(worktree.path.clone());
             if worktree_path_canonical.starts_with(&phantom_dir_canonical) {
                 let canonical_path_str = worktree_path_canonical.to_string_lossy();
                 let name = if let Some(stripped) =
@@ -54,18 +56,12 @@ pub async fn list_worktrees_concurrent_with_executor(
             let name = name.clone();
             let branch = worktree.branch.clone();
             let path_str = worktree.path.to_string_lossy().to_string();
-            
+
             async move {
-                let is_clean = get_worktree_status_with_executor(executor, &path)
-                    .await
-                    .unwrap_or(true);
-                
-                WorktreeInfo {
-                    name,
-                    path: path_str,
-                    branch,
-                    is_clean,
-                }
+                let is_clean =
+                    get_worktree_status_with_executor(executor, &path).await.unwrap_or(true);
+
+                WorktreeInfo { name, path: path_str, branch, is_clean }
             }
         })
         .collect();
@@ -92,19 +88,17 @@ pub async fn get_worktrees_info_concurrent_with_executor(
     names: &[&str],
 ) -> Result<Vec<WorktreeInfo>> {
     use crate::worktree::list::get_worktree_info_with_executor;
-    
+
     let info_futures: Vec<_> = names
         .iter()
         .map(|&name| {
             let executor = executor.clone();
-            async move {
-                get_worktree_info_with_executor(executor, git_root, name).await
-            }
+            async move { get_worktree_info_with_executor(executor, git_root, name).await }
         })
         .collect();
-    
+
     let results = join_all(info_futures).await;
-    
+
     // Collect successful results, skip errors
     Ok(results.into_iter().filter_map(|r| r.ok()).collect())
 }
@@ -126,7 +120,7 @@ pub async fn check_worktrees_status_concurrent_with_executor(
             }
         })
         .collect();
-    
+
     join_all(status_futures).await
 }
 
@@ -140,51 +134,53 @@ mod tests {
     async fn test_list_worktrees_concurrent_empty() {
         let mut mock = MockCommandExecutor::new();
         let git_root = PathBuf::from("/repo");
-        
+
         // Mock empty worktree list
-        mock.expect_command("git")
-            .with_args(&["worktree", "list", "--porcelain"])
-            .returns_output("worktree /repo\nHEAD abc123\nbranch refs/heads/main\n", "", 0);
-        
-        let result = list_worktrees_concurrent_with_executor(Arc::new(mock), &git_root)
-            .await
-            .unwrap();
-        
+        mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
+            "worktree /repo\nHEAD abc123\nbranch refs/heads/main\n",
+            "",
+            0,
+        );
+
+        let result =
+            list_worktrees_concurrent_with_executor(Arc::new(mock), &git_root).await.unwrap();
+
         assert!(result.worktrees.is_empty());
         assert_eq!(result.message, Some("No worktrees found".to_string()));
     }
-    
+
     #[tokio::test]
     async fn test_concurrent_status_checks() {
         let mut mock = MockCommandExecutor::new();
-        
+
         // Mock multiple status checks that would run concurrently
         mock.expect_command("git")
             .with_args(&["status", "--porcelain"])
             .in_dir("/repo/worktree1")
             .returns_output("", "", 0); // Clean
-            
+
         mock.expect_command("git")
             .with_args(&["status", "--porcelain"])
             .in_dir("/repo/worktree2")
             .returns_output("M file.txt\n", "", 0); // Dirty
-            
+
         mock.expect_command("git")
             .with_args(&["status", "--porcelain"])
             .in_dir("/repo/worktree3")
             .returns_output("", "", 0); // Clean
-        
+
         let paths = vec![
             Path::new("/repo/worktree1"),
             Path::new("/repo/worktree2"),
             Path::new("/repo/worktree3"),
         ];
-        
+
         let results = check_worktrees_status_concurrent_with_executor(
             Arc::new(mock),
             &paths.iter().map(|p| p.as_ref()).collect::<Vec<_>>(),
-        ).await;
-        
+        )
+        .await;
+
         assert_eq!(results.len(), 3);
         assert!(results[0].1.as_ref().unwrap()); // Clean
         assert!(!results[1].1.as_ref().unwrap()); // Dirty

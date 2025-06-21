@@ -7,7 +7,7 @@ use crate::core::result::Result;
 use crate::core::sealed::Sealed;
 
 /// File system abstraction trait for testing and modularity
-/// 
+///
 /// This trait is sealed to prevent downstream implementations
 #[async_trait]
 pub trait FileSystem: Sealed + Send + Sync {

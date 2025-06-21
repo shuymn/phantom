@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 /// Trait defining the interface for Git operations
 /// This abstraction allows for different implementations (command-line, libgit2, etc.)
-/// 
+///
 /// This trait is sealed to prevent downstream implementations and maintain API stability
 #[async_trait]
 pub trait GitBackend: Sealed + Send + Sync {

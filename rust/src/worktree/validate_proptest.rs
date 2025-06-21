@@ -73,7 +73,7 @@ mod tests {
             prop_assert!(result.is_ok());
         }
     }
-    
+
     // Property: Names exceeding MAX_WORKTREE_NAME_LENGTH should fail
     proptest! {
         #[test]

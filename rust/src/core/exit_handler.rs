@@ -1,8 +1,8 @@
-use async_trait::async_trait;
 use crate::core::sealed::Sealed;
+use async_trait::async_trait;
 
 /// Trait for handling process exits
-/// 
+///
 /// This trait is sealed to prevent downstream implementations
 #[async_trait]
 pub trait ExitHandler: Sealed + Send + Sync {

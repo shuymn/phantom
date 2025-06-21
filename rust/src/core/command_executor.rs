@@ -104,7 +104,7 @@ impl CommandOutput {
 }
 
 /// Trait for executing system commands
-/// 
+///
 /// This trait is sealed to prevent downstream implementations
 #[async_trait]
 pub trait CommandExecutor: Sealed + Send + Sync {
