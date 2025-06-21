@@ -54,6 +54,8 @@ pub async fn attach_worktree(git_root: &Path, branch_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::RealCommandExecutor;
+    use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
 
     #[tokio::test]
@@ -65,7 +67,7 @@ mod tests {
         repo.create_branch("existing-branch").await.unwrap();
 
         // Switch back to main
-        let executor = crate::git::executor::GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // Attach worktree
@@ -84,7 +86,7 @@ mod tests {
 
         // Create a branch and worktree
         repo.create_branch("existing-branch").await.unwrap();
-        let executor = crate::git::executor::GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // First attach should succeed

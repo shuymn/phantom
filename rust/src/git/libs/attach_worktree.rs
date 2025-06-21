@@ -41,7 +41,7 @@ pub async fn attach_worktree(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::executor::GitExecutor;
+    use crate::core::executors::RealCommandExecutor;
     use crate::test_utils::TestRepo;
     use tempfile::tempdir;
 
@@ -54,7 +54,7 @@ mod tests {
         repo.create_branch("existing-branch").await.unwrap();
 
         // Switch back to main to allow worktree creation
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // Attach worktree to existing branch
@@ -68,7 +68,8 @@ mod tests {
         assert!(worktree_path.join("test.txt").exists());
 
         // Verify the worktree is on the correct branch
-        let executor_wt = GitExecutor::with_cwd(&worktree_path);
+        let executor_wt =
+            GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(&worktree_path);
         let branch = executor_wt.run(&["branch", "--show-current"]).await.unwrap();
         assert_eq!(branch.trim(), "existing-branch");
     }
@@ -118,7 +119,7 @@ mod tests {
         // Create a branch
         repo.create_branch("test-branch").await.unwrap();
 
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // Create a directory that already exists

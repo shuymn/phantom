@@ -51,8 +51,10 @@ pub async fn current_commit(repo_path: &Path) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::executor::GitExecutor;
+    use crate::core::executors::RealCommandExecutor;
+    use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_current_commit_initial() {
@@ -95,7 +97,7 @@ mod tests {
 
         // Create and checkout new branch (without new commits)
         repo.create_branch("feature-branch").await.unwrap();
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "feature-branch"]).await.unwrap();
 
         // Should be same commit
@@ -112,7 +114,7 @@ mod tests {
         let commit_sha = current_commit(repo.path()).await.unwrap();
 
         // Checkout the commit directly (detached HEAD)
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", &commit_sha]).await.unwrap();
 
         // Should still return the same commit

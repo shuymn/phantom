@@ -51,8 +51,10 @@ pub async fn get_current_branch(repo_path: &Path) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::executor::GitExecutor;
+    use crate::core::executors::RealCommandExecutor;
+    use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_get_current_branch_main() {
@@ -70,7 +72,7 @@ mod tests {
 
         // Create and checkout a new branch
         repo.create_branch("feature-branch").await.unwrap();
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "feature-branch"]).await.unwrap();
 
         let branch = get_current_branch(repo.path()).await.unwrap();
@@ -83,7 +85,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Get the current commit
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         let commit = executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         let commit = commit.trim();
 
@@ -102,7 +104,7 @@ mod tests {
 
         // Create and checkout a branch with dashes
         repo.create_branch("feature-with-dashes").await.unwrap();
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "feature-with-dashes"]).await.unwrap();
 
         let branch = get_current_branch(repo.path()).await.unwrap();
@@ -115,7 +117,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create and checkout a branch with slashes
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         executor.run(&["checkout", "-b", "feature/new-feature"]).await.unwrap();
 
         let branch = get_current_branch(repo.path()).await.unwrap();

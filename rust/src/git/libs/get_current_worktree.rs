@@ -59,7 +59,8 @@ pub async fn get_current_worktree(git_root: &Path) -> Result<Option<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::executors::MockCommandExecutor;
+    use crate::core::executors::{MockCommandExecutor, RealCommandExecutor};
+    use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
     use serial_test::serial;
     use std::env;
@@ -183,7 +184,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a worktree with unique name
-        let executor = crate::git::executor::GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         let unique_name = format!("test-worktree-{}-{}", std::process::id(), timestamp);
@@ -207,7 +208,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Get the current commit
-        let executor = crate::git::executor::GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         let commit = executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         let commit = commit.trim();
 
@@ -230,7 +231,8 @@ mod tests {
         assert_eq!(result, None);
 
         // Verify the worktree was created properly by checking from within it
-        let worktree_executor = crate::git::executor::GitExecutor::with_cwd(&worktree_path);
+        let worktree_executor =
+            GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(&worktree_path);
         let worktree_result = worktree_executor.run(&["branch", "--show-current"]).await.unwrap();
         assert_eq!(worktree_result.trim(), ""); // Detached HEAD has no branch name
 

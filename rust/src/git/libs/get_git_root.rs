@@ -47,7 +47,7 @@ pub async fn get_git_root() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::executor::GitExecutor;
+    use crate::core::executors::RealCommandExecutor;
     use crate::test_utils::TestRepo;
     use serial_test::serial;
     use std::env;
@@ -89,7 +89,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a worktree with unique name
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         let unique_name = format!("test-worktree-{}-{}", std::process::id(), timestamp);
@@ -120,7 +120,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a worktree with unique name
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         let unique_name = format!("test-worktree-sub-{}-{}", std::process::id(), timestamp);

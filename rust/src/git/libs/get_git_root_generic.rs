@@ -92,7 +92,7 @@ mod tests {
         let original_dir = std::env::current_dir().unwrap();
         std::env::set_current_dir(repo.path()).unwrap();
 
-        let executor = crate::core::executors::RealCommandExecutor;
+        let executor = crate::core::executors::RealCommandExecutor::new();
         let result = get_git_root(executor).await.unwrap();
 
         // Restore original directory

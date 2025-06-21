@@ -32,8 +32,10 @@ pub async fn list_worktrees(repo_path: &Path) -> Result<Vec<Worktree>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::git::executor::GitExecutor;
+    use crate::core::executors::RealCommandExecutor;
+    use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_list_worktrees_single() {
@@ -57,7 +59,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Add a worktree with unique name
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         let unique_name = format!("test-worktree-{}-{}", std::process::id(), timestamp);
@@ -95,7 +97,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Get the current commit
-        let executor = GitExecutor::with_cwd(repo.path());
+        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
         let commit = executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         let commit = commit.trim();
 

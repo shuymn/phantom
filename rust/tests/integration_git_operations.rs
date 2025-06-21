@@ -1,10 +1,12 @@
-use phantom::git::executor::GitExecutor;
+use phantom::core::executors::RealCommandExecutor;
+use phantom::git::git_executor_adapter::GitExecutor;
 use phantom::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
     get_git_root::get_git_root, list_worktrees::list_worktrees,
 };
 use std::fs;
+use std::sync::Arc;
 use tempfile::tempdir;
 
 /// Helper to create a real git repository
@@ -12,7 +14,7 @@ async fn create_real_git_repo() -> tempfile::TempDir {
     let temp_dir = tempdir().expect("Failed to create temp dir");
     let repo_path = temp_dir.path();
 
-    let executor = GitExecutor::with_cwd(repo_path);
+    let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo_path);
 
     // Initialize git repo
     executor.run(&["init"]).await.expect("Failed to init git repo");
@@ -126,7 +128,7 @@ async fn test_attach_worktree_to_existing_branch() {
     let repo_path = repo.path();
 
     // Create a new branch
-    let executor = GitExecutor::with_cwd(repo_path);
+    let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo_path);
     executor.run(&["checkout", "-b", "existing-branch"]).await.expect("Failed to create branch");
     executor.run(&["checkout", "main"]).await.expect("Failed to switch back to main");
 
@@ -163,7 +165,7 @@ async fn test_complex_worktree_scenario() {
     let original_dir = std::env::current_dir().ok();
 
     // Create multiple branches and worktrees
-    let executor = GitExecutor::with_cwd(repo_path);
+    let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo_path);
 
     // Create branches
     for i in 1..=3 {
@@ -249,7 +251,7 @@ async fn test_detached_worktree() {
     let repo_path = repo.path();
 
     // Get current commit hash
-    let executor = GitExecutor::with_cwd(repo_path);
+    let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo_path);
     let commit_hash = executor.run(&["rev-parse", "HEAD"]).await.expect("Failed to get commit");
     let commit_hash = commit_hash.trim();
 
