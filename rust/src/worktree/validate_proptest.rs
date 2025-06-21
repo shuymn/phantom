@@ -58,17 +58,35 @@ mod tests {
         }
     }
 
-    // Property: Very long names should be accepted (no length limit in current implementation)
+    // Property: Names up to MAX_WORKTREE_NAME_LENGTH should be accepted
     proptest! {
         #[test]
         fn long_names_accepted(
-            s in "[a-zA-Z0-9][a-zA-Z0-9._/-]{100,300}"
+            s in "[a-zA-Z0-9][a-zA-Z0-9._/-]{100,254}"
         ) {
             // Skip patterns with consecutive dots
             prop_assume!(!s.contains(".."));
+            // Ensure we don't exceed the maximum length
+            prop_assume!(s.len() <= crate::worktree::const_validate::MAX_WORKTREE_NAME_LENGTH);
 
             let result = validate_worktree_name(&s);
             prop_assert!(result.is_ok());
+        }
+    }
+    
+    // Property: Names exceeding MAX_WORKTREE_NAME_LENGTH should fail
+    proptest! {
+        #[test]
+        fn too_long_names_fail(
+            s in "[a-zA-Z0-9][a-zA-Z0-9._/-]{255,300}"
+        ) {
+            // Skip patterns with consecutive dots
+            prop_assume!(!s.contains(".."));
+            // Ensure we exceed the maximum length
+            prop_assume!(s.len() > crate::worktree::const_validate::MAX_WORKTREE_NAME_LENGTH);
+
+            let result = validate_worktree_name(&s);
+            prop_assert!(result.is_err());
         }
     }
 
