@@ -9,5 +9,8 @@ lint:
 format:
 	cargo fmt --all
 
+format-check:
+	cargo fmt --all --check
+
 check:
 	cargo check --all-targets --all-features
