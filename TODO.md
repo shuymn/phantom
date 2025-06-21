@@ -68,13 +68,13 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - All have blanket implementations
 
 ##### 📚 Documentation and Policy Updates
-- [ ] Update CONTRIBUTING.md with performance guidelines
+- [x] Update CONTRIBUTING.md with performance guidelines ✅
   - When to use generics vs trait objects
   - Memory allocation best practices
   - Async/concurrent patterns
   - Testing generic code
 
-- [ ] Create performance policy documentation
+- [x] Create performance policy documentation ✅
   - Target: CLI startup < 50ms
   - Predictable memory usage patterns
   - Prefer stack allocation for small data
@@ -89,13 +89,13 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - Test ergonomics preserved with MockCommandExecutor, etc.
   - Patterns documented in test-strategy.md
 
-- [ ] Add benchmarking suite
+- [x] Add benchmarking suite ✅
   - Measure impact of optimizations
   - Track performance regressions
   - Use criterion.rs for statistical analysis
   - Benchmark critical paths (startup, list, create)
 
-- [ ] Smart pointer optimizations
+- [x] Smart pointer optimizations ✅
   - Replace excessive cloning with `Arc`/`Rc`
   - Use interior mutability where appropriate
   - Cache expensive computations
@@ -110,23 +110,11 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - Use typed-arena crate
   - Target: bulk worktree operations
 
-- [ ] Derive macros for CLI commands
-  - Create `#[derive(Command)]` macro
-  - Generate clap definitions automatically
-  - Reduce boilerplate in command definitions
-  - Include validation in macro
-
 - [ ] Advanced type-level programming
   - Const generics for compile-time validation
   - Type-level state machines
   - Compile-time string validation
   - Zero-runtime-cost abstractions
-
-- [ ] Streaming support for large outputs
-  - Add `StreamingOutput` type
-  - Support `AsyncRead` for stdout/stderr
-  - Reduce memory usage for large git outputs
-  - Progressive output handling
 
 - [ ] Custom smart pointers
   - `SmallBox<T, N>` with inline storage
@@ -139,12 +127,6 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - Lock-free queues for work distribution
   - Epoch-based memory reclamation
   - Target: concurrent worktree access
-
-- [ ] Procedural macros for validation
-  - `#[validate(worktree_name)]` attribute
-  - Compile-time and runtime validation
-  - Generate error messages automatically
-  - Reduce validation boilerplate
 
 #### Rust Codebase Quality Improvements (Performance & Safety)
 - [x] Replace dynamic dispatch with generics in HandlerContext ✅
@@ -176,37 +158,6 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - [x] Remove regression test TODO and verify it passes
   - [x] Add unit tests for --base functionality
 
-#### Replace External Dependencies with Native Rust Libraries
-- [ ] Replace fzf with skim-rs for fuzzy finding
-  - [ ] Integrate skim as a library dependency
-  - [ ] Migrate all fzf usage to skim API
-  - [ ] Remove requirement for external fzf installation
-  - [ ] Maintain identical user experience and features
-  - [ ] Update installation docs to remove fzf requirement
-
-#### Native Git Support
-- [ ] Integrate libgit2 for native git operations
-- [ ] Remove dependency on git CLI commands
-- [ ] Improve performance for git operations
-- [ ] Better error handling and recovery
-
-#### Performance Improvements  
-- [ ] Implement parallel worktree operations
-- [ ] Add concurrent file copying with progress
-- [ ] Optimize worktree listing for large repositories
-- [ ] Reduce startup time with lazy loading
-
-#### Plugin System
-- [ ] Design plugin API for extensibility
-- [ ] Support lifecycle hooks (pre/post create, delete, switch)
-- [ ] Enable custom commands and integrations
-- [ ] Allow UI/UX customization plugins
-
-#### Configuration Profiles
-- [ ] Support multiple configuration profiles
-- [ ] Per-project configuration overrides  
-- [ ] Team-shared configuration templates
-- [ ] Environment-specific settings
 
 ## ✅ Success Criteria Achieved
 
