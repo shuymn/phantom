@@ -1,4 +1,5 @@
 use crate::core::filesystem::FileSystem;
+use crate::worktree::const_validate::{is_valid_worktree_name_basic, MAX_WORKTREE_NAME_LENGTH};
 use crate::worktree::errors::WorktreeError;
 use crate::worktree::paths::{get_phantom_directory, get_worktree_path};
 use crate::worktree::types::{WorktreeDoesNotExistSuccess, WorktreeExistsSuccess};
@@ -46,23 +47,40 @@ pub async fn validate_phantom_directory_exists(
 
 /// Validate worktree name
 pub fn validate_worktree_name(name: &str) -> Result<()> {
-    if name.trim().is_empty() {
-        return Err(WorktreeError::InvalidName("Phantom name cannot be empty".to_string()).into());
-    }
+    // First do basic const validation
+    if !is_valid_worktree_name_basic(name) {
+        if name.trim().is_empty() {
+            return Err(
+                WorktreeError::InvalidName("Phantom name cannot be empty".to_string()).into()
+            );
+        }
 
-    // Only allow alphanumeric, hyphen, underscore, dot, and slash
-    let valid_name_pattern = regex::Regex::new(r"^[a-zA-Z0-9\-_.\/]+$").unwrap();
-    if !valid_name_pattern.is_match(name) {
+        if name.len() > MAX_WORKTREE_NAME_LENGTH {
+            return Err(WorktreeError::InvalidName(format!(
+                "Phantom name cannot exceed {} characters",
+                MAX_WORKTREE_NAME_LENGTH
+            ))
+            .into());
+        }
+
+        if name.contains("..") {
+            return Err(WorktreeError::InvalidName(
+                "Phantom name cannot contain consecutive dots".to_string(),
+            )
+            .into());
+        }
+
         return Err(WorktreeError::InvalidName(
             "Phantom name can only contain letters, numbers, hyphens, underscores, dots, and slashes".to_string(),
         ).into());
     }
 
-    if name.contains("..") {
+    // Additional runtime validation with regex for more complex patterns
+    let valid_name_pattern = regex::Regex::new(r"^[a-zA-Z0-9\-_.\/]+$").unwrap();
+    if !valid_name_pattern.is_match(name) {
         return Err(WorktreeError::InvalidName(
-            "Phantom name cannot contain consecutive dots".to_string(),
-        )
-        .into());
+            "Phantom name can only contain letters, numbers, hyphens, underscores, dots, and slashes".to_string(),
+        ).into());
     }
 
     Ok(())

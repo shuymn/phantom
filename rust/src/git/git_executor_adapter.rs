@@ -1,12 +1,10 @@
 use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::worktree::const_validate::timeouts::GIT_OPERATION_TIMEOUT;
 use crate::{PhantomError, Result};
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, trace};
-
-/// Default timeout for git operations (30 seconds)
-const DEFAULT_GIT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Git command executor that uses CommandExecutor internally
 #[derive(Clone)]
@@ -19,7 +17,7 @@ pub struct GitExecutor {
 impl GitExecutor {
     /// Create a new GitExecutor with a CommandExecutor
     pub fn new(executor: Arc<dyn CommandExecutor>) -> Self {
-        Self { executor, cwd: None, timeout_duration: DEFAULT_GIT_TIMEOUT }
+        Self { executor, cwd: None, timeout_duration: GIT_OPERATION_TIMEOUT }
     }
 
     /// Create a GitExecutor with a specific working directory
