@@ -104,12 +104,12 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
 ### 🟢 Low Priority
 
 #### Future Optimizations
-- [x] Arena allocation for batch operations ✅
-  - Create `BatchProcessor<'a>` with arena allocator
-  - Reduce allocation overhead in bulk operations
-  - Use typed-arena crate
-  - Target: bulk worktree operations
-  - Implemented: BatchProcessor with typed-arena for efficient memory usage
+- [x] ~~Arena allocation for batch operations~~ ✅ (Removed - unnecessary optimization)
+  - ~~Create `BatchProcessor<'a>` with arena allocator~~
+  - ~~Reduce allocation overhead in bulk operations~~
+  - ~~Use typed-arena crate~~
+  - ~~Target: bulk worktree operations~~
+  - ~~Implemented: BatchProcessor with typed-arena for efficient memory usage~~
 
 - [x] Advanced type-level programming ✅
   - [x] Const generics for compile-time validation
@@ -118,12 +118,12 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - [x] Zero-runtime-cost abstractions
   - Implemented const utilities in git/const_utils.rs and core/const_utils.rs
 
-- [x] Custom smart pointers ✅
-  - `SmallBox<T, N>` with inline storage
-  - Optimized for common allocation patterns
-  - Benchmark against standard Box
-  - Use in hot paths only
-  - Implemented: SmallBox and SmallVec with up to 1.36x performance improvement
+- [x] ~~Custom smart pointers~~ ✅ (Removed - unnecessary optimization, using external smallvec instead)
+  - ~~`SmallBox<T, N>` with inline storage~~
+  - ~~Optimized for common allocation patterns~~
+  - ~~Benchmark against standard Box~~
+  - ~~Use in hot paths only~~
+  - ~~Implemented: SmallBox and SmallVec with up to 1.36x performance improvement~~
 
 - [ ] Lock-free concurrency patterns
   - Atomic reference counting for shared state
