@@ -9,7 +9,7 @@ lint:
 format:
 	cargo fmt --all
 
-format-check:
+check-format:
 	cargo fmt --all --check
 
 check:
