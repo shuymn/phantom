@@ -146,7 +146,7 @@ impl CommandExecutor for RealCommandExecutor {
             stderr.len()
         );
 
-        Ok(CommandOutput { stdout, stderr, exit_code })
+        Ok(CommandOutput::new(stdout, stderr, exit_code))
     }
 }
 

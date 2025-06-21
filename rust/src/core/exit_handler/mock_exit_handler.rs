@@ -2,6 +2,7 @@ use super::*;
 use std::sync::{Arc, Mutex};
 
 /// Mock exit handler for testing
+#[derive(Clone)]
 pub struct MockExitHandler {
     exits: Arc<Mutex<Vec<i32>>>,
 }
