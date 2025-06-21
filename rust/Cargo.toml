@@ -32,6 +32,7 @@ tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 thiserror = "1"
 async-trait = "0.1"
+futures = "0.3"
 
 # Unix-specific
 nix = "0.27"
