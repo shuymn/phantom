@@ -58,7 +58,7 @@ These are ideas for future enhancements that are not currently planned but could
   - Rich error context with extension traits
   - Builder pattern with phantom types (compile-time validation)
   - Sealed traits for API stability (all core traits)
-  - Extension traits for ergonomic APIs (6 extension traits)
+  - Extension traits for ergonomic APIs (removed - not used)
   - SmallVec optimization for command arguments
   - Const functions for compile-time validation (git refs, paths, hashes)
   - Concurrent async operations (3-5x speedup)
