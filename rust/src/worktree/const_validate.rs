@@ -1,6 +1,6 @@
 /// Compile-time validation functions for worktree operations
 /// These functions can be evaluated at compile time for constant inputs
-
+///
 /// Default phantom directory name as a const
 pub const DEFAULT_PHANTOM_DIR: &str = ".git/phantom/worktrees";
 

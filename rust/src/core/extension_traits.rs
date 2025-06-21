@@ -75,7 +75,7 @@ pub trait WorktreeExt {
 
 impl WorktreeExt for Worktree {
     fn is_main(&self) -> bool {
-        self.branch.as_ref().map_or(false, |b| b == "main" || b == "master")
+        self.branch.as_ref().is_some_and(|b| b == "main" || b == "master")
     }
 
     fn display_name(&self) -> String {
