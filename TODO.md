@@ -14,10 +14,34 @@ Essential guides for understanding the codebase:
 - **Test Rationale**: [test-rationale.md](./rust/docs/test-rationale.md) - Why we test this way
 - **Architecture**: [architecture.md](./rust/docs/architecture.md) - System design and structure
 - **Troubleshooting**: [troubleshooting.md](./rust/docs/troubleshooting.md) - Common issues and solutions
+- **Advanced Features Guide**: [rust-advanced-features-guide.md](./rust/docs/rust-advanced-features-guide.md) - Advanced Rust patterns and techniques
+- **Codebase Review**: [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) - Quality improvement opportunities
 
 ## 📋 Future Enhancements
 
 ### 🔴 High Priority
+
+#### Rust Codebase Quality Improvements (Performance & Safety)
+- [ ] Replace dynamic dispatch with generics in HandlerContext
+  - [ ] Convert `Arc<dyn CommandExecutor>` to generic parameter in rust/src/cli/context.rs
+  - [ ] Update all handler implementations to use static dispatch
+  - [ ] Maintain testability with conditional compilation for mocks
+  - [ ] Document the pattern for future contributors
+- [ ] Implement zero-copy operations for CommandOutput
+  - [ ] Convert `String` fields to `Cow<'_, str>` in rust/src/core/command_executor.rs:57-61
+  - [ ] Add owned() and borrowed() constructors
+  - [ ] Update all usages to avoid unnecessary allocations
+  - [ ] Add benchmarks to verify performance improvements
+- [ ] Add rich error context and source chains
+  - [ ] Enhance error types in rust/src/core/error.rs with source chains
+  - [ ] Add ErrorContext struct with command, args, working_dir, duration
+  - [ ] Implement ResultExt trait for adding context
+  - [ ] Include backtraces for debugging
+- [ ] Implement type-state pattern for worktrees
+  - [ ] Create phantom type states (Created, Attached, Detached, Deleted)
+  - [ ] Enforce compile-time state transitions
+  - [ ] Prevent invalid operations at compile time
+  - [ ] Update all worktree operations to use type states
 
 #### Fix Missing --base Option Implementation
 - [x] Implement --base option for create command (regression from TypeScript) ✅
