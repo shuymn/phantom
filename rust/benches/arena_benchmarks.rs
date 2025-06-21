@@ -22,7 +22,7 @@ fn bench_arena_batch_processing(c: &mut Criterion) {
 
                     let processor = BatchProcessor::new(&info_arena, &error_arena, &string_arena);
 
-                    let mut mock = create_mock_with_worktrees(worktree_count);
+                    let mock = create_mock_with_worktrees(worktree_count);
                     let _ = processor
                         .process_worktrees_with_status(Arc::new(mock), &PathBuf::from("/repo"))
                         .await;
