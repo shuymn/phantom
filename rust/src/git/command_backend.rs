@@ -5,7 +5,7 @@ use crate::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
     create_branch::create_branch, current_commit::current_commit,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
-    get_git_root_generic::get_git_root_default, is_inside_work_tree::is_inside_work_tree,
+    get_git_root::get_git_root_default, is_inside_work_tree::is_inside_work_tree,
     list_branches::list_branches, list_worktrees::list_worktrees, remove_worktree::remove_worktree,
 };
 use crate::Result;

@@ -1,10 +1,11 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use phantom::core::executors::MockCommandExecutor;
+use phantom::git::libs::get_git_root::get_git_root as get_git_root_generic;
 use phantom::git::libs::get_git_root::get_git_root_with_executor;
-use phantom::git::libs::get_git_root_generic::get_git_root;
 use std::sync::Arc;
 
 /// Benchmark the optimization of get_git_root to avoid Arc<dyn> overhead
+// Note: get_git_root_generic is now just get_git_root after the migration
 fn bench_get_git_root_optimization(c: &mut Criterion) {
     let mut group = c.benchmark_group("get_git_root_optimization");
 
@@ -35,7 +36,7 @@ fn bench_get_git_root_optimization(c: &mut Criterion) {
         let executor = mock.clone();
         b.iter(|| {
             tokio::runtime::Runtime::new().unwrap().block_on(async {
-                let _ = get_git_root(executor.clone()).await;
+                let _ = get_git_root_generic(executor.clone()).await;
             });
         });
     });

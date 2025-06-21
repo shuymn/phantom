@@ -3,7 +3,7 @@ use phantom::git::git_executor_adapter::GitExecutor;
 use phantom::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
-    get_git_root_generic::get_git_root_default, list_worktrees::list_worktrees,
+    get_git_root::get_git_root_default, list_worktrees::list_worktrees,
 };
 use std::fs;
 use std::sync::Arc;

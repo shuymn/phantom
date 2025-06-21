@@ -5,7 +5,7 @@ use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_current_worktree::get_current_worktree_with_executor;
-use crate::git::libs::get_git_root_generic::get_git_root;
+use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::delete::delete_worktree_with_executor;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::types::DeleteWorktreeOptions;

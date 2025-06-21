@@ -4,7 +4,7 @@ use crate::cli::output::output;
 use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
-use crate::git::libs::get_git_root_generic::get_git_root;
+use crate::git::libs::get_git_root::get_git_root;
 use crate::process::exec::exec_in_worktree_with_executor;
 use crate::process::kitty::{
     execute_kitty_command_with_executor, is_inside_kitty, KittyOptions, KittySplitDirection,
