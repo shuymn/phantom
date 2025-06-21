@@ -1,9 +1,8 @@
 use crate::core::command_executor::{CommandArgs, CommandExecutor};
-use crate::git::libs::list_worktrees::list_worktrees_with_executor;
-use crate::worktree::delete::get_worktree_status_with_executor;
+use crate::worktree::concurrent::list_worktrees_concurrent_with_executor;
 use crate::{PhantomError, Result};
 use smallvec::smallvec;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 use tracing::{debug, info};
 
@@ -45,32 +44,23 @@ pub async fn select_worktree_with_fzf_and_options_with_executor(
 ) -> Result<Option<SelectWorktreeResult>> {
     info!("Selecting worktree with fzf");
 
-    // List all worktrees
-    let mut worktrees = list_worktrees_with_executor(executor.clone(), git_root).await?;
+    // List all worktrees using concurrent operations
+    let list_result = list_worktrees_concurrent_with_executor(executor.clone(), git_root).await?;
 
-    // Filter out the main worktree (we only want to select additional worktrees)
-    worktrees.retain(|wt| wt.path != git_root);
+    // Filter to only phantom worktrees (concurrent list already does this)
+    let worktrees = list_result.worktrees;
 
     if worktrees.is_empty() {
-        debug!("No additional worktrees found");
+        debug!("No phantom worktrees found");
         return Ok(None);
-    }
-
-    // Get clean status for each worktree
-    let mut worktree_statuses = Vec::new();
-    for worktree in &worktrees {
-        let path = PathBuf::from(&worktree.path);
-        let status = get_worktree_status_with_executor(executor.clone(), &path).await;
-        worktree_statuses.push(!status.has_uncommitted_changes);
     }
 
     // Format worktrees for display
     let formatted_worktrees: Vec<String> = worktrees
         .iter()
-        .zip(worktree_statuses.iter())
-        .map(|(wt, is_clean)| {
+        .map(|wt| {
             let branch_info = wt.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default();
-            let status = if !is_clean { " [dirty]" } else { "" };
+            let status = if !wt.is_clean { " [dirty]" } else { "" };
             format!("{}{}{}", wt.name, branch_info, status)
         })
         .collect();
@@ -86,19 +76,16 @@ pub async fn select_worktree_with_fzf_and_options_with_executor(
                 .next()
                 .ok_or_else(|| PhantomError::Worktree("Invalid fzf selection".to_string()))?;
 
-            // Find the matching worktree and its clean status
-            let position = worktrees
-                .iter()
-                .position(|wt| wt.name == selected_name)
+            // Find the matching worktree
+            let selected_worktree = worktrees
+                .into_iter()
+                .find(|wt| wt.name == selected_name)
                 .ok_or_else(|| PhantomError::Worktree("Selected worktree not found".to_string()))?;
-
-            let selected_worktree = worktrees.into_iter().nth(position).unwrap();
-            let is_clean = worktree_statuses[position];
 
             Ok(Some(SelectWorktreeResult {
                 name: selected_worktree.name,
                 branch: selected_worktree.branch,
-                is_clean,
+                is_clean: selected_worktree.is_clean,
             }))
         }
         None => {
@@ -217,6 +204,7 @@ async fn is_fzf_available_with_executor(executor: Arc<dyn CommandExecutor>) -> b
 mod tests {
     use super::*;
     use crate::core::types::Worktree;
+    use std::path::PathBuf;
 
     #[test]
     fn test_is_fzf_available() {

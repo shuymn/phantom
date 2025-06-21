@@ -5,7 +5,7 @@ use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::worktree::list::list_worktrees_with_executor;
+use crate::worktree::concurrent::list_worktrees_concurrent_with_executor;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::Result;
 use serde::Serialize;
@@ -44,10 +44,12 @@ where
             }
         }
     } else {
-        // List all worktrees
-        let result =
-            list_worktrees_with_executor(std::sync::Arc::new(context.executor.clone()), &git_root)
-                .await?;
+        // List all worktrees using concurrent operations
+        let result = list_worktrees_concurrent_with_executor(
+            std::sync::Arc::new(context.executor.clone()),
+            &git_root,
+        )
+        .await?;
 
         if result.worktrees.is_empty() {
             if args.json {

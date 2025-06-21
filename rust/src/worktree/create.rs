@@ -1,7 +1,7 @@
 use crate::git::backend::GitBackend;
 use crate::git::libs::add_worktree::add_worktree;
 use crate::worktree::errors::WorktreeError;
-use crate::worktree::file_copier::copy_files;
+use crate::worktree::file_copier::copy_files_concurrent;
 use crate::worktree::paths::{get_phantom_directory, get_worktree_path};
 use crate::worktree::types::{CreateWorktreeOptions, CreateWorktreeSuccess};
 use crate::worktree::validate::{validate_worktree_does_not_exist, validate_worktree_name};
@@ -69,7 +69,7 @@ pub async fn create_worktree(
     // Handle file copying if requested
     if let Some(ref files_to_copy) = options.copy_files {
         if !files_to_copy.is_empty() {
-            match copy_files(git_root, &worktree_path, files_to_copy).await {
+            match copy_files_concurrent(git_root, &worktree_path, files_to_copy).await {
                 Ok(copy_result) => {
                     result.copied_files = Some(copy_result.copied_files);
                     result.skipped_files = Some(copy_result.skipped_files);
@@ -139,7 +139,7 @@ pub async fn create_worktree_with_backend(
     // Handle file copying if requested
     if let Some(ref files_to_copy) = options.copy_files {
         if !files_to_copy.is_empty() {
-            match copy_files(git_root, &worktree_path, files_to_copy).await {
+            match copy_files_concurrent(git_root, &worktree_path, files_to_copy).await {
                 Ok(copy_result) => {
                     result.copied_files = Some(copy_result.copied_files);
                     result.skipped_files = Some(copy_result.skipped_files);
