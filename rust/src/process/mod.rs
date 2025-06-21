@@ -1,5 +1,4 @@
 pub mod exec;
-pub mod executor;
 pub mod fzf;
 pub mod kitty;
 pub mod multiplexer;
