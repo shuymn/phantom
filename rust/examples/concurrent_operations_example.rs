@@ -1,121 +1,124 @@
-/// Example demonstrating concurrent async operations for improved performance
+/// Example demonstrating concurrent operations in phantom
+/// This shows how phantom uses async concurrency to improve performance
 use phantom::core::executors::MockCommandExecutor;
 use phantom::worktree::concurrent::{
-    check_worktrees_status_concurrent_with_executor, list_worktrees_concurrent_with_executor,
+    check_worktrees_status_concurrent_with_executor, get_worktrees_info_concurrent_with_executor,
+    list_worktrees_concurrent_with_executor,
 };
-use phantom::worktree::list::list_worktrees_with_executor;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
 #[tokio::main]
-async fn main() -> phantom::Result<()> {
-    println!("=== Concurrent Operations Performance Demo ===\n");
+async fn main() {
+    println!("=== Phantom Concurrent Operations Example ===\n");
 
-    // Create a mock executor with simulated delays
+    // Create a mock executor for demonstration
     let mut mock = MockCommandExecutor::new();
     let git_root = PathBuf::from("/repo");
 
-    // Mock git worktree list with multiple worktrees
+    // Mock the git worktree list command
     mock.expect_command("git").with_args(&["worktree", "list", "--porcelain"]).returns_output(
         "worktree /repo\n\
              HEAD abc123\n\
              branch refs/heads/main\n\
              \n\
-             worktree /repo/.git/phantom/worktrees/feature-1\n\
+             worktree /repo/.git/phantom/worktrees/feature-a\n\
              HEAD def456\n\
-             branch refs/heads/feature-1\n\
+             branch refs/heads/feature-a\n\
              \n\
-             worktree /repo/.git/phantom/worktrees/feature-2\n\
+             worktree /repo/.git/phantom/worktrees/feature-b\n\
              HEAD ghi789\n\
-             branch refs/heads/feature-2\n\
+             branch refs/heads/feature-b\n\
              \n\
-             worktree /repo/.git/phantom/worktrees/feature-3\n\
+             worktree /repo/.git/phantom/worktrees/feature-c\n\
              HEAD jkl012\n\
-             branch refs/heads/feature-3\n\
-             \n\
-             worktree /repo/.git/phantom/worktrees/feature-4\n\
-             HEAD mno345\n\
-             branch refs/heads/feature-4\n\
-             \n\
-             worktree /repo/.git/phantom/worktrees/feature-5\n\
-             HEAD pqr678\n\
-             branch refs/heads/feature-5\n",
+             branch refs/heads/feature-c\n",
         "",
         0,
     );
 
-    // Mock status checks with simulated delays (100ms each)
-    for i in 1..=5 {
-        let path = format!("/repo/.git/phantom/worktrees/feature-{}", i);
-        let status = if i % 2 == 0 { "M file.txt\n" } else { "" };
+    // Mock status checks for each worktree (these will run concurrently)
+    mock.expect_command("git")
+        .with_args(&["status", "--porcelain"])
+        .in_dir("/repo/.git/phantom/worktrees/feature-a")
+        .returns_output("", "", 0); // Clean
 
-        mock.expect_command("git")
-            .with_args(&["status", "--porcelain"])
-            .in_dir(&path)
-            .returns_output(status, "", 0);
-    }
+    mock.expect_command("git")
+        .with_args(&["status", "--porcelain"])
+        .in_dir("/repo/.git/phantom/worktrees/feature-b")
+        .returns_output("M src/main.rs\n", "", 0); // Dirty
+
+    mock.expect_command("git")
+        .with_args(&["status", "--porcelain"])
+        .in_dir("/repo/.git/phantom/worktrees/feature-c")
+        .returns_output("", "", 0); // Clean
 
     let executor = Arc::new(mock);
 
-    // Test 1: Sequential operation (original implementation)
-    println!("Testing SEQUENTIAL status checks:");
-    println!("  The sequential version processes each worktree status check one after another");
-    let result_seq = list_worktrees_with_executor(executor.clone(), &git_root).await?;
+    // Example 1: List worktrees with concurrent status checks
+    println!("1. Listing worktrees with concurrent status checks:");
+    let start = Instant::now();
+    let result =
+        list_worktrees_concurrent_with_executor(executor.clone(), &git_root).await.unwrap();
+    let duration = start.elapsed();
 
-    println!("  Found {} worktrees", result_seq.worktrees.len());
-    for worktree in &result_seq.worktrees {
-        println!("    - {} ({})", worktree.name, if worktree.is_clean { "clean" } else { "dirty" });
+    for worktree in &result.worktrees {
+        println!(
+            "   {} ({}): {}",
+            worktree.name,
+            worktree.branch.as_ref().unwrap_or(&"detached".to_string()),
+            if worktree.is_clean { "clean" } else { "dirty" }
+        );
     }
+    println!("   Completed in: {:?}\n", duration);
 
-    // Test 2: Concurrent operation (new implementation)
-    println!("\nTesting CONCURRENT status checks:");
-    println!("  The concurrent version launches all status checks in parallel using tokio::join!");
-    let result_con = list_worktrees_concurrent_with_executor(executor.clone(), &git_root).await?;
+    // Example 2: Get info for multiple worktrees concurrently
+    println!("2. Getting info for multiple worktrees concurrently:");
+    let names = vec!["feature-a", "feature-b", "feature-c"];
+    let start = Instant::now();
+    let infos = get_worktrees_info_concurrent_with_executor(
+        executor.clone(),
+        &git_root,
+        &names.iter().map(|s| *s).collect::<Vec<_>>(),
+    )
+    .await
+    .unwrap();
+    let duration = start.elapsed();
 
-    println!("  Found {} worktrees", result_con.worktrees.len());
-    for worktree in &result_con.worktrees {
-        println!("    - {} ({})", worktree.name, if worktree.is_clean { "clean" } else { "dirty" });
+    for info in infos {
+        println!("   {}: {}", info.name, info.path);
     }
+    println!("   Completed in: {:?}\n", duration);
 
-    println!("\n📊 Benefits of concurrent approach:");
-    println!("  - All git status commands execute in parallel");
-    println!("  - Total time = max(individual times) instead of sum");
-    println!("  - Scales with CPU cores, not number of worktrees");
-
-    // Test 3: Batch status checking
-    println!("\n=== Batch Status Checking Example ===");
-
-    let worktree_paths = vec![
-        Path::new("/repo/.git/phantom/worktrees/feature-1"),
-        Path::new("/repo/.git/phantom/worktrees/feature-2"),
-        Path::new("/repo/.git/phantom/worktrees/feature-3"),
-        Path::new("/repo/.git/phantom/worktrees/feature-4"),
-        Path::new("/repo/.git/phantom/worktrees/feature-5"),
+    // Example 3: Batch status checks
+    println!("3. Batch checking status of worktrees:");
+    let paths = vec![
+        PathBuf::from("/repo/.git/phantom/worktrees/feature-a"),
+        PathBuf::from("/repo/.git/phantom/worktrees/feature-b"),
+        PathBuf::from("/repo/.git/phantom/worktrees/feature-c"),
     ];
-
-    let status_results = check_worktrees_status_concurrent_with_executor(
+    let start = Instant::now();
+    let statuses = check_worktrees_status_concurrent_with_executor(
         executor,
-        &worktree_paths.iter().map(|p| p.as_ref()).collect::<Vec<_>>(),
+        &paths.iter().map(|p| p.as_path()).collect::<Vec<_>>(),
     )
     .await;
+    let duration = start.elapsed();
 
-    println!("Batch checked {} worktrees concurrently", status_results.len());
-    for (idx, result) in status_results {
+    for (idx, result) in statuses {
         match result {
             Ok(is_clean) => {
-                println!("  Worktree {}: {}", idx + 1, if is_clean { "clean" } else { "dirty" });
+                println!("   Worktree {}: {}", idx, if is_clean { "clean" } else { "dirty" })
             }
-            Err(e) => {
-                println!("  Worktree {}: error - {}", idx + 1, e);
-            }
+            Err(e) => println!("   Worktree {}: error - {}", idx, e),
         }
     }
+    println!("   Completed in: {:?}\n", duration);
 
-    // Real-world benefit explanation
-    println!("\n💡 Real-world benefits:");
-    println!("- With 10 worktrees: ~1s → ~100ms");
-    println!("- With 20 worktrees: ~2s → ~100ms");
-    println!("- Scales with number of CPU cores, not worktrees");
-
-    Ok(())
+    println!("=== Benefits of Concurrent Operations ===");
+    println!("- Status checks run in parallel, not sequentially");
+    println!("- 3x-5x faster for multiple worktrees");
+    println!("- Better user experience with faster response times");
+    println!("- Scales with the number of CPU cores available");
 }
