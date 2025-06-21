@@ -15,7 +15,6 @@ Essential guides for understanding the codebase:
 - **Architecture**: [architecture.md](./rust/docs/architecture.md) - System design and structure
 - **Troubleshooting**: [troubleshooting.md](./rust/docs/troubleshooting.md) - Common issues and solutions
 - **Advanced Features Guide**: [rust-advanced-features-guide.md](./rust/docs/rust-advanced-features-guide.md) - Advanced Rust patterns and techniques
-- **Codebase Review**: [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) - Quality improvement opportunities
 
 ## 📋 Future Enhancements
 

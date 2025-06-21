@@ -577,3 +577,51 @@ All Rust quality improvements have been successfully completed:
 - **Ergonomics**: Extension traits, builder patterns, better error handling
 - **Maintainability**: Removed unnecessary optimizations, focused on actual needs
 - **Testing**: 545+ tests all passing, comprehensive mock infrastructure
+
+## Const Utilities Cleanup (2025-06-21)
+
+### Removed Unused Constants
+- Cleaned up const_utils files by removing 314 lines of unused code
+- Kept only constants that are actively used in production:
+  - `REFS_HEADS_PREFIX`, `env_vars::SHELL`, `dirs::GIT`
+  - Git command and flag constants
+  - `DEFAULT_PHANTOM_DIR`, `MAX_WORKTREE_NAME_LENGTH`, `GIT_OPERATION_TIMEOUT`
+
+### Restored Useful Const Functions
+Following "If you keep it, use it" principle, restored and applied const functions:
+- `is_branch_ref()` - Now used in `git/parse.rs` for ref type checking
+- `is_valid_path_component()` - Now used in `config/validate.rs` for path validation
+- `const_starts_with()` - Used for compile-time string prefix checks
+- `is_valid_git_hash()` - Available for future hash validation needs
+
+These const functions provide compile-time validation capabilities and performance benefits while being actually used in the codebase.
+
+## Rust Codebase Review Results (2025-06-21)
+
+A comprehensive review of the Rust codebase was conducted to identify potential improvements based on advanced Rust features. The review findings:
+
+**Key Finding**: The codebase already implements appropriate optimizations and meets all performance targets.
+
+**Already Implemented**:
+- ✅ SmallVec for command arguments (avoiding heap allocation for ≤4 args)
+- ✅ Cow strings in CommandOutput (zero-copy when possible)
+- ✅ Concurrent operations (3-5x speedup for multi-worktree operations)
+- ✅ Sealed traits for API stability
+- ✅ Type-state pattern with phantom types
+- ✅ Comprehensive error handling with thiserror
+- ✅ Performance targets met (startup < 50ms, actual ~17μs for CLI parsing)
+
+**Minor Issues Identified**:
+- Path conversion `to_string_lossy().to_string()` double allocation in worktree listing loops
+- Missing `#[must_use]` attributes on builder methods (correctness, not performance)
+- Unused CommandContext struct in error.rs (dead code)
+
+**Rejected as Premature Optimization**:
+- Converting static error messages to Cow (not in hot paths)
+- Adding const functions without const context usage
+- Optimizing builder pattern allocations (dominated by I/O)
+- Error formatting optimizations (exceptional paths)
+- Environment variable filtering (no evidence of bottleneck)
+- Concurrent file operation cloning (already handled correctly)
+
+**Conclusion**: The codebase demonstrates pragmatic Rust development with advanced features used where they provide measurable benefits. No significant action needed. The review document was deleted as the codebase already follows best practices.
