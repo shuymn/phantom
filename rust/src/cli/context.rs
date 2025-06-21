@@ -4,7 +4,7 @@ use crate::core::filesystem::FileSystem;
 use std::sync::Arc;
 
 /// Context for CLI handlers
-/// 
+///
 /// Uses Arc for shared ownership and dynamic dispatch to support
 /// both production and testing scenarios.
 #[derive(Clone)]
@@ -45,16 +45,12 @@ pub struct TestHandlerContext;
 #[cfg(test)]
 impl TestHandlerContext {
     /// Create a new test handler context with mock implementations
-    pub fn new(
+    pub fn create(
         executor: crate::core::executors::MockCommandExecutor,
         filesystem: crate::core::filesystems::MockFileSystem,
         exit_handler: crate::core::exit_handler::MockExitHandler,
     ) -> HandlerContext {
-        HandlerContext::new(
-            Arc::new(executor),
-            Arc::new(filesystem),
-            Arc::new(exit_handler),
-        )
+        HandlerContext::new(Arc::new(executor), Arc::new(filesystem), Arc::new(exit_handler))
     }
 }
 
@@ -66,10 +62,13 @@ mod tests {
     #[test]
     fn test_handler_context_new() {
         let executor: Arc<dyn CommandExecutor> = Arc::new(MockCommandExecutor::new());
-        let filesystem: Arc<dyn FileSystem> = Arc::new(crate::core::filesystems::MockFileSystem::new());
-        let exit_handler: Arc<dyn ExitHandler> = Arc::new(crate::core::exit_handler::MockExitHandler::new());
-        let context = HandlerContext::new(executor.clone(), filesystem.clone(), exit_handler.clone());
-        
+        let filesystem: Arc<dyn FileSystem> =
+            Arc::new(crate::core::filesystems::MockFileSystem::new());
+        let exit_handler: Arc<dyn ExitHandler> =
+            Arc::new(crate::core::exit_handler::MockExitHandler::new());
+        let context =
+            HandlerContext::new(executor.clone(), filesystem.clone(), exit_handler.clone());
+
         // Verify context is created successfully
         assert!(Arc::ptr_eq(&context.executor, &executor));
         assert!(Arc::ptr_eq(&context.filesystem, &filesystem));
@@ -87,12 +86,12 @@ mod tests {
 
     #[test]
     fn test_test_context() {
-        let context = TestHandlerContext::new(
+        let context = TestHandlerContext::create(
             MockCommandExecutor::new(),
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
         );
-        
+
         // Test context works with mock implementations
         let _ = &context.executor;
         let _ = &context.filesystem;
@@ -106,7 +105,7 @@ mod tests {
         let exit_handler = Arc::new(crate::core::exit_handler::MockExitHandler::new());
         let context1 = HandlerContext::new(executor, filesystem, exit_handler);
         let context2 = context1.clone();
-        
+
         // Both contexts should share the same Arc instances
         assert!(Arc::ptr_eq(&context1.executor, &context2.executor));
         assert!(Arc::ptr_eq(&context1.filesystem, &context2.filesystem));

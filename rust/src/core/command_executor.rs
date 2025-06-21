@@ -68,20 +68,12 @@ impl CommandOutput {
 
     /// Create a new CommandOutput with owned strings (default)
     pub fn new(stdout: String, stderr: String, exit_code: i32) -> Self {
-        Self {
-            stdout: Cow::Owned(stdout),
-            stderr: Cow::Owned(stderr),
-            exit_code,
-        }
+        Self { stdout: Cow::Owned(stdout), stderr: Cow::Owned(stderr), exit_code }
     }
 
     /// Create from static string references (zero-copy)
     pub fn from_static(stdout: &'static str, stderr: &'static str, exit_code: i32) -> Self {
-        Self {
-            stdout: Cow::Borrowed(stdout),
-            stderr: Cow::Borrowed(stderr),
-            exit_code,
-        }
+        Self { stdout: Cow::Borrowed(stdout), stderr: Cow::Borrowed(stderr), exit_code }
     }
 
     /// Get stdout as &str without allocation
@@ -96,11 +88,7 @@ impl CommandOutput {
 
     /// Convert to owned strings if needed
     pub fn into_owned(self) -> (String, String, i32) {
-        (
-            self.stdout.into_owned(),
-            self.stderr.into_owned(),
-            self.exit_code,
-        )
+        (self.stdout.into_owned(), self.stderr.into_owned(), self.exit_code)
     }
 }
 

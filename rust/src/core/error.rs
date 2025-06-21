@@ -66,12 +66,7 @@ pub struct CommandContext {
 impl CommandContext {
     /// Create a new command context
     pub fn new(command: impl Into<String>) -> Self {
-        Self {
-            command: command.into(),
-            args: Vec::new(),
-            working_dir: None,
-            duration: None,
-        }
+        Self { command: command.into(), args: Vec::new(), working_dir: None, duration: None }
     }
 
     /// Add arguments to the context
@@ -102,10 +97,9 @@ pub trait ErrorContext {
 impl ErrorContext for PhantomError {
     fn context(self, msg: &str) -> Self {
         match self {
-            PhantomError::Git { message, exit_code } => PhantomError::Git {
-                message: format!("{}: {}", msg, message),
-                exit_code,
-            },
+            PhantomError::Git { message, exit_code } => {
+                PhantomError::Git { message: format!("{}: {}", msg, message), exit_code }
+            }
             PhantomError::ProcessExecution(message) => {
                 PhantomError::ProcessExecution(format!("{}: {}", msg, message))
             }
@@ -124,7 +118,7 @@ impl ErrorContext for PhantomError {
 pub trait ResultContext<T> {
     /// Add context to an error
     fn context(self, msg: &str) -> Result<T, PhantomError>;
-    
+
     /// Add context with a closure that's only called on error
     fn with_context<F>(self, f: F) -> Result<T, PhantomError>
     where
@@ -244,10 +238,11 @@ mod tests {
             Err(io::Error::new(io::ErrorKind::NotFound, "file not found"));
         let result_with_context = result.context("While reading config");
         assert!(result_with_context.is_err());
-        
+
         // IO errors get converted to PhantomError::Io which doesn't support context
         // So we'll test with a different error type
-        let result: Result<(), PhantomError> = Err(PhantomError::ProcessExecution("failed".to_string()));
+        let result: Result<(), PhantomError> =
+            Err(PhantomError::ProcessExecution("failed".to_string()));
         let result_with_context = result.context("While running command");
         assert_eq!(
             result_with_context.unwrap_err().to_string(),

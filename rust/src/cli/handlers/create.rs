@@ -163,7 +163,7 @@ mod tests {
             128,
         );
 
-        let context = crate::cli::context::TestHandlerContext::new(
+        let context = crate::cli::context::TestHandlerContext::create(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -207,7 +207,7 @@ mod tests {
             128,
         );
 
-        let context = crate::cli::context::TestHandlerContext::new(
+        let context = crate::cli::context::TestHandlerContext::create(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -258,7 +258,7 @@ mod tests {
                 0,
             );
 
-        let context = crate::cli::context::TestHandlerContext::new(
+        let context = crate::cli::context::TestHandlerContext::create(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -318,7 +318,7 @@ mod tests {
             0,
         );
 
-        let context = crate::cli::context::TestHandlerContext::new(
+        let context = crate::cli::context::TestHandlerContext::create(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
@@ -359,7 +359,7 @@ mod tests {
             0,
         );
 
-        let context = crate::cli::context::TestHandlerContext::new(
+        let context = crate::cli::context::TestHandlerContext::create(
             mock,
             crate::core::filesystems::MockFileSystem::new(),
             crate::core::exit_handler::MockExitHandler::new(),
