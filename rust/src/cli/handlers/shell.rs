@@ -2,15 +2,13 @@ use crate::cli::commands::shell::ShellArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::process::exec::{spawn_shell_in_worktree, spawn_shell_in_worktree_with_executor};
+use crate::process::exec::spawn_shell_in_worktree_with_executor;
 use crate::process::kitty::{
-    execute_kitty_command, execute_kitty_command_with_executor, is_inside_kitty, KittyOptions,
-    KittySplitDirection,
+    execute_kitty_command_with_executor, is_inside_kitty, KittyOptions, KittySplitDirection,
 };
 use crate::process::shell::{detect_shell, get_phantom_env};
 use crate::process::tmux::{
-    execute_tmux_command, execute_tmux_command_with_executor, is_inside_tmux, TmuxOptions,
-    TmuxSplitDirection,
+    execute_tmux_command_with_executor, is_inside_tmux, TmuxOptions, TmuxSplitDirection,
 };
 use crate::worktree::select::{select_worktree_with_fzf, select_worktree_with_fzf_with_executor};
 use crate::worktree::validate::validate_worktree_exists;
@@ -118,12 +116,7 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
             },
         };
 
-        if cfg!(test) {
-            // In test mode, use the executor from context
-            execute_tmux_command_with_executor(context.executor.clone(), options).await?;
-        } else {
-            execute_tmux_command(options).await?;
-        }
+        execute_tmux_command_with_executor(context.executor.clone(), options).await?;
         return Ok(());
     }
 
@@ -148,11 +141,7 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
             },
         };
 
-        if cfg!(test) {
-            execute_kitty_command_with_executor(context.executor.clone(), options).await?;
-        } else {
-            execute_kitty_command(options).await?;
-        }
+        execute_kitty_command_with_executor(context.executor.clone(), options).await?;
         return Ok(());
     }
 
@@ -160,18 +149,13 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
     output().log(&format!("Entering worktree '{}' at {}", worktree_name, worktree_path.display()));
     output().log("Type 'exit' to return to your original directory\n");
 
-    let result = if cfg!(test) {
-        // In test mode, use the executor from context
-        spawn_shell_in_worktree_with_executor(
-            &git_root,
-            &worktree_name,
-            context.filesystem.as_ref(),
-            Some(context.executor.clone()),
-        )
-        .await?
-    } else {
-        spawn_shell_in_worktree(&git_root, &worktree_name, context.filesystem.as_ref()).await?
-    };
+    let result = spawn_shell_in_worktree_with_executor(
+        &git_root,
+        &worktree_name,
+        context.filesystem.as_ref(),
+        Some(context.executor.clone()),
+    )
+    .await?;
 
     // Exit with the same code as the shell
     context.exit_handler.exit(result.exit_code);

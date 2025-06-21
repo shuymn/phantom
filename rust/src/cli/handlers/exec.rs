@@ -2,14 +2,13 @@ use crate::cli::commands::exec::ExecArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::process::exec::{exec_in_worktree, exec_in_worktree_with_executor};
+use crate::process::exec::exec_in_worktree_with_executor;
 use crate::process::kitty::{
-    execute_kitty_command, is_inside_kitty, KittyOptions, KittySplitDirection,
+    execute_kitty_command_with_executor, is_inside_kitty, KittyOptions, KittySplitDirection,
 };
 use crate::process::shell::get_phantom_env;
 use crate::process::tmux::{
-    execute_tmux_command, execute_tmux_command_with_executor, is_inside_tmux, TmuxOptions,
-    TmuxSplitDirection,
+    execute_tmux_command_with_executor, is_inside_tmux, TmuxOptions, TmuxSplitDirection,
 };
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::validate::validate_worktree_exists;
@@ -130,12 +129,7 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
             },
         };
 
-        if cfg!(test) {
-            // In test mode, use the executor from context
-            execute_tmux_command_with_executor(context.executor.clone(), options).await?;
-        } else {
-            execute_tmux_command(options).await?;
-        }
+        execute_tmux_command_with_executor(context.executor.clone(), options).await?;
         return Ok(());
     }
 
@@ -160,32 +154,20 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
             },
         };
 
-        execute_kitty_command(options).await?;
+        execute_kitty_command_with_executor(context.executor.clone(), options).await?;
         return Ok(());
     }
 
     // Normal execution
-    let result = if cfg!(test) {
-        // In test mode, use the executor from context
-        exec_in_worktree_with_executor(
-            &git_root,
-            &worktree_name,
-            &command,
-            args_slice,
-            context.filesystem.as_ref(),
-            Some(context.executor.clone()),
-        )
-        .await?
-    } else {
-        exec_in_worktree(
-            &git_root,
-            &worktree_name,
-            &command,
-            args_slice,
-            context.filesystem.as_ref(),
-        )
-        .await?
-    };
+    let result = exec_in_worktree_with_executor(
+        &git_root,
+        &worktree_name,
+        &command,
+        args_slice,
+        context.filesystem.as_ref(),
+        Some(context.executor.clone()),
+    )
+    .await?;
 
     // Exit with the same code as the executed command
     context.exit_handler.exit(result.exit_code);
