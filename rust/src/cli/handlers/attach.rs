@@ -1,6 +1,9 @@
 use crate::cli::commands::attach::AttachArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
 use crate::git::libs::branch_exists::branch_exists_with_executor;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::process::exec::exec_in_dir;
@@ -21,12 +24,17 @@ struct AttachJsonOutput {
 }
 
 /// Handle the attach command
-pub async fn handle(args: AttachArgs, context: HandlerContext) -> Result<()> {
+pub async fn handle<E, F, H>(args: AttachArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
     // Validate branch name
     validate_worktree_name(&args.branch)?;
 
     // Get git root
-    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
+    let git_root = get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     // Check if worktree already exists
     let worktree_path = get_worktree_path(&git_root, &args.branch);
@@ -35,12 +43,12 @@ pub async fn handle(args: AttachArgs, context: HandlerContext) -> Result<()> {
     }
 
     // Check if branch exists
-    if !branch_exists_with_executor(context.executor.clone(), &git_root, &args.branch).await? {
+    if !branch_exists_with_executor(std::sync::Arc::new(context.executor.clone()), &git_root, &args.branch).await? {
         return Err(PhantomError::BranchNotFound { branch: args.branch.clone() });
     }
 
     // Attach the worktree
-    attach_worktree_with_executor(context.executor.clone(), &git_root, &args.branch).await?;
+    attach_worktree_with_executor(std::sync::Arc::new(context.executor.clone()), &git_root, &args.branch).await?;
 
     if args.json {
         let json_output = AttachJsonOutput {

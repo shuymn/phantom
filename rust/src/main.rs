@@ -1,5 +1,5 @@
 use clap::Parser;
-use phantom::cli::context::HandlerContext;
+use phantom::cli::context::ProductionContext;
 use phantom::cli::{self, Commands};
 use phantom::{PhantomError, Result};
 use std::process;
@@ -21,7 +21,7 @@ async fn main() {
     }
 
     // Create handler context
-    let context = HandlerContext::default();
+    let context = ProductionContext::default();
 
     // Handle commands
     let result = match cli.command {

@@ -1,6 +1,9 @@
 use crate::cli::commands::exec::ExecArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root_with_executor;
 use crate::process::exec::exec_in_worktree_with_executor;
 use crate::process::kitty::{
@@ -15,7 +18,12 @@ use crate::worktree::validate::validate_worktree_exists;
 use crate::{PhantomError, Result};
 
 /// Handle the exec command
-pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
+pub async fn handle<E, F, H>(args: ExecArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
     // Parse command from arguments
     let (worktree_name_pos, command_args) = if args.fzf {
         // With --fzf, all args are command args
@@ -84,7 +92,7 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
     }
 
     // Get git root
-    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
+    let git_root = get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await?;
 
     // Get worktree name
     let worktree_name = if args.fzf {
@@ -101,7 +109,7 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
 
     // Validate worktree exists
     let validation =
-        validate_worktree_exists(&git_root, &worktree_name, context.filesystem.as_ref()).await?;
+        validate_worktree_exists(&git_root, &worktree_name, &context.filesystem).await?;
     let worktree_path = validation.path;
 
     // Split command into program and arguments
@@ -129,7 +137,7 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
             },
         };
 
-        execute_tmux_command_with_executor(context.executor.clone(), options).await?;
+        execute_tmux_command_with_executor(std::sync::Arc::new(context.executor.clone()), options).await?;
         return Ok(());
     }
 
@@ -154,7 +162,7 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
             },
         };
 
-        execute_kitty_command_with_executor(context.executor.clone(), options).await?;
+        execute_kitty_command_with_executor(std::sync::Arc::new(context.executor.clone()), options).await?;
         return Ok(());
     }
 
@@ -164,8 +172,8 @@ pub async fn handle(args: ExecArgs, context: HandlerContext) -> Result<()> {
         &worktree_name,
         &command,
         args_slice,
-        context.filesystem.as_ref(),
-        Some(context.executor.clone()),
+        &context.filesystem,
+        Some(std::sync::Arc::new(context.executor.clone())),
     )
     .await?;
 
@@ -180,7 +188,6 @@ mod tests {
     use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
     use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
     use std::path::PathBuf;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_exec_not_in_git_repo() {
@@ -194,9 +201,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ExecArgs {
             name: Some("test".to_string()),
@@ -221,9 +228,9 @@ mod tests {
     #[tokio::test]
     async fn test_exec_no_command_specified() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ExecArgs {
             name: None,
@@ -250,9 +257,9 @@ mod tests {
     #[tokio::test]
     async fn test_exec_invalid_usage_without_name() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ExecArgs {
             name: None,
@@ -284,9 +291,9 @@ mod tests {
         // This test will pass validation but demonstrates the structure
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ExecArgs {
             name: Some("test".to_string()),
@@ -354,9 +361,9 @@ mod tests {
             .returns_output("hello\n", "", 0);
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            mock_fs,
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ExecArgs {
             name: Some("test".to_string()),
@@ -423,9 +430,9 @@ mod tests {
             .returns_output("", "", 0);
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            mock_fs,
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ExecArgs {
             name: Some("test".to_string()),
@@ -462,9 +469,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ExecArgs {
             name: None, // Name will be taken from first command arg

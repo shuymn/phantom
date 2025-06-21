@@ -1,15 +1,26 @@
-use phantom::cli::context::HandlerContext;
-use phantom::core::command_executor::CommandConfig;
+use phantom::cli::context::{HandlerContext, ProductionContext};
+use phantom::core::command_executor::{CommandConfig, CommandExecutor};
 use phantom::core::executors::MockCommandExecutor;
-use std::sync::Arc;
+use phantom::core::exit_handler::ExitHandler;
+use phantom::core::filesystem::FileSystem;
 
 // Example: A handler that needs to execute git commands
-struct StatusHandler {
-    context: HandlerContext,
+struct StatusHandler<E, F, H>
+where
+    E: CommandExecutor,
+    F: FileSystem,
+    H: ExitHandler,
+{
+    context: HandlerContext<E, F, H>,
 }
 
-impl StatusHandler {
-    fn new(context: HandlerContext) -> Self {
+impl<E, F, H> StatusHandler<E, F, H>
+where
+    E: CommandExecutor,
+    F: FileSystem,
+    H: ExitHandler,
+{
+    fn new(context: HandlerContext<E, F, H>) -> Self {
         Self { context }
     }
 
@@ -34,7 +45,7 @@ async fn main() {
 
     // Production usage
     println!("1. Production with RealCommandExecutor:");
-    let prod_context = HandlerContext::default(); // Uses RealCommandExecutor
+    let prod_context = ProductionContext::default();
     let prod_handler = StatusHandler::new(prod_context);
 
     match prod_handler.handle().await {
@@ -60,11 +71,11 @@ async fn main() {
     }
 
     let test_context = HandlerContext::new(
-        Arc::new(mock),
-        Arc::new(phantom::core::filesystems::MockFileSystem::new()),
-        Arc::new(SimpleExitHandler),
+        mock,
+        phantom::core::filesystems::MockFileSystem::new(),
+        SimpleExitHandler,
     );
-    let test_handler = StatusHandler::new(test_context.clone());
+    let test_handler = StatusHandler::new(test_context);
 
     match test_handler.handle().await {
         Ok(status) => println!("Mock status output:\n{}", status),
