@@ -1,4 +1,5 @@
 pub mod attach;
+pub mod batch_processor;
 pub mod builder;
 pub mod concurrent;
 pub mod const_validate;
