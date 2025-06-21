@@ -55,8 +55,9 @@ pub async fn list_worktrees_concurrent_with_executor(
             let path_str = worktree.path.to_string_lossy().to_string();
 
             async move {
-                let is_clean =
-                    get_worktree_status_with_executor(executor, &worktree.path).await.unwrap_or(true);
+                let is_clean = get_worktree_status_with_executor(executor, &worktree.path)
+                    .await
+                    .unwrap_or(true);
 
                 WorktreeInfo { name, path: path_str, branch: worktree.branch, is_clean }
             }

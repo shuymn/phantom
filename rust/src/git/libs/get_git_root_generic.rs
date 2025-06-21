@@ -41,11 +41,8 @@ where
     debug!("Git top level: {}", top_level);
 
     let path = Path::new(top_level);
-    let absolute = if path.is_relative() {
-        std::env::current_dir()?.join(path)
-    } else {
-        path.to_path_buf()
-    };
+    let absolute =
+        if path.is_relative() { std::env::current_dir()?.join(path) } else { path.to_path_buf() };
 
     // Always canonicalize the path to ensure consistency
     Ok(absolute.canonicalize().unwrap_or(absolute))
@@ -60,9 +57,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_git_root_generic() {
         let mut mock = MockCommandExecutor::new();
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--git-common-dir"])
-            .returns_output("/home/user/project/.git", "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
+            "/home/user/project/.git",
+            "",
+            0,
+        );
 
         let result = get_git_root(mock).await.unwrap();
         assert_eq!(result, PathBuf::from("/home/user/project"));
@@ -74,9 +73,11 @@ mod tests {
         mock.expect_command("git")
             .with_args(&["rev-parse", "--git-common-dir"])
             .returns_output(".", "", 0);
-        mock.expect_command("git")
-            .with_args(&["rev-parse", "--show-toplevel"])
-            .returns_output("/home/user/bare-repo", "", 0);
+        mock.expect_command("git").with_args(&["rev-parse", "--show-toplevel"]).returns_output(
+            "/home/user/bare-repo",
+            "",
+            0,
+        );
 
         let result = get_git_root(mock).await.unwrap();
         assert_eq!(result, PathBuf::from("/home/user/bare-repo"));
@@ -93,10 +94,10 @@ mod tests {
 
         let executor = crate::core::executors::RealCommandExecutor;
         let result = get_git_root(executor).await.unwrap();
-        
+
         // Restore original directory
         std::env::set_current_dir(original_dir).unwrap();
-        
+
         assert_eq!(result.canonicalize().unwrap(), repo.path().canonicalize().unwrap());
     }
 }

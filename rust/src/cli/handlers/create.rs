@@ -22,26 +22,25 @@ where
     H: ExitHandler + Clone + 'static,
 {
     // Get git root
-    let git_root =
-        match get_git_root(context.executor.clone()).await {
-            Ok(root) => root,
-            Err(e) => {
-                if args.json {
-                    let result = CreateResult {
-                        success: false,
-                        name: args.name.clone(),
-                        branch: args.branch.clone().unwrap_or_else(|| args.name.clone()),
-                        path: String::new(),
-                        copied_files: None,
-                        error: Some(e.to_string()),
-                    };
-                    output().json(&result)?;
-                    return Err(e);
-                } else {
-                    return Err(e);
-                }
+    let git_root = match get_git_root(context.executor.clone()).await {
+        Ok(root) => root,
+        Err(e) => {
+            if args.json {
+                let result = CreateResult {
+                    success: false,
+                    name: args.name.clone(),
+                    branch: args.branch.clone().unwrap_or_else(|| args.name.clone()),
+                    path: String::new(),
+                    copied_files: None,
+                    error: Some(e.to_string()),
+                };
+                output().json(&result)?;
+                return Err(e);
+            } else {
+                return Err(e);
             }
-        };
+        }
+    };
 
     // Load config for copy files
     let config = load_config(&git_root).await.ok().flatten();
