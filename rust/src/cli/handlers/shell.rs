@@ -8,7 +8,10 @@ use crate::process::kitty::{
     KittySplitDirection,
 };
 use crate::process::shell::{detect_shell, get_phantom_env};
-use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
+use crate::process::tmux::{
+    execute_tmux_command, execute_tmux_command_with_executor, is_inside_tmux, TmuxOptions,
+    TmuxSplitDirection,
+};
 use crate::worktree::select::{select_worktree_with_fzf, select_worktree_with_fzf_with_executor};
 use crate::worktree::validate::validate_worktree_exists;
 use crate::{PhantomError, Result};
@@ -115,7 +118,12 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
             },
         };
 
-        execute_tmux_command(options).await?;
+        if cfg!(test) {
+            // In test mode, use the executor from context
+            execute_tmux_command_with_executor(context.executor.clone(), options).await?;
+        } else {
+            execute_tmux_command(options).await?;
+        }
         return Ok(());
     }
 
