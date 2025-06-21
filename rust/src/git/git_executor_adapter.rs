@@ -1,4 +1,5 @@
 use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::git::const_utils::commands;
 use crate::worktree::const_validate::timeouts::GIT_OPERATION_TIMEOUT;
 use crate::{PhantomError, Result};
 use std::path::Path;
@@ -36,7 +37,7 @@ impl GitExecutor {
     pub async fn run(&self, args: &[&str]) -> Result<String> {
         debug!("Running git command: git {:?}", args);
 
-        let mut config = CommandConfig::new("git")
+        let mut config = CommandConfig::new(commands::GIT)
             .with_args(args.iter().map(|s| s.to_string()).collect())
             .with_timeout(self.timeout_duration);
 

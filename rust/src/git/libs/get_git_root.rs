@@ -1,4 +1,5 @@
 use crate::core::command_executor::CommandExecutor;
+use crate::core::const_utils::dirs;
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::Result;
 use std::path::{Path, PathBuf};
@@ -19,7 +20,7 @@ where
 
     debug!("Git common dir: {}", common_dir);
 
-    if common_dir.ends_with("/.git") || common_dir == ".git" {
+    if common_dir.ends_with(&format!("/{}", dirs::GIT)) || common_dir == dirs::GIT {
         // We're in a regular repository or worktree
         let path = Path::new(common_dir);
         if let Some(parent) = path.parent() {
@@ -67,7 +68,7 @@ pub async fn get_git_root_with_executor(executor: Arc<dyn CommandExecutor>) -> R
 
     debug!("Git common dir: {}", common_dir);
 
-    if common_dir.ends_with("/.git") || common_dir == ".git" {
+    if common_dir.ends_with(&format!("/{}", dirs::GIT)) || common_dir == dirs::GIT {
         // We're in a regular repository or worktree
         let path = Path::new(common_dir);
         if let Some(parent) = path.parent() {

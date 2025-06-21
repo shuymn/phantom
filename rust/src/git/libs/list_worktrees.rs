@@ -1,5 +1,6 @@
 use crate::core::command_executor::CommandExecutor;
 use crate::core::types::Worktree;
+use crate::git::const_utils::{commands, flags};
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::git::parse::parse_worktree_list;
 use crate::Result;
@@ -15,7 +16,7 @@ pub async fn list_worktrees_with_executor(
     let git_executor = GitExecutor::new(executor).with_cwd(repo_path);
 
     debug!("Listing worktrees in {:?}", repo_path);
-    let output = git_executor.run(&["worktree", "list", "--porcelain"]).await?;
+    let output = git_executor.run(&[commands::WORKTREE, commands::LIST, flags::PORCELAIN]).await?;
 
     let worktrees = parse_worktree_list(&output);
     debug!("Found {} worktrees", worktrees.len());

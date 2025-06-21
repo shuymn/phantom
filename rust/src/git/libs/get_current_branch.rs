@@ -1,4 +1,5 @@
 use crate::core::command_executor::CommandExecutor;
+use crate::git::const_utils::commands;
 use crate::git::git_executor_adapter::GitExecutor as GitExecutorAdapter;
 use crate::Result;
 use std::path::Path;
@@ -34,7 +35,7 @@ pub async fn get_current_branch_with_executor(
     let git_executor = GitExecutorAdapter::new(executor).with_cwd(repo_path);
 
     debug!("Getting current branch in {:?}", repo_path);
-    let output = git_executor.run(&["branch", "--show-current"]).await?;
+    let output = git_executor.run(&[commands::BRANCH, "--show-current"]).await?;
 
     let branch = output.trim().to_string();
     debug!("Current branch: {}", branch);

@@ -1,4 +1,5 @@
 use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::core::const_utils::env_vars;
 use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use std::collections::HashMap;
@@ -52,7 +53,7 @@ impl ShellType {
 /// Detect the current shell
 pub fn detect_shell() -> Result<ShellInfo> {
     // First, try the SHELL environment variable
-    if let Ok(shell_path) = env::var("SHELL") {
+    if let Ok(shell_path) = env::var(env_vars::SHELL) {
         if let Some(shell_info) = analyze_shell_path(&shell_path) {
             debug!("Detected shell from $SHELL: {:?}", shell_info);
             return Ok(shell_info);

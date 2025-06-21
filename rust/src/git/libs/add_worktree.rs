@@ -1,4 +1,5 @@
 use crate::core::command_executor::CommandExecutor;
+use crate::git::const_utils::{commands, flags};
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::{PhantomError, Result};
 use std::path::Path;
@@ -16,12 +17,12 @@ pub async fn add_worktree_with_executor(
 ) -> Result<()> {
     let git_executor = GitExecutor::new(executor).with_cwd(repo_path);
 
-    let mut args = vec!["worktree", "add"];
+    let mut args = vec![commands::WORKTREE, commands::ADD];
 
     // If creating a new branch
     if new_branch {
         if let Some(branch_name) = branch {
-            args.push("-b");
+            args.push(flags::BRANCH_FLAG);
             args.push(branch_name);
         } else {
             return Err(PhantomError::InvalidWorktreeName(
