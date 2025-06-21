@@ -110,11 +110,12 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - Use typed-arena crate
   - Target: bulk worktree operations
 
-- [ ] Advanced type-level programming
-  - Const generics for compile-time validation
-  - Type-level state machines
-  - Compile-time string validation
-  - Zero-runtime-cost abstractions
+- [x] Advanced type-level programming ✅
+  - [x] Const generics for compile-time validation
+  - [x] Type-level state machines (via type-state pattern)
+  - [x] Compile-time string validation (const functions)
+  - [x] Zero-runtime-cost abstractions
+  - Implemented const utilities in git/const_utils.rs and core/const_utils.rs
 
 - [ ] Custom smart pointers
   - `SmallBox<T, N>` with inline storage
@@ -183,7 +184,8 @@ Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rus
   - Sealed traits for API stability (all core traits)
   - Extension traits for ergonomic APIs (6 extension traits)
   - SmallVec optimization for command arguments
-  - Const functions for compile-time validation
+  - Const functions for compile-time validation (git refs, paths, hashes)
   - Concurrent async operations (3-5x speedup)
+  - Advanced const utilities for git and core operations
 
 **Known Issue**: One flaky test in `get_current_worktree` that occasionally fails in CI. See [test-race-condition-fix.md](./rust/docs/test-race-condition-fix.md) for details on race condition handling.
