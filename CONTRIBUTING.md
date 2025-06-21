@@ -8,6 +8,7 @@ Thank you for your interest in contributing to Phantom! This guide will help you
 - [Development Guidelines](#development-guidelines)
 - [Testing](#testing)
 - [Code Quality](#code-quality)
+- [Performance Guidelines (Rust)](#-performance-guidelines-rust)
 - [Pull Request Process](#pull-request-process)
 - [Documentation](#documentation)
 - [Release Process](#release-process)
@@ -110,6 +111,184 @@ This command runs:
 - Never introduce code that exposes or logs secrets and keys
 - Never commit secrets or keys to the repository
 - Be careful with user input validation
+
+## 🚀 Performance Guidelines (Rust)
+
+### Performance Standards
+
+- **Startup time**: < 50ms for all commands
+- **Memory usage**: Predictable and bounded
+- **Zero-cost abstractions**: Prefer compile-time polymorphism over runtime dispatch
+
+### Best Practices
+
+#### 1. Smart Pointer Usage
+
+**Use `Arc<T>` when:**
+- Sharing immutable data across threads
+- Multiple owners need the same large data structure
+- Data lifetime is complex or spans multiple async operations
+
+**Use `Rc<T>` when:**
+- Single-threaded shared ownership is needed
+- Building graphs or tree structures
+
+**Prefer cloning when:**
+- Data is small (`Copy` types preferred)
+- Each owner needs independent data
+- Cloning is infrequent
+
+**Example:**
+```rust
+// Good: Generic function, no Arc required
+async fn process<E: CommandExecutor>(executor: &E) { ... }
+
+// Avoid: Forces Arc even when not needed
+async fn process(executor: Arc<dyn CommandExecutor>) { ... }
+```
+
+#### 2. Iterator Optimization
+
+- Use `into_iter()` when consuming collections to avoid cloning
+- Chain iterator methods instead of collecting intermediate results
+- Use `collect()` with type hints for better performance
+
+```rust
+// Good: Consumes vector, no cloning
+let results: Vec<_> = items
+    .into_iter()
+    .filter(|x| x.is_valid())
+    .map(|x| process(x))
+    .collect();
+
+// Avoid: Unnecessary cloning
+let results: Vec<_> = items
+    .iter()
+    .filter(|x| x.is_valid())
+    .cloned()
+    .map(|x| process(x))
+    .collect();
+```
+
+#### 3. String Handling
+
+- Use `Cow<str>` for strings that are sometimes owned, sometimes borrowed
+- Use `&str` parameters when possible, `String` only when ownership is needed
+- Consider `SmallVec` for collections that are usually small
+
+```rust
+// Good: Flexible string handling
+use std::borrow::Cow;
+fn process(text: Cow<str>) -> Cow<str> { ... }
+
+// Good: Efficient for small collections
+use smallvec::SmallVec;
+type Args = SmallVec<[String; 4]>;
+```
+
+#### 4. Async Best Practices
+
+- Use `FuturesUnordered` for concurrent operations
+- Avoid unnecessary `Arc` wrapping in async contexts
+- Batch operations when possible
+
+```rust
+// Good: Concurrent execution
+use futures::stream::FuturesUnordered;
+let results: Vec<_> = tasks
+    .into_iter()
+    .map(|task| async move { process(task).await })
+    .collect::<FuturesUnordered<_>>()
+    .collect()
+    .await;
+```
+
+### Benchmarking
+
+Run benchmarks to verify performance improvements:
+
+```bash
+# Run all benchmarks
+cargo bench
+
+# Run specific benchmark
+cargo bench phantom_benchmarks
+
+# Compare with baseline
+cargo bench -- --save-baseline before
+# make changes...
+cargo bench -- --baseline before
+```
+
+### Advanced Rust Patterns
+
+#### 1. Type-State Pattern
+
+Use types to enforce state transitions at compile time:
+
+```rust
+pub struct WorktreeBuilder<S> {
+    name: String,
+    _state: PhantomData<S>,
+}
+
+pub struct Unnamed;
+pub struct Named;
+
+impl WorktreeBuilder<Unnamed> {
+    pub fn name(self, name: String) -> WorktreeBuilder<Named> { ... }
+}
+
+impl WorktreeBuilder<Named> {
+    pub fn build(self) -> Result<Worktree> { ... }
+}
+```
+
+#### 2. Extension Traits
+
+Add methods to external types safely:
+
+```rust
+pub trait PathExt {
+    fn to_string_lossy_owned(&self) -> String;
+}
+
+impl PathExt for Path {
+    fn to_string_lossy_owned(&self) -> String {
+        self.to_string_lossy().into_owned()
+    }
+}
+```
+
+#### 3. Sealed Traits
+
+Prevent external implementation of internal traits:
+
+```rust
+mod private {
+    pub trait Sealed {}
+}
+
+pub trait MyTrait: private::Sealed {
+    fn method(&self);
+}
+
+// Only types in this crate can implement Sealed
+impl private::Sealed for MyType {}
+impl MyTrait for MyType { ... }
+```
+
+#### 4. Zero-Cost Abstractions
+
+Prefer generics over trait objects when possible:
+
+```rust
+// Good: Zero-cost abstraction
+pub async fn execute<E: CommandExecutor>(executor: E) { ... }
+
+// Avoid when possible: Runtime dispatch
+pub async fn execute(executor: Box<dyn CommandExecutor>) { ... }
+```
 
 ## 🚀 Pull Request Requirements
 
