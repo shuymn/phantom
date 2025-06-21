@@ -21,6 +21,127 @@ Essential guides for understanding the codebase:
 
 ### 🔴 High Priority
 
+#### Rust Advanced Quality Improvements
+Based on [rust-codebase-review.md](./rust/docs/rust-codebase-review.md) and [rust-advanced-features-guide.md](./rust/docs/rust-advanced-features-guide.md).
+
+##### 🚀 Performance Optimizations (Immediate Impact)
+- [x] Replace Vec<String> with SmallVec for command arguments ✅
+  - Location: `rust/src/core/command_executor.rs:11`
+  - Use `SmallVec<[String; 4]>` for stack allocation of ≤4 args
+  - Reduces heap allocations for common commands
+  - Consider `Cow<'_, str>` for further optimization
+
+##### 🏗️ Architecture Improvements (1 week)
+- [x] Add const functions for compile-time validation ✅
+  - Convert `default_phantom_dir()` to `const fn`
+  - Implement `const fn validate_worktree_name(name: &str) -> bool`
+  - Enable compile-time constants and validation
+  - Location: Various utility functions
+
+- [x] Implement concurrent async operations ✅
+  - Convert sequential worktree operations to use `FuturesUnordered`
+  - Add `buffer_unordered(5)` for rate limiting
+  - Target: `list_all_worktree_info` and similar batch operations
+  - Expected speedup: 3-5x for multi-worktree operations
+  - Implemented: list, select, file copy operations now concurrent
+
+- [ ] Implement builder pattern with type states
+  - Create `WorktreeBuilder<State>` with phantom types
+  - States: `NoName`, `WithName`, `Ready`
+  - Enforce required fields at compile time
+  - Make invalid configurations impossible to express
+
+- [ ] Add sealed traits for API stability
+  - Seal `GitBackend`, `CommandExecutor`, `FileSystem` traits
+  - Prevent downstream implementations
+  - Use private `Sealed` supertrait pattern
+  - Maintain flexibility for internal changes
+
+- [ ] Create extension traits for better ergonomics
+  - `WorktreeExt` for additional worktree methods
+  - `CommandExecutorExt` for convenience functions
+  - `ResultExt` for error context methods
+  - Blanket implementations for all types
+
+##### 📚 Documentation and Policy Updates
+- [ ] Update CONTRIBUTING.md with performance guidelines
+  - When to use generics vs trait objects
+  - Memory allocation best practices
+  - Async/concurrent patterns
+  - Testing generic code
+
+- [ ] Create performance policy documentation
+  - Target: CLI startup < 50ms
+  - Predictable memory usage patterns
+  - Prefer stack allocation for small data
+  - Document profiling and benchmarking
+
+### 🟡 Medium Priority
+
+#### Advanced Rust Patterns
+- [ ] Update testing strategy for generic contexts
+  - Use conditional compilation: `#[cfg(test)]`
+  - Maintain zero-cost abstractions in production
+  - Keep test ergonomics with type aliases
+  - Document patterns in test-strategy.md
+
+- [ ] Add benchmarking suite
+  - Measure impact of optimizations
+  - Track performance regressions
+  - Use criterion.rs for statistical analysis
+  - Benchmark critical paths (startup, list, create)
+
+- [ ] Smart pointer optimizations
+  - Replace excessive cloning with `Arc`/`Rc`
+  - Use interior mutability where appropriate
+  - Cache expensive computations
+  - Document ownership patterns
+
+### 🟢 Low Priority
+
+#### Future Optimizations
+- [ ] Arena allocation for batch operations
+  - Create `BatchProcessor<'a>` with arena allocator
+  - Reduce allocation overhead in bulk operations
+  - Use typed-arena crate
+  - Target: bulk worktree operations
+
+- [ ] Derive macros for CLI commands
+  - Create `#[derive(Command)]` macro
+  - Generate clap definitions automatically
+  - Reduce boilerplate in command definitions
+  - Include validation in macro
+
+- [ ] Advanced type-level programming
+  - Const generics for compile-time validation
+  - Type-level state machines
+  - Compile-time string validation
+  - Zero-runtime-cost abstractions
+
+- [ ] Streaming support for large outputs
+  - Add `StreamingOutput` type
+  - Support `AsyncRead` for stdout/stderr
+  - Reduce memory usage for large git outputs
+  - Progressive output handling
+
+- [ ] Custom smart pointers
+  - `SmallBox<T, N>` with inline storage
+  - Optimized for common allocation patterns
+  - Benchmark against standard Box
+  - Use in hot paths only
+
+- [ ] Lock-free concurrency patterns
+  - Atomic reference counting for shared state
+  - Lock-free queues for work distribution
+  - Epoch-based memory reclamation
+  - Target: concurrent worktree access
+
+- [ ] Procedural macros for validation
+  - `#[validate(worktree_name)]` attribute
+  - Compile-time and runtime validation
+  - Generate error messages automatically
+  - Reduce validation boilerplate
+
 #### Rust Codebase Quality Improvements (Performance & Safety)
 - [x] Replace dynamic dispatch with generics in HandlerContext ✅
   - [x] Convert `Arc<dyn CommandExecutor>` to generic parameter in rust/src/cli/context.rs
@@ -70,8 +191,6 @@ Essential guides for understanding the codebase:
 - [ ] Add concurrent file copying with progress
 - [ ] Optimize worktree listing for large repositories
 - [ ] Reduce startup time with lazy loading
-
-### 🟡 Medium Priority
 
 #### Plugin System
 - [ ] Design plugin API for extensibility
