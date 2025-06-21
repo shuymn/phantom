@@ -30,7 +30,7 @@ impl GitOperations {
         let output = self.executor.execute(config).await?;
 
         if output.success() {
-            Ok(output.stdout)
+            Ok(output.stdout.into_owned())
         } else {
             Err(format!("Git status failed: {}", output.stderr).into())
         }

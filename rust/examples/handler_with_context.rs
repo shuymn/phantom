@@ -21,7 +21,7 @@ impl StatusHandler {
         let output = self.context.executor.execute(config).await?;
 
         if output.success() {
-            Ok(output.stdout)
+            Ok(output.stdout.into_owned())
         } else {
             Err(format!("Git status failed: {}", output.stderr).into())
         }
