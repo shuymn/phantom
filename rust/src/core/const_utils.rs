@@ -1,6 +1,5 @@
 /// Const utilities for core operations
 /// These functions can be evaluated at compile time for constant inputs
-
 /// Path separator as const
 pub const PATH_SEPARATOR: char = '/';
 pub const PATH_SEPARATOR_BYTE: u8 = b'/';
@@ -10,22 +9,22 @@ pub const PATH_SEPARATOR_BYTE: u8 = b'/';
 pub const fn is_valid_path_component(component: &str) -> bool {
     let bytes = component.as_bytes();
     let len = bytes.len();
-    
+
     // Empty component
     if len == 0 {
         return false;
     }
-    
+
     // Single dot
     if len == 1 && bytes[0] == b'.' {
         return false;
     }
-    
+
     // Double dot
     if len == 2 && bytes[0] == b'.' && bytes[1] == b'.' {
         return false;
     }
-    
+
     // Check for null bytes
     let mut i = 0;
     while i < len {
@@ -34,7 +33,7 @@ pub const fn is_valid_path_component(component: &str) -> bool {
         }
         i += 1;
     }
-    
+
     true
 }
 
@@ -62,11 +61,11 @@ pub const fn const_ends_with(s: &str, suffix: &str) -> bool {
     let suffix_bytes = suffix.as_bytes();
     let s_len = s_bytes.len();
     let suffix_len = suffix_bytes.len();
-    
+
     if s_len < suffix_len {
         return false;
     }
-    
+
     let start = s_len - suffix_len;
     let mut i = 0;
     while i < suffix_len {
@@ -75,7 +74,7 @@ pub const fn const_ends_with(s: &str, suffix: &str) -> bool {
         }
         i += 1;
     }
-    
+
     true
 }
 
@@ -138,14 +137,14 @@ pub const fn count_char(s: &str, target: char) -> usize {
     let target_byte = target as u8;
     let mut count = 0;
     let mut i = 0;
-    
+
     while i < bytes.len() {
         if bytes[i] == target_byte {
             count += 1;
         }
         i += 1;
     }
-    
+
     count
 }
 
@@ -163,15 +162,15 @@ mod tests {
         const VALID1: bool = is_valid_path_component("file");
         const VALID2: bool = is_valid_path_component("file.txt");
         const VALID3: bool = is_valid_path_component("my-component");
-        
+
         assert!(VALID1);
         assert!(VALID2);
         assert!(VALID3);
-        
+
         const INVALID1: bool = is_valid_path_component("");
         const INVALID2: bool = is_valid_path_component(".");
         const INVALID3: bool = is_valid_path_component("..");
-        
+
         assert!(!INVALID1);
         assert!(!INVALID2);
         assert!(!INVALID3);
@@ -183,7 +182,7 @@ mod tests {
         const TEST2: bool = const_ends_with("file.txt", ".doc");
         const TEST3: bool = const_ends_with("test", "test");
         const TEST4: bool = const_ends_with("short", "longer");
-        
+
         assert!(TEST1);
         assert!(!TEST2);
         assert!(TEST3);
@@ -195,7 +194,7 @@ mod tests {
         const HAS_GIT: bool = has_extension("config.git", extensions::GIT);
         const HAS_LOCK: bool = has_extension("file.lock", extensions::LOCK);
         const NO_EXT: bool = has_extension("file", extensions::TMP);
-        
+
         assert!(HAS_GIT);
         assert!(HAS_LOCK);
         assert!(!NO_EXT);
@@ -207,7 +206,7 @@ mod tests {
         const COUNT2: usize = count_char("no-slashes", '/');
         const COUNT3: usize = count_char("///", '/');
         const COUNT4: usize = count_char("", '/');
-        
+
         assert_eq!(COUNT1, 3);
         assert_eq!(COUNT2, 0);
         assert_eq!(COUNT3, 3);
@@ -220,7 +219,7 @@ mod tests {
         const DEPTH2: usize = path_depth("relative/path");
         const DEPTH3: usize = path_depth("file.txt");
         const DEPTH4: usize = path_depth("/");
-        
+
         assert_eq!(DEPTH1, 3);
         assert_eq!(DEPTH2, 1);
         assert_eq!(DEPTH3, 0);
@@ -242,9 +241,9 @@ mod tests {
         const IS_SEP1: bool = is_path_separator('/');
         const IS_SEP2: bool = is_path_separator('\\');
         const IS_SEP3: bool = is_path_separator('a');
-        
+
         assert!(IS_SEP1);
-        assert!(!IS_SEP2);  // Not on Unix
+        assert!(!IS_SEP2); // Not on Unix
         assert!(!IS_SEP3);
     }
 }

@@ -43,7 +43,8 @@ pub fn parse_worktree_list(output: &str) -> Vec<Worktree> {
                 if let Some(ref mut builder) = current_worktree {
                     if let Some(v) = value {
                         // Parse branch format: refs/heads/branch-name
-                        let branch_name = v.strip_prefix(REFS_HEADS_PREFIX).unwrap_or(v).to_string();
+                        let branch_name =
+                            v.strip_prefix(REFS_HEADS_PREFIX).unwrap_or(v).to_string();
                         builder.branch = Some(branch_name);
                     }
                 }

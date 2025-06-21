@@ -1,6 +1,5 @@
 /// Const utilities for git operations
 /// These functions can be evaluated at compile time for constant inputs
-
 /// Git reference prefixes
 pub const REFS_HEADS_PREFIX: &str = "refs/heads/";
 pub const REFS_TAGS_PREFIX: &str = "refs/tags/";
@@ -10,11 +9,11 @@ pub const REFS_REMOTES_PREFIX: &str = "refs/remotes/";
 const fn const_starts_with(s: &str, prefix: &str) -> bool {
     let s_bytes = s.as_bytes();
     let prefix_bytes = prefix.as_bytes();
-    
+
     if s_bytes.len() < prefix_bytes.len() {
         return false;
     }
-    
+
     let mut i = 0;
     while i < prefix_bytes.len() {
         if s_bytes[i] != prefix_bytes[i] {
@@ -22,7 +21,7 @@ const fn const_starts_with(s: &str, prefix: &str) -> bool {
         }
         i += 1;
     }
-    
+
     true
 }
 
@@ -90,15 +89,17 @@ pub mod exit_codes {
 
 /// Validate git object hash format (simplified for const)
 /// Only checks length and characters, not actual validity
+#[allow(clippy::manual_is_ascii_check)] // is_ascii_hexdigit() is not const
 pub const fn is_valid_git_hash(hash: &str) -> bool {
     let bytes = hash.as_bytes();
     let len = bytes.len();
-    
+
     // Git hashes are typically 40 chars (SHA-1) or 64 chars (SHA-256)
-    if len != 40 && len != 64 && len < 7 {  // Allow short hashes (min 7 chars)
+    if len != 40 && len != 64 && len < 7 {
+        // Allow short hashes (min 7 chars)
         return false;
     }
-    
+
     // Check all characters are hex
     let mut i = 0;
     while i < len {
@@ -108,7 +109,7 @@ pub const fn is_valid_git_hash(hash: &str) -> bool {
         }
         i += 1;
     }
-    
+
     true
 }
 
@@ -122,7 +123,7 @@ mod tests {
         const TEST2: bool = const_starts_with("refs/tags/v1.0", "refs/heads/");
         const TEST3: bool = const_starts_with("main", "refs/heads/");
         const TEST4: bool = const_starts_with("refs/heads/", "refs/heads/");
-        
+
         assert!(TEST1);
         assert!(!TEST2);
         assert!(!TEST3);
@@ -135,12 +136,12 @@ mod tests {
         const CHECK2: (bool, usize) = is_branch_ref_with_offset("refs/heads/feature/test");
         const CHECK3: (bool, usize) = is_branch_ref_with_offset("refs/tags/v1.0");
         const CHECK4: (bool, usize) = is_branch_ref_with_offset("main");
-        
-        assert_eq!(CHECK1, (true, 11));  // "refs/heads/" is 11 chars
+
+        assert_eq!(CHECK1, (true, 11)); // "refs/heads/" is 11 chars
         assert_eq!(CHECK2, (true, 11));
         assert_eq!(CHECK3, (false, 0));
         assert_eq!(CHECK4, (false, 0));
-        
+
         // Test runtime extraction using the offset
         if CHECK1.0 {
             let branch = &"refs/heads/main"[CHECK1.1..];
@@ -153,15 +154,15 @@ mod tests {
         const IS_BRANCH: bool = is_branch_ref("refs/heads/main");
         const IS_TAG: bool = is_tag_ref("refs/tags/v1.0");
         const IS_REMOTE: bool = is_remote_ref("refs/remotes/origin/main");
-        
+
         assert!(IS_BRANCH);
         assert!(IS_TAG);
         assert!(IS_REMOTE);
-        
+
         const NOT_BRANCH: bool = is_branch_ref("refs/tags/v1.0");
         const NOT_TAG: bool = is_tag_ref("refs/heads/main");
         const NOT_REMOTE: bool = is_remote_ref("refs/heads/main");
-        
+
         assert!(!NOT_BRANCH);
         assert!(!NOT_TAG);
         assert!(!NOT_REMOTE);
@@ -172,24 +173,23 @@ mod tests {
         // Valid SHA-1 hashes
         const VALID_SHA1: bool = is_valid_git_hash("abc123def456789012345678901234567890abcd");
         const VALID_SHORT: bool = is_valid_git_hash("abc123d");
-        
+
         // Valid SHA-256 hash
-        const VALID_SHA256: bool = is_valid_git_hash(
-            "abc123def456789012345678901234567890abcdef123456789012345678abcd"
-        );
-        
+        const VALID_SHA256: bool =
+            is_valid_git_hash("abc123def456789012345678901234567890abcdef123456789012345678abcd");
+
         assert!(VALID_SHA1);
         assert!(VALID_SHORT);
         assert!(VALID_SHA256);
-        
+
         // Invalid hashes
-        const INVALID_CHARS: bool = is_valid_git_hash("abc123g");  // 'g' is not hex
-        const TOO_SHORT: bool = is_valid_git_hash("abc12");  // Less than 7 chars
-        const VALID_38_CHARS: bool = is_valid_git_hash("abc123def456789012345678901234567890ab");  // 38 chars is valid
-        
+        const INVALID_CHARS: bool = is_valid_git_hash("abc123g"); // 'g' is not hex
+        const TOO_SHORT: bool = is_valid_git_hash("abc12"); // Less than 7 chars
+        const VALID_38_CHARS: bool = is_valid_git_hash("abc123def456789012345678901234567890ab"); // 38 chars is valid
+
         assert!(!INVALID_CHARS);
         assert!(!TOO_SHORT);
-        assert!(VALID_38_CHARS);  // Short hashes are valid
+        assert!(VALID_38_CHARS); // Short hashes are valid
     }
 
     #[test]
@@ -206,15 +206,15 @@ mod tests {
         // Empty strings
         const EMPTY_CHECK: (bool, usize) = is_branch_ref_with_offset("");
         assert_eq!(EMPTY_CHECK, (false, 0));
-        
+
         // Exact prefix
         const PREFIX_CHECK: (bool, usize) = is_branch_ref_with_offset("refs/heads/");
         assert_eq!(PREFIX_CHECK, (true, 11));
-        
+
         // Hash edge cases
         const EMPTY_HASH: bool = is_valid_git_hash("");
         const SPACES_HASH: bool = is_valid_git_hash("abc 123");
-        
+
         assert!(!EMPTY_HASH);
         assert!(!SPACES_HASH);
     }
