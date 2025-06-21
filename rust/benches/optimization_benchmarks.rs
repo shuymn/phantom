@@ -69,6 +69,7 @@ fn bench_cloning_patterns(c: &mut Criterion) {
     // Benchmark large data structure cloning
     #[derive(Clone)]
     struct LargeData {
+        #[allow(dead_code)]
         data: Vec<String>,
     }
 
