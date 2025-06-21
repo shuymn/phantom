@@ -8,6 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 /// Extension trait for CommandExecutor with convenience methods
+#[allow(async_fn_in_trait)]
 pub trait CommandExecutorExt: CommandExecutor {
     /// Execute a simple command with just program and args
     async fn run_simple(&self, program: &str, args: &[&str]) -> Result<String> {

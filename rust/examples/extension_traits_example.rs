@@ -1,5 +1,6 @@
 /// Example demonstrating the use of extension traits for better ergonomics
 use phantom::cli::context::ProductionContext;
+use phantom::core::command_executor::CommandExecutor;
 use phantom::core::executors::RealCommandExecutor;
 use phantom::core::exit_handler::RealExitHandler;
 use phantom::core::extension_traits::{CommandExecutorExt, StrExt, WorktreeExt};
@@ -27,8 +28,8 @@ async fn main() -> phantom::Result<()> {
     // let git_version = context.executor.run_in_dir("git", &["--version"], Path::new("/tmp")).await?;
 
     // Create GitExecutor from CommandExecutor
-    let git = Arc::new(context.executor).git();
-    // Now you can use git.run(&["status"]).await
+    let _git = Arc::new(context.executor).git();
+    // Now you can use _git.run(&["status"]).await
 
     // Example 2: Using WorktreeExt for worktree convenience methods
     println!("\n=== WorktreeExt Example ===");
@@ -89,6 +90,7 @@ async fn main() -> phantom::Result<()> {
 }
 
 // Example function showing how extension traits improve code readability
+#[allow(dead_code)]
 async fn check_git_status(executor: &impl CommandExecutor) -> phantom::Result<bool> {
     // Without extension trait:
     // let config = CommandConfig::new("git").with_args(vec!["status".to_string(), "--porcelain".to_string()]);
