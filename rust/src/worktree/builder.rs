@@ -1,6 +1,9 @@
-use super::types::CreateWorktreeOptions;
+use super::types::{CreateWorktreeOptions, CreateWorktreeSuccess};
+use crate::git::backend::GitBackend;
 use crate::Result;
 use std::marker::PhantomData;
+use std::path::Path;
+use std::sync::Arc;
 
 /// Type states for the builder
 pub mod builder_states {
@@ -105,6 +108,16 @@ impl WorktreeBuilder<builder_states::WithName> {
             copy_files: if self.copy_files.is_empty() { None } else { Some(self.copy_files) },
         }
     }
+
+    /// Create the worktree directly, validating and building in one step
+    pub async fn create(
+        self,
+        backend: Arc<dyn GitBackend>,
+        git_root: &Path,
+    ) -> Result<CreateWorktreeSuccess> {
+        let validated = self.validate()?;
+        validated.create(backend, git_root).await
+    }
 }
 
 impl WorktreeBuilder<builder_states::Ready> {
@@ -121,6 +134,17 @@ impl WorktreeBuilder<builder_states::Ready> {
     /// Get the validated name
     pub fn name(&self) -> &str {
         self.name.as_ref().unwrap() // Safe because we validated
+    }
+
+    /// Create the worktree directly using a GitBackend
+    pub async fn create(
+        self,
+        backend: Arc<dyn GitBackend>,
+        git_root: &Path,
+    ) -> Result<CreateWorktreeSuccess> {
+        let name = self.name.clone().unwrap(); // Safe because we validated
+        let options = self.build();
+        super::create::create_worktree_with_backend(backend, git_root, &name, options).await
     }
 }
 
@@ -191,5 +215,62 @@ mod tests {
         // let options = build_worktree()
         //     .branch("feature")
         //     .build(); // ERROR: method `build` not found
+    }
+
+    #[tokio::test]
+    async fn test_builder_create_worktree() {
+        use crate::git::factory::create_backend_for_dir;
+        use crate::test_utils::TestRepo;
+
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        let backend = create_backend_for_dir(repo.path());
+
+        let result = build_worktree()
+            .name("feature-test")
+            .branch("feature/test-branch")
+            .create(backend, repo.path())
+            .await;
+
+        assert!(result.is_ok());
+        let success = result.unwrap();
+        assert!(success.message.contains("Created worktree 'feature-test'"));
+    }
+
+    #[tokio::test]
+    async fn test_builder_create_with_validation() {
+        use crate::git::factory::create_backend_for_dir;
+        use crate::test_utils::TestRepo;
+
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        let backend = create_backend_for_dir(repo.path());
+
+        let result = build_worktree()
+            .name("feature-123")
+            .base("HEAD")
+            .validate()
+            .unwrap()
+            .create(backend, repo.path())
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_builder_create_invalid_name_fails() {
+        use crate::git::factory::create_backend_for_dir;
+        use crate::test_utils::TestRepo;
+
+        let repo = TestRepo::new().await.unwrap();
+        repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
+
+        let backend = create_backend_for_dir(repo.path());
+
+        let result = build_worktree().name("invalid..name").create(backend, repo.path()).await;
+
+        assert!(result.is_err());
     }
 }

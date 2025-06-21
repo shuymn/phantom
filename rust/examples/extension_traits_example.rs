@@ -3,9 +3,11 @@ use phantom::cli::context::ProductionContext;
 use phantom::core::command_executor::CommandExecutor;
 use phantom::core::executors::RealCommandExecutor;
 use phantom::core::exit_handler::RealExitHandler;
-use phantom::core::extension_traits::{CommandExecutorExt, StrExt, WorktreeExt};
+use phantom::core::extension_traits::{
+    CommandExecutorExt, GitConfigExt, PhantomConfigExt, StrExt, WorktreeExt,
+};
 use phantom::core::filesystems::RealFileSystem;
-use phantom::core::types::Worktree;
+use phantom::core::types::{GitConfig, PhantomConfig, Worktree};
 use std::sync::Arc;
 
 #[tokio::main]
@@ -76,7 +78,55 @@ async fn main() -> phantom::Result<()> {
         println!("  Sanitized: '{}'", input.sanitize_worktree_name());
     }
 
-    // Example 4: Practical usage in a handler-like function
+    // Example 4: Using PhantomConfigExt for configuration management
+    println!("\n=== PhantomConfigExt Example ===");
+
+    let mut config = PhantomConfig::default();
+    println!("Initial config has copy files: {}", config.has_copy_files());
+
+    // Add some files to copy
+    config.add_copy_file(".env");
+    config.add_copy_file("config.json");
+    config.add_copy_file(".env"); // Won't duplicate
+
+    println!("After adding, has copy files: {}", config.has_copy_files());
+    println!("Should copy .env: {}", config.should_copy_file(".env"));
+    println!("Should copy other.txt: {}", config.should_copy_file("other.txt"));
+
+    // Remove a file
+    if config.remove_copy_file(".env") {
+        println!("Removed .env from copy list");
+    }
+
+    println!("Terminal multiplexer: {}", config.multiplexer_or_default());
+
+    // Example 5: Using GitConfigExt for git user configuration
+    println!("\n=== GitConfigExt Example ===");
+
+    let configs = vec![
+        GitConfig { user_name: None, user_email: None },
+        GitConfig { user_name: Some("Alice".to_string()), user_email: None },
+        GitConfig {
+            user_name: Some("Bob".to_string()),
+            user_email: Some("bob@example.com".to_string()),
+        },
+    ];
+
+    for (i, config) in configs.iter().enumerate() {
+        println!("\nConfig {}:", i + 1);
+        println!("  User configured: {}", config.is_user_configured());
+        println!("  Display name: {}", config.user_display());
+        println!("  Environment vars: {} variables", config.to_env_vars().len());
+
+        if i == 2 {
+            // Show the actual env vars for the complete config
+            for (key, value) in config.to_env_vars() {
+                println!("    {}={}", key, value);
+            }
+        }
+    }
+
+    // Example 6: Practical usage in a handler-like function
     println!("\n=== Practical Usage Example ===");
 
     // Check if a name is valid before creating a worktree

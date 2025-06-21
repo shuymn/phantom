@@ -5,7 +5,7 @@ use crate::config::loader::load_config;
 use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
-use crate::git::libs::get_git_root::get_git_root_with_executor;
+use crate::git::libs::get_git_root_generic::get_git_root;
 use crate::process::exec::exec_in_dir;
 use crate::process::multiplexer::{execute_in_multiplexer, MultiplexerOptions, SplitDirection};
 use crate::process::shell::shell_in_dir;
@@ -23,7 +23,7 @@ where
 {
     // Get git root
     let git_root =
-        match get_git_root_with_executor(std::sync::Arc::new(context.executor.clone())).await {
+        match get_git_root(context.executor.clone()).await {
             Ok(root) => root,
             Err(e) => {
                 if args.json {

@@ -130,6 +130,36 @@ pub trait StrExt {
     fn sanitize_worktree_name(&self) -> String;
 }
 
+/// Extension trait for PhantomConfig with convenience methods
+pub trait PhantomConfigExt {
+    /// Check if any files are configured to be copied
+    fn has_copy_files(&self) -> bool;
+
+    /// Add a file to the copy list
+    fn add_copy_file(&mut self, file: impl Into<String>);
+
+    /// Remove a file from the copy list
+    fn remove_copy_file(&mut self, file: &str) -> bool;
+
+    /// Check if a specific file is in the copy list
+    fn should_copy_file(&self, file: &str) -> bool;
+
+    /// Get terminal multiplexer or default
+    fn multiplexer_or_default(&self) -> &str;
+}
+
+/// Extension trait for GitConfig with convenience methods  
+pub trait GitConfigExt {
+    /// Check if user configuration is complete
+    fn is_user_configured(&self) -> bool;
+
+    /// Get user display name (name or email or "unknown")
+    fn user_display(&self) -> String;
+
+    /// Create environment variables for git commands
+    fn to_env_vars(&self) -> Vec<(String, String)>;
+}
+
 impl StrExt for str {
     fn is_branch_like(&self) -> bool {
         !self.is_empty()
@@ -145,6 +175,63 @@ impl StrExt for str {
         self.chars()
             .map(|c| if c.is_alphanumeric() || "/-_.".contains(c) { c } else { '-' })
             .collect()
+    }
+}
+
+impl PhantomConfigExt for crate::core::types::PhantomConfig {
+    fn has_copy_files(&self) -> bool {
+        !self.copy_files.is_empty()
+    }
+
+    fn add_copy_file(&mut self, file: impl Into<String>) {
+        let file = file.into();
+        if !self.copy_files.contains(&file) {
+            self.copy_files.push(file);
+        }
+    }
+
+    fn remove_copy_file(&mut self, file: &str) -> bool {
+        if let Some(pos) = self.copy_files.iter().position(|f| f == file) {
+            self.copy_files.remove(pos);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn should_copy_file(&self, file: &str) -> bool {
+        self.copy_files.iter().any(|f| f == file)
+    }
+
+    fn multiplexer_or_default(&self) -> &str {
+        &self.terminal.multiplexer
+    }
+}
+
+impl GitConfigExt for crate::core::types::GitConfig {
+    fn is_user_configured(&self) -> bool {
+        self.user_name.is_some() && self.user_email.is_some()
+    }
+
+    fn user_display(&self) -> String {
+        self.user_name
+            .as_ref()
+            .or(self.user_email.as_ref())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "unknown".to_string())
+    }
+
+    fn to_env_vars(&self) -> Vec<(String, String)> {
+        let mut vars = Vec::new();
+        if let Some(name) = &self.user_name {
+            vars.push(("GIT_AUTHOR_NAME".to_string(), name.clone()));
+            vars.push(("GIT_COMMITTER_NAME".to_string(), name.clone()));
+        }
+        if let Some(email) = &self.user_email {
+            vars.push(("GIT_AUTHOR_EMAIL".to_string(), email.clone()));
+            vars.push(("GIT_COMMITTER_EMAIL".to_string(), email.clone()));
+        }
+        vars
     }
 }
 
@@ -200,5 +287,72 @@ mod tests {
         assert_eq!("feature branch!".sanitize_worktree_name(), "feature-branch-");
         assert_eq!("feature@branch".sanitize_worktree_name(), "feature-branch");
         assert_eq!("feature/sub".sanitize_worktree_name(), "feature/sub");
+    }
+
+    #[test]
+    fn test_phantom_config_ext() {
+        use crate::core::types::PhantomConfig;
+
+        let mut config = PhantomConfig::default();
+        assert!(!config.has_copy_files());
+
+        // Add files
+        config.add_copy_file(".env");
+        config.add_copy_file("config.json");
+        config.add_copy_file(".env"); // Duplicate, should not be added
+
+        assert!(config.has_copy_files());
+        assert_eq!(config.copy_files.len(), 2);
+        assert!(config.should_copy_file(".env"));
+        assert!(config.should_copy_file("config.json"));
+        assert!(!config.should_copy_file("other.txt"));
+
+        // Remove file
+        assert!(config.remove_copy_file(".env"));
+        assert!(!config.remove_copy_file(".env")); // Already removed
+        assert_eq!(config.copy_files.len(), 1);
+        assert!(!config.should_copy_file(".env"));
+
+        // Multiplexer
+        assert_eq!(config.multiplexer_or_default(), "auto");
+    }
+
+    #[test]
+    fn test_git_config_ext() {
+        use crate::core::types::GitConfig;
+
+        // Empty config
+        let config = GitConfig { user_name: None, user_email: None };
+        assert!(!config.is_user_configured());
+        assert_eq!(config.user_display(), "unknown");
+        assert!(config.to_env_vars().is_empty());
+
+        // Partial config (name only)
+        let config = GitConfig { user_name: Some("Alice".to_string()), user_email: None };
+        assert!(!config.is_user_configured());
+        assert_eq!(config.user_display(), "Alice");
+        let vars = config.to_env_vars();
+        assert_eq!(vars.len(), 2);
+        assert!(vars.contains(&("GIT_AUTHOR_NAME".to_string(), "Alice".to_string())));
+        assert!(vars.contains(&("GIT_COMMITTER_NAME".to_string(), "Alice".to_string())));
+
+        // Partial config (email only)
+        let config =
+            GitConfig { user_name: None, user_email: Some("alice@example.com".to_string()) };
+        assert!(!config.is_user_configured());
+        assert_eq!(config.user_display(), "alice@example.com");
+        let vars = config.to_env_vars();
+        assert_eq!(vars.len(), 2);
+        assert!(vars.contains(&("GIT_AUTHOR_EMAIL".to_string(), "alice@example.com".to_string())));
+
+        // Full config
+        let config = GitConfig {
+            user_name: Some("Alice".to_string()),
+            user_email: Some("alice@example.com".to_string()),
+        };
+        assert!(config.is_user_configured());
+        assert_eq!(config.user_display(), "Alice");
+        let vars = config.to_env_vars();
+        assert_eq!(vars.len(), 4);
     }
 }

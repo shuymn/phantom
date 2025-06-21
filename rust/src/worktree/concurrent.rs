@@ -22,7 +22,7 @@ pub async fn list_worktrees_concurrent_with_executor(
 
     let git_worktrees = git_list_worktrees_with_executor(executor.clone(), git_root).await?;
     let phantom_dir = get_phantom_directory(git_root);
-    let phantom_dir_canonical = phantom_dir.canonicalize().unwrap_or(phantom_dir.clone());
+    let phantom_dir_canonical = phantom_dir.canonicalize().unwrap_or_else(|_| phantom_dir.clone());
     let phantom_dir_str = phantom_dir_canonical.to_string_lossy();
 
     // Filter phantom worktrees first
@@ -30,7 +30,7 @@ pub async fn list_worktrees_concurrent_with_executor(
         .into_iter()
         .filter_map(|worktree| {
             let worktree_path_canonical =
-                worktree.path.canonicalize().unwrap_or(worktree.path.clone());
+                worktree.path.canonicalize().unwrap_or_else(|_| worktree.path.clone());
             if worktree_path_canonical.starts_with(&phantom_dir_canonical) {
                 let canonical_path_str = worktree_path_canonical.to_string_lossy();
                 let name = if let Some(stripped) =
@@ -49,19 +49,16 @@ pub async fn list_worktrees_concurrent_with_executor(
 
     // Create futures for concurrent status checks
     let status_futures: Vec<_> = phantom_worktrees_filtered
-        .iter()
+        .into_iter()
         .map(|(name, worktree)| {
             let executor = executor.clone();
-            let path = worktree.path.clone();
-            let name = name.clone();
-            let branch = worktree.branch.clone();
             let path_str = worktree.path.to_string_lossy().to_string();
 
             async move {
                 let is_clean =
-                    get_worktree_status_with_executor(executor, &path).await.unwrap_or(true);
+                    get_worktree_status_with_executor(executor, &worktree.path).await.unwrap_or(true);
 
-                WorktreeInfo { name, path: path_str, branch, is_clean }
+                WorktreeInfo { name, path: path_str, branch: worktree.branch, is_clean }
             }
         })
         .collect();
