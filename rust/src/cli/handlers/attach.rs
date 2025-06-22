@@ -43,23 +43,12 @@ where
     }
 
     // Check if branch exists
-    if !branch_exists_with_executor(
-        std::sync::Arc::new(context.executor.clone()),
-        &git_root,
-        &args.branch,
-    )
-    .await?
-    {
+    if !branch_exists_with_executor(context.executor.clone(), &git_root, &args.branch).await? {
         return Err(PhantomError::BranchNotFound { branch: args.branch.clone() });
     }
 
     // Attach the worktree
-    attach_worktree_with_executor(
-        std::sync::Arc::new(context.executor.clone()),
-        &git_root,
-        &args.branch,
-    )
-    .await?;
+    attach_worktree_with_executor(context.executor.clone(), &git_root, &args.branch).await?;
 
     if args.json {
         let json_output = AttachJsonOutput {

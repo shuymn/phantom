@@ -34,11 +34,8 @@ where
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result = select_worktree_with_fzf_with_executor(
-            std::sync::Arc::new(context.executor.clone()),
-            &git_root,
-        )
-        .await?;
+        let result =
+            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?;
 
         match result {
             Some(worktree) => worktree.name,

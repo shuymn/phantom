@@ -137,8 +137,7 @@ where
             },
         };
 
-        execute_tmux_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
-            .await?;
+        execute_tmux_command_with_executor(&context.executor, options).await?;
         return Ok(());
     }
 
@@ -163,8 +162,7 @@ where
             },
         };
 
-        execute_kitty_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
-            .await?;
+        execute_kitty_command_with_executor(&context.executor, options).await?;
         return Ok(());
     }
 
@@ -175,7 +173,7 @@ where
         &command,
         args_slice,
         &context.filesystem,
-        Some(std::sync::Arc::new(context.executor.clone())),
+        Some(context.executor.clone()),
     )
     .await?;
 

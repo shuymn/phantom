@@ -77,11 +77,8 @@ where
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result = select_worktree_with_fzf_with_executor(
-            std::sync::Arc::new(context.executor.clone()),
-            &git_root,
-        )
-        .await?;
+        let result =
+            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?;
 
         match result {
             Some(worktree) => worktree.name,
@@ -124,8 +121,7 @@ where
             },
         };
 
-        execute_tmux_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
-            .await?;
+        execute_tmux_command_with_executor(&context.executor, options).await?;
         return Ok(());
     }
 
@@ -150,8 +146,7 @@ where
             },
         };
 
-        execute_kitty_command_with_executor(std::sync::Arc::new(context.executor.clone()), options)
-            .await?;
+        execute_kitty_command_with_executor(&context.executor, options).await?;
         return Ok(());
     }
 
@@ -163,7 +158,7 @@ where
         &git_root,
         &worktree_name,
         &context.filesystem,
-        Some(std::sync::Arc::new(context.executor.clone())),
+        Some(context.executor.clone()),
     )
     .await?;
 

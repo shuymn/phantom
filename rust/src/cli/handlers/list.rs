@@ -44,11 +44,8 @@ where
         }
     } else {
         // List all worktrees using concurrent operations
-        let result = list_worktrees_concurrent_with_executor(
-            std::sync::Arc::new(context.executor.clone()),
-            &git_root,
-        )
-        .await?;
+        let result =
+            list_worktrees_concurrent_with_executor(context.executor.clone(), &git_root).await?;
 
         if result.worktrees.is_empty() {
             if args.json {
