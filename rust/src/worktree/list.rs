@@ -1,6 +1,6 @@
 use crate::core::command_executor::CommandExecutor;
 use crate::git::git_executor_adapter::GitExecutor as GitExecutorAdapter;
-use crate::git::libs::list_worktrees::list_worktrees_with_executor as git_list_worktrees_with_executor;
+use crate::git::libs::list_worktrees::list_worktrees as git_list_worktrees;
 use crate::worktree::paths::get_phantom_directory;
 use crate::Result;
 use serde::{Deserialize, Serialize};
@@ -24,10 +24,7 @@ pub struct ListWorktreesSuccess {
 }
 
 /// Get the current branch of a worktree with executor
-pub async fn get_worktree_branch_with_executor<E>(
-    executor: E,
-    worktree_path: &Path,
-) -> Result<String>
+pub async fn get_worktree_branch<E>(executor: E, worktree_path: &Path) -> Result<String>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -41,14 +38,8 @@ where
     }
 }
 
-/// Get the current branch of a worktree
-pub async fn get_worktree_branch(worktree_path: &Path) -> Result<String> {
-    use crate::core::executors::RealCommandExecutor;
-    get_worktree_branch_with_executor(RealCommandExecutor::new(), worktree_path).await
-}
-
 /// Get the status of a worktree (clean/dirty) with executor
-pub async fn get_worktree_status_with_executor<E>(executor: E, worktree_path: &Path) -> Result<bool>
+pub async fn get_worktree_status<E>(executor: E, worktree_path: &Path) -> Result<bool>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -59,26 +50,16 @@ where
     }
 }
 
-/// Get the status of a worktree (clean/dirty)
-pub async fn get_worktree_status(worktree_path: &Path) -> Result<bool> {
-    use crate::core::executors::RealCommandExecutor;
-    get_worktree_status_with_executor(RealCommandExecutor::new(), worktree_path).await
-}
-
 /// Get detailed information about a worktree with executor
-pub async fn get_worktree_info_with_executor<E>(
-    executor: E,
-    git_root: &Path,
-    name: &str,
-) -> Result<WorktreeInfo>
+pub async fn get_worktree_info<E>(executor: E, git_root: &Path, name: &str) -> Result<WorktreeInfo>
 where
     E: CommandExecutor + Clone + 'static,
 {
     let worktree_path = get_phantom_directory(git_root).join(name);
 
     let (branch, is_clean) = tokio::join!(
-        get_worktree_branch_with_executor(executor.clone(), &worktree_path),
-        get_worktree_status_with_executor(executor.clone(), &worktree_path)
+        get_worktree_branch(executor.clone(), &worktree_path),
+        get_worktree_status(executor.clone(), &worktree_path)
     );
 
     Ok(WorktreeInfo {
@@ -89,23 +70,14 @@ where
     })
 }
 
-/// Get detailed information about a worktree
-pub async fn get_worktree_info(git_root: &Path, name: &str) -> Result<WorktreeInfo> {
-    use crate::core::executors::RealCommandExecutor;
-    get_worktree_info_with_executor(RealCommandExecutor::new(), git_root, name).await
-}
-
 /// List all phantom worktrees with executor
-pub async fn list_worktrees_with_executor<E>(
-    executor: E,
-    git_root: &Path,
-) -> Result<ListWorktreesSuccess>
+pub async fn list_worktrees<E>(executor: E, git_root: &Path) -> Result<ListWorktreesSuccess>
 where
     E: CommandExecutor + Clone + 'static,
 {
     debug!("Listing worktrees from git root: {:?}", git_root);
 
-    let git_worktrees = git_list_worktrees_with_executor(executor.clone(), git_root).await?;
+    let git_worktrees = git_list_worktrees(executor.clone(), git_root).await?;
     let phantom_dir = get_phantom_directory(git_root);
     // Canonicalize the phantom directory path for consistent comparison
     let phantom_dir_canonical = phantom_dir.canonicalize().unwrap_or(phantom_dir.clone());
@@ -127,9 +99,8 @@ where
                 worktree.name.clone()
             };
 
-            let is_clean = get_worktree_status_with_executor(executor.clone(), &worktree.path)
-                .await
-                .unwrap_or(true);
+            let is_clean =
+                get_worktree_status(executor.clone(), &worktree.path).await.unwrap_or(true);
 
             phantom_worktrees.push(WorktreeInfo {
                 name,
@@ -146,12 +117,6 @@ where
     Ok(ListWorktreesSuccess { worktrees: phantom_worktrees, message })
 }
 
-/// List all phantom worktrees
-pub async fn list_worktrees(git_root: &Path) -> Result<ListWorktreesSuccess> {
-    use crate::core::executors::RealCommandExecutor;
-    list_worktrees_with_executor(RealCommandExecutor::new(), git_root).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,7 +129,8 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
-        let result = list_worktrees(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let result = list_worktrees(RealCommandExecutor::new(), repo.path()).await.unwrap();
         assert!(result.worktrees.is_empty());
         assert_eq!(result.message, Some("No worktrees found".to_string()));
     }
@@ -185,7 +151,8 @@ mod tests {
         create_worktree(repo.path(), "test-branch", options).await.unwrap();
 
         let worktree_path = get_phantom_directory(repo.path()).join("test-branch");
-        let branch = get_worktree_branch(&worktree_path).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let branch = get_worktree_branch(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert_eq!(branch, "test-branch");
     }
 
@@ -199,7 +166,9 @@ mod tests {
         create_worktree(repo.path(), "test-status", options).await.unwrap();
 
         let worktree_path = get_phantom_directory(repo.path()).join("test-status");
-        let is_clean = get_worktree_status(&worktree_path).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let is_clean =
+            get_worktree_status(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert!(is_clean);
     }
 
@@ -217,7 +186,9 @@ mod tests {
         // Make the worktree dirty by modifying a file
         tokio::fs::write(worktree_path.join("test.txt"), "modified content").await.unwrap();
 
-        let is_clean = get_worktree_status(&worktree_path).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let is_clean =
+            get_worktree_status(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert!(!is_clean);
     }
 
@@ -231,7 +202,9 @@ mod tests {
             CreateWorktreeOptions { branch: Some("info-branch".to_string()), ..Default::default() };
         create_worktree(repo.path(), "test-info", options).await.unwrap();
 
-        let info = get_worktree_info(repo.path(), "test-info").await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let info =
+            get_worktree_info(RealCommandExecutor::new(), repo.path(), "test-info").await.unwrap();
         assert_eq!(info.name, "test-info");
         assert!(info.path.contains("test-info"));
         assert_eq!(info.branch, Some("info-branch".to_string()));
@@ -261,7 +234,8 @@ mod tests {
             .await
             .unwrap();
 
-        let branch = get_worktree_branch(&worktree_path).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let branch = get_worktree_branch(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert_eq!(branch, "(detached HEAD)");
     }
 
@@ -270,7 +244,9 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let nonexistent_path = temp_dir.path().join("nonexistent");
 
-        let branch = get_worktree_branch(&nonexistent_path).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let branch =
+            get_worktree_branch(RealCommandExecutor::new(), &nonexistent_path).await.unwrap();
         assert_eq!(branch, "unknown");
     }
 
@@ -279,7 +255,9 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let nonexistent_path = temp_dir.path().join("nonexistent");
 
-        let is_clean = get_worktree_status(&nonexistent_path).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let is_clean =
+            get_worktree_status(RealCommandExecutor::new(), &nonexistent_path).await.unwrap();
         assert!(is_clean); // Defaults to clean on error
     }
 

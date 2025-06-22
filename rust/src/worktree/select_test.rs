@@ -7,7 +7,7 @@ mod select_integration_tests {
     #[tokio::test]
     async fn test_select_worktree_with_fzf_empty_list() {
         use crate::core::executors::MockCommandExecutor;
-        use crate::worktree::select::select_worktree_with_fzf_with_executor;
+        use crate::worktree::select::select_worktree_with_fzf;
 
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
@@ -27,7 +27,7 @@ mod select_integration_tests {
                 0,
             );
 
-        let result = select_worktree_with_fzf_with_executor(mock, repo.path()).await;
+        let result = select_worktree_with_fzf(mock, repo.path()).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -35,7 +35,7 @@ mod select_integration_tests {
     #[tokio::test]
     async fn test_select_worktree_with_fzf_with_worktrees() {
         use crate::core::executors::MockCommandExecutor;
-        use crate::worktree::select::select_worktree_with_fzf_with_executor;
+        use crate::worktree::select::select_worktree_with_fzf;
 
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
@@ -99,7 +99,7 @@ mod select_integration_tests {
             )
             .returns_output("feature-2 (feature-2) [dirty]\n", "", 0);
 
-        let result = select_worktree_with_fzf_with_executor(mock, repo.path()).await;
+        let result = select_worktree_with_fzf(mock, repo.path()).await;
         assert!(result.is_ok());
 
         let selected = result.unwrap();

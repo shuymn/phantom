@@ -1,10 +1,8 @@
 /// Concurrent operations for worktree management
 /// These functions use async concurrency to improve performance when dealing with multiple worktrees
 use crate::core::command_executor::CommandExecutor;
-use crate::git::libs::list_worktrees::list_worktrees_with_executor as git_list_worktrees_with_executor;
-use crate::worktree::list::{
-    get_worktree_status_with_executor, ListWorktreesSuccess, WorktreeInfo,
-};
+use crate::git::libs::list_worktrees::list_worktrees as git_list_worktrees;
+use crate::worktree::list::{get_worktree_status, ListWorktreesSuccess, WorktreeInfo};
 use crate::worktree::paths::get_phantom_directory;
 use crate::Result;
 use futures::future::join_all;
@@ -13,7 +11,7 @@ use tracing::debug;
 
 /// List all phantom worktrees with concurrent status checks
 /// This version processes status checks for all worktrees in parallel
-pub async fn list_worktrees_concurrent_with_executor<E>(
+pub async fn list_worktrees_concurrent<E>(
     executor: E,
     git_root: &Path,
 ) -> Result<ListWorktreesSuccess>
@@ -22,7 +20,7 @@ where
 {
     debug!("Listing worktrees concurrently from git root: {:?}", git_root);
 
-    let git_worktrees = git_list_worktrees_with_executor(executor.clone(), git_root).await?;
+    let git_worktrees = git_list_worktrees(executor.clone(), git_root).await?;
     let phantom_dir = get_phantom_directory(git_root);
     let phantom_dir_canonical = phantom_dir.canonicalize().unwrap_or_else(|_| phantom_dir.clone());
     let phantom_dir_str = phantom_dir_canonical.to_string_lossy();
@@ -57,9 +55,7 @@ where
             let path_str = worktree.path.to_string_lossy().to_string();
 
             async move {
-                let is_clean = get_worktree_status_with_executor(executor, &worktree.path)
-                    .await
-                    .unwrap_or(true);
+                let is_clean = get_worktree_status(executor, &worktree.path).await.unwrap_or(true);
 
                 WorktreeInfo { name, path: path_str, branch: worktree.branch, is_clean }
             }
@@ -75,14 +71,8 @@ where
     Ok(ListWorktreesSuccess { worktrees: phantom_worktrees, message })
 }
 
-/// List all phantom worktrees with concurrent status checks
-pub async fn list_worktrees_concurrent(git_root: &Path) -> Result<ListWorktreesSuccess> {
-    use crate::core::executors::RealCommandExecutor;
-    list_worktrees_concurrent_with_executor(RealCommandExecutor, git_root).await
-}
-
 /// Get information about multiple worktrees concurrently
-pub async fn get_worktrees_info_concurrent_with_executor<E>(
+pub async fn get_worktrees_info_concurrent<E>(
     executor: E,
     git_root: &Path,
     names: &[&str],
@@ -90,13 +80,13 @@ pub async fn get_worktrees_info_concurrent_with_executor<E>(
 where
     E: CommandExecutor + Clone + Send + Sync + 'static,
 {
-    use crate::worktree::list::get_worktree_info_with_executor;
+    use crate::worktree::list::get_worktree_info;
 
     let info_futures: Vec<_> = names
         .iter()
         .map(|&name| {
             let executor = executor.clone();
-            async move { get_worktree_info_with_executor(executor, git_root, name).await }
+            async move { get_worktree_info(executor, git_root, name).await }
         })
         .collect();
 
@@ -107,7 +97,7 @@ where
 }
 
 /// Batch check status of multiple worktrees concurrently
-pub async fn check_worktrees_status_concurrent_with_executor<E>(
+pub async fn check_worktrees_status_concurrent<E>(
     executor: E,
     worktree_paths: &[&Path],
 ) -> Vec<(usize, Result<bool>)>
@@ -121,7 +111,7 @@ where
             let executor = executor.clone();
             let path = path.to_owned();
             async move {
-                let result = get_worktree_status_with_executor(executor, &path).await;
+                let result = get_worktree_status(executor, &path).await;
                 (idx, result)
             }
         })
@@ -148,7 +138,7 @@ mod tests {
             0,
         );
 
-        let result = list_worktrees_concurrent_with_executor(mock, &git_root).await.unwrap();
+        let result = list_worktrees_concurrent(mock, &git_root).await.unwrap();
 
         assert!(result.worktrees.is_empty());
         assert_eq!(result.message, Some("No worktrees found".to_string()));
@@ -180,7 +170,7 @@ mod tests {
             Path::new("/repo/worktree3"),
         ];
 
-        let results = check_worktrees_status_concurrent_with_executor(
+        let results = check_worktrees_status_concurrent(
             mock,
             &paths.iter().map(|p| p.as_ref()).collect::<Vec<_>>(),
         )

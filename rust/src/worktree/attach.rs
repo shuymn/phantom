@@ -1,5 +1,5 @@
 use crate::core::command_executor::CommandExecutor;
-use crate::git::libs::attach_worktree::attach_worktree_with_executor as git_attach_worktree_with_executor;
+use crate::git::libs::attach_worktree::attach_worktree as git_attach_worktree;
 use crate::worktree::paths::get_worktree_path;
 use crate::worktree::validate::validate_worktree_name;
 use crate::{PhantomError, Result};
@@ -8,11 +8,7 @@ use tokio::fs;
 use tracing::info;
 
 /// Attach a worktree to an existing branch with executor
-pub async fn attach_worktree_with_executor<E>(
-    executor: E,
-    git_root: &Path,
-    branch_name: &str,
-) -> Result<()>
+pub async fn attach_worktree<E>(executor: E, git_root: &Path, branch_name: &str) -> Result<()>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -42,21 +38,15 @@ where
 
     // Attach the worktree using the git backend
     info!("Attaching worktree '{}' at {:?}", branch_name, worktree_path);
-    git_attach_worktree_with_executor(executor, git_root, &worktree_path, branch_name).await?;
+    git_attach_worktree(executor, git_root, &worktree_path, branch_name).await?;
 
     Ok(())
-}
-
-/// Attach a worktree to an existing branch using the default executor
-pub async fn attach_worktree(git_root: &Path, branch_name: &str) -> Result<()> {
-    use crate::core::executors::RealCommandExecutor;
-    attach_worktree_with_executor(RealCommandExecutor, git_root, branch_name).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::executors::RealCommandExecutor;
+
     use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
 
@@ -73,7 +63,8 @@ mod tests {
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // Attach worktree
-        attach_worktree(repo.path(), "existing-branch").await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        attach_worktree(RealCommandExecutor, repo.path(), "existing-branch").await.unwrap();
 
         // Verify worktree was created
         let worktree_path = get_worktree_path(repo.path(), "existing-branch");
@@ -92,10 +83,11 @@ mod tests {
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // First attach should succeed
-        attach_worktree(repo.path(), "existing-branch").await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        attach_worktree(RealCommandExecutor, repo.path(), "existing-branch").await.unwrap();
 
         // Second attach should fail
-        let result = attach_worktree(repo.path(), "existing-branch").await;
+        let result = attach_worktree(RealCommandExecutor, repo.path(), "existing-branch").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             PhantomError::WorktreeExists { name } => {
@@ -109,7 +101,8 @@ mod tests {
     async fn test_attach_worktree_invalid_name() {
         let repo = TestRepo::new().await.unwrap();
 
-        let result = attach_worktree(repo.path(), "").await;
+        use crate::core::executors::RealCommandExecutor;
+        let result = attach_worktree(RealCommandExecutor, repo.path(), "").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             PhantomError::InvalidWorktreeName(_) | PhantomError::Validation(_) => {}

@@ -1,5 +1,4 @@
 use crate::git::backend::GitBackend;
-use crate::git::libs::add_worktree::add_worktree;
 use crate::worktree::errors::WorktreeError;
 use crate::worktree::file_copier::copy_files_concurrent;
 use crate::worktree::paths::{get_phantom_directory, get_worktree_path};
@@ -44,18 +43,25 @@ pub async fn create_worktree(
     // Add the worktree using the git backend
     info!("Creating worktree '{}' at {:?}", name, worktree_path);
 
-    // For now, we'll use the existing add_worktree function
-    // In the future, this should use the GitBackend trait
-    add_worktree(git_root, &worktree_path, Some(branch), true, commitish).await.map_err(
-        |e| match e {
-            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
-                operation: "worktree add".to_string(),
-                details: message,
-            }
-            .into(),
-            _ => e,
-        },
-    )?;
+    // Use the executor version directly
+    use crate::core::executors::RealCommandExecutor;
+    use crate::git::libs::add_worktree::add_worktree;
+    add_worktree(
+        RealCommandExecutor::new(),
+        git_root,
+        &worktree_path,
+        Some(branch),
+        true,
+        commitish,
+    )
+    .await
+    .map_err(|e| match e {
+        PhantomError::Git { message, .. } => {
+            WorktreeError::GitOperation { operation: "worktree add".to_string(), details: message }
+                .into()
+        }
+        _ => e,
+    })?;
 
     let mut result = CreateWorktreeSuccess {
         message: format!("Created worktree '{}' at {}", name, worktree_path.display()),

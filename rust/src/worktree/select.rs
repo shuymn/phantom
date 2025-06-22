@@ -1,5 +1,5 @@
 use crate::core::command_executor::{CommandArgs, CommandExecutor};
-use crate::worktree::concurrent::list_worktrees_concurrent_with_executor;
+use crate::worktree::concurrent::list_worktrees_concurrent;
 use crate::{PhantomError, Result};
 use smallvec::smallvec;
 use std::path::Path;
@@ -22,24 +22,18 @@ pub struct FzfOptions {
 }
 
 /// Select a worktree interactively using fzf with CommandExecutor
-pub async fn select_worktree_with_fzf_with_executor<E>(
+pub async fn select_worktree_with_fzf<E>(
     executor: E,
     git_root: &Path,
 ) -> Result<Option<SelectWorktreeResult>>
 where
     E: CommandExecutor + Clone + 'static,
 {
-    select_worktree_with_fzf_and_options_with_executor(executor, git_root, FzfOptions::default())
-        .await
-}
-
-/// Select a worktree interactively using fzf
-pub async fn select_worktree_with_fzf(git_root: &Path) -> Result<Option<SelectWorktreeResult>> {
-    select_worktree_with_fzf_and_options(git_root, FzfOptions::default()).await
+    select_worktree_with_fzf_and_options(executor, git_root, FzfOptions::default()).await
 }
 
 /// Select a worktree interactively using fzf with custom options and CommandExecutor
-pub async fn select_worktree_with_fzf_and_options_with_executor<E>(
+pub async fn select_worktree_with_fzf_and_options<E>(
     executor: E,
     git_root: &Path,
     options: FzfOptions,
@@ -50,7 +44,7 @@ where
     info!("Selecting worktree with fzf");
 
     // List all worktrees using concurrent operations
-    let list_result = list_worktrees_concurrent_with_executor(executor.clone(), git_root).await?;
+    let list_result = list_worktrees_concurrent(executor.clone(), git_root).await?;
 
     // Filter to only phantom worktrees (concurrent list already does this)
     let worktrees = list_result.worktrees;
@@ -71,7 +65,7 @@ where
         .collect();
 
     // Run fzf
-    let selected = run_fzf_with_executor(&executor, &formatted_worktrees, options).await?;
+    let selected = run_fzf(&executor, &formatted_worktrees, options).await?;
 
     match selected {
         Some(selection) => {
@@ -100,26 +94,13 @@ where
     }
 }
 
-/// Select a worktree interactively using fzf with custom options
-pub async fn select_worktree_with_fzf_and_options(
-    git_root: &Path,
-    options: FzfOptions,
-) -> Result<Option<SelectWorktreeResult>> {
-    use crate::core::executors::RealCommandExecutor;
-    select_worktree_with_fzf_and_options_with_executor(RealCommandExecutor, git_root, options).await
-}
-
 /// Run fzf with the given items and options using CommandExecutor
-async fn run_fzf_with_executor<E>(
-    executor: &E,
-    items: &[String],
-    options: FzfOptions,
-) -> Result<Option<String>>
+async fn run_fzf<E>(executor: &E, items: &[String], options: FzfOptions) -> Result<Option<String>>
 where
     E: CommandExecutor,
 {
     // Check if fzf is available
-    if !is_fzf_available_with_executor(executor).await {
+    if !is_fzf_available(executor).await {
         return Err(PhantomError::Validation(
             "fzf command not found. Please install fzf first.".to_string(),
         ));
@@ -193,7 +174,7 @@ where
 }
 
 /// Check if fzf command is available with CommandExecutor
-async fn is_fzf_available_with_executor<E>(executor: &E) -> bool
+async fn is_fzf_available<E>(executor: &E) -> bool
 where
     E: CommandExecutor,
 {
@@ -216,8 +197,7 @@ mod tests {
     fn test_is_fzf_available() {
         // This test will pass or fail depending on whether fzf is installed
         // We just verify that the function doesn't panic
-        use crate::process::fzf::is_fzf_available;
-        let _ = is_fzf_available();
+        // Test removed - is_fzf_available wrapper function no longer exists
     }
 
     #[test]
@@ -533,7 +513,7 @@ mod tests {
             );
 
         // Should return None when only main worktree exists
-        let result = select_worktree_with_fzf_with_executor(mock, repo.path()).await;
+        let result = select_worktree_with_fzf(mock, repo.path()).await;
         match result {
             Ok(None) => {} // Expected - no worktrees to select
             Ok(Some(_)) => panic!("Should not select a worktree when none exist"),
@@ -606,8 +586,7 @@ mod tests {
         };
 
         // Test with custom options
-        let result =
-            select_worktree_with_fzf_and_options_with_executor(mock, repo.path(), options).await;
+        let result = select_worktree_with_fzf_and_options(mock, repo.path(), options).await;
         assert!(result.is_ok());
         let selected = result.unwrap();
         assert!(selected.is_some());
