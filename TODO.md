@@ -18,77 +18,6 @@ Essential guides for understanding the codebase:
 
 ## 📋 Future Enhancements
 
-### Error Handling Comprehensive Refactor
-
-Since this is an unreleased codebase, we can implement a comprehensive error handling improvement based on [error-handling-guide.md](./rust/docs/error-handling-guide.md):
-
-#### Immediate Actions (Completed Phase 1)
-
-- [x] **Add anyhow dependency** for application-layer error handling
-- [x] **Convert all CLI handlers** to use `anyhow::Result` instead of `Result<T, PhantomError>`
-- [x] **Add rich context** at all external system boundaries in CLI layer
-
-#### Completed Actions (Phase 2)
-
-- [x] **Replace string-based error variants** with structured, specific error types:
-  - `Worktree(String)` → Specific variants: `WorktreeExists`, `WorktreeNotFound`, `CannotDeleteCurrent`, etc.
-  - `Validation(String)` → `ValidationFailed { reason }`
-  - `FileOperation(String)` → `FileOperationFailed { operation, path, reason }`
-  - `ProcessExecution(String)` → `ProcessExecutionError`, `CommandNotFound`, `ProcessFailed`
-  - `Config(String)` → `ConfigInvalid { reason }`, `ConfigNotFound { path }`
-  - `Path(String)` → `InvalidPath { path, reason }`
-- [x] **Enhanced Git error with command details**:
-  - Now includes command, args, exit_code, and stderr
-  - Full context for debugging git command failures
-- [x] **Removed redundant ErrorContext trait** - using anyhow in CLI layer instead
-
-#### Phase 3: Post-Implementation Tasks (Completed)
-
-- [x] **Replace verbose error returns with bail! macro**:
-  - Replaced 17 instances of `return Err(anyhow!(...))` with `bail!(...)`
-  - Added necessary imports and cleaned up unused imports
-  - Makes error handling more idiomatic with anyhow
-- [x] **Fix all failing tests**:
-  - Fixed 8 unit tests to match new structured error types
-  - Fixed 5 CLI snapshot tests for proper exit codes and error messages
-  - Updated main.rs to extract PhantomError from anyhow chain
-  - All 586 tests now pass
-
-#### Documentation (Completed)
-
-- [x] **Updated error handling documentation** in CONTRIBUTING.md
-  - Added reference to error-handling-guide.md
-  - Documented the use of thiserror for library code and anyhow for CLI handlers
-  - Included quick examples and key guidelines
-
-**Note**: Comprehensive error handling best practices are documented in [error-handling-guide.md](./rust/docs/error-handling-guide.md)
-
-#### Error Architecture
-
-```rust
-// Core library errors (thiserror) - Type safe, matchable
-#[derive(Error, Debug)]
-pub enum GitError {
-    #[error("Command failed: {command} (exit code: {code})")]
-    CommandFailed { command: String, args: Vec<String>, code: i32, stderr: String },
-    // ... other specific variants
-}
-
-// Application layer (anyhow) - Rich context, simple propagation
-use anyhow::{Context, Result};
-
-async fn handle_operation() -> Result<()> {
-    git_operation()
-        .with_context(|| format!("Failed to create worktree '{}' at {}", name, path))?;
-    Ok(())
-}
-```
-
-#### Benefits
-- **Better debugging**: Specific error types with full context
-- **Type safety**: Compiler-enforced error handling in libraries
-- **Simplicity**: anyhow in CLI layer reduces boilerplate
-- **Rich errors**: Full command details, paths, and runtime values
 
 ### Known Issues
 
@@ -118,7 +47,7 @@ These are ideas for future enhancements that are not currently planned but could
 ## 📊 Current Status
 
 **Rust migration is complete!** The codebase has:
-- 545+ tests total (0 ignored)
+- 586 tests total (0 ignored)
 - Comprehensive mock-based testing infrastructure
 - Full documentation of patterns and practices
 - All handlers and operations properly abstracted

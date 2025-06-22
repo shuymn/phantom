@@ -576,7 +576,7 @@ All Rust quality improvements have been successfully completed:
 - **Safety**: Type-state patterns, sealed traits, compile-time validation
 - **Ergonomics**: Extension traits, builder patterns, better error handling
 - **Maintainability**: Removed unnecessary optimizations, focused on actual needs
-- **Testing**: 545+ tests all passing, comprehensive mock infrastructure
+- **Testing**: 586 tests all passing, comprehensive mock infrastructure
 
 ## Const Utilities Cleanup (2025-06-21)
 
@@ -625,3 +625,75 @@ A comprehensive review of the Rust codebase was conducted to identify potential 
 - Concurrent file operation cloning (already handled correctly)
 
 **Conclusion**: The codebase demonstrates pragmatic Rust development with advanced features used where they provide measurable benefits. No significant action needed. The review document was deleted as the codebase already follows best practices.
+
+## Error Handling Comprehensive Refactor (2025-06-22) ✅
+
+Implemented a comprehensive error handling improvement based on [error-handling-guide.md](./rust/docs/error-handling-guide.md).
+
+### Phase 1: Application Layer Error Handling (Completed)
+
+- ✅ **Added anyhow dependency** for application-layer error handling
+- ✅ **Converted all CLI handlers** to use `anyhow::Result` instead of `Result<T, PhantomError>`
+- ✅ **Added rich context** at all external system boundaries in CLI layer
+
+### Phase 2: Structured Error Types (Completed)
+
+- ✅ **Replaced string-based error variants** with structured, specific error types:
+  - `Worktree(String)` → Specific variants: `WorktreeExists`, `WorktreeNotFound`, `CannotDeleteCurrent`, etc.
+  - `Validation(String)` → `ValidationFailed { reason }`
+  - `FileOperation(String)` → `FileOperationFailed { operation, path, reason }`
+  - `ProcessExecution(String)` → `ProcessExecutionError`, `CommandNotFound`, `ProcessFailed`
+  - `Config(String)` → `ConfigInvalid { reason }`, `ConfigNotFound { path }`
+  - `Path(String)` → `InvalidPath { path, reason }`
+- ✅ **Enhanced Git error with command details**:
+  - Now includes command, args, exit_code, and stderr
+  - Full context for debugging git command failures
+- ✅ **Removed redundant ErrorContext trait** - using anyhow in CLI layer instead
+
+### Phase 3: Post-Implementation Tasks (Completed)
+
+- ✅ **Replaced verbose error returns with bail! macro**:
+  - Replaced 17 instances of `return Err(anyhow!(...))` with `bail!(...)`
+  - Added necessary imports and cleaned up unused imports
+  - Makes error handling more idiomatic with anyhow
+- ✅ **Fixed all failing tests**:
+  - Fixed 8 unit tests to match new structured error types
+  - Fixed 5 CLI snapshot tests for proper exit codes and error messages
+  - Updated main.rs to extract PhantomError from anyhow chain
+  - All 586 tests now pass
+
+### Documentation (Completed)
+
+- ✅ **Updated error handling documentation** in CONTRIBUTING.md
+  - Added reference to error-handling-guide.md
+  - Documented the use of thiserror for library code and anyhow for CLI handlers
+  - Included quick examples and key guidelines
+
+### Error Architecture
+
+```rust
+// Core library errors (thiserror) - Type safe, matchable
+#[derive(Error, Debug)]
+pub enum GitError {
+    #[error("Command failed: {command} (exit code: {code})")]
+    CommandFailed { command: String, args: Vec<String>, code: i32, stderr: String },
+    // ... other specific variants
+}
+
+// Application layer (anyhow) - Rich context, simple propagation
+use anyhow::{Context, Result};
+
+async fn handle_operation() -> Result<()> {
+    git_operation()
+        .with_context(|| format!("Failed to create worktree '{}' at {}", name, path))?;
+    Ok(())
+}
+```
+
+### Benefits Achieved
+- **Better debugging**: Specific error types with full context
+- **Type safety**: Compiler-enforced error handling in libraries
+- **Simplicity**: anyhow in CLI layer reduces boilerplate
+- **Rich errors**: Full command details, paths, and runtime values
+
+**Note**: Comprehensive error handling best practices are documented in [error-handling-guide.md](./rust/docs/error-handling-guide.md)
