@@ -28,20 +28,24 @@ Since this is an unreleased codebase, we can implement a comprehensive error han
 - [x] **Convert all CLI handlers** to use `anyhow::Result` instead of `Result<T, PhantomError>`
 - [x] **Add rich context** at all external system boundaries in CLI layer
 
-#### Next Actions (Phase 2)
+#### Completed Actions (Phase 2)
 
-- [ ] **Replace string-based error variants** with structured, specific error types:
-  - `Worktree(String)` → Specific worktree error variants
-  - `Validation(String)` → Specific validation error variants  
-  - `FileOperation(String)` → Specific file operation error variants
-  - `ProcessExecution(String)` → Enhanced with command context
-  - `Config(String)` → Specific configuration error variants
-  - `Path(String)` → Specific path error variants
-- [ ] **Enhance Git error with command details**:
-  - Include full command, args, stderr in Git errors
-  - Add exit code context for better debugging
-- [ ] **Remove redundant ErrorContext trait** - anyhow provides better alternatives
-- [ ] **Update error handling documentation** to reflect new patterns
+- [x] **Replace string-based error variants** with structured, specific error types:
+  - `Worktree(String)` → Specific variants: `WorktreeExists`, `WorktreeNotFound`, `CannotDeleteCurrent`, etc.
+  - `Validation(String)` → `ValidationFailed { reason }`
+  - `FileOperation(String)` → `FileOperationFailed { operation, path, reason }`
+  - `ProcessExecution(String)` → `ProcessExecutionError`, `CommandNotFound`, `ProcessFailed`
+  - `Config(String)` → `ConfigInvalid { reason }`, `ConfigNotFound { path }`
+  - `Path(String)` → `InvalidPath { path, reason }`
+- [x] **Enhanced Git error with command details**:
+  - Now includes command, args, exit_code, and stderr
+  - Full context for debugging git command failures
+- [x] **Removed redundant ErrorContext trait** - using anyhow in CLI layer instead
+
+#### Remaining Tasks
+
+- [ ] **Update error handling documentation** in CONTRIBUTING.md
+- [ ] **Add error handling best practices** to the codebase documentation
 
 #### Error Architecture
 
