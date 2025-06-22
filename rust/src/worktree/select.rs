@@ -532,8 +532,11 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a worktree
+        use crate::core::executors::RealCommandExecutor;
         let create_options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "feature-1", create_options).await.unwrap();
+        create_worktree(RealCommandExecutor, repo.path(), "feature-1", create_options)
+            .await
+            .unwrap();
 
         let mut mock = MockCommandExecutor::new();
 

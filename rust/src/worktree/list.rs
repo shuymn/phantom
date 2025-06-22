@@ -120,6 +120,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::RealCommandExecutor;
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
     use crate::worktree::types::CreateWorktreeOptions;
@@ -129,7 +130,6 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
-        use crate::core::executors::RealCommandExecutor;
         let result = list_worktrees(RealCommandExecutor::new(), repo.path()).await.unwrap();
         assert!(result.worktrees.is_empty());
         assert_eq!(result.message, Some("No worktrees found".to_string()));
@@ -148,10 +148,11 @@ mod tests {
         // Create a worktree
         let options =
             CreateWorktreeOptions { branch: Some("test-branch".to_string()), ..Default::default() };
-        create_worktree(repo.path(), "test-branch", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-branch", options)
+            .await
+            .unwrap();
 
         let worktree_path = get_phantom_directory(repo.path()).join("test-branch");
-        use crate::core::executors::RealCommandExecutor;
         let branch = get_worktree_branch(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert_eq!(branch, "test-branch");
     }
@@ -163,10 +164,11 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-status", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-status", options)
+            .await
+            .unwrap();
 
         let worktree_path = get_phantom_directory(repo.path()).join("test-status");
-        use crate::core::executors::RealCommandExecutor;
         let is_clean =
             get_worktree_status(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert!(is_clean);
@@ -179,14 +181,15 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-dirty", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-dirty", options)
+            .await
+            .unwrap();
 
         let worktree_path = get_phantom_directory(repo.path()).join("test-dirty");
 
         // Make the worktree dirty by modifying a file
         tokio::fs::write(worktree_path.join("test.txt"), "modified content").await.unwrap();
 
-        use crate::core::executors::RealCommandExecutor;
         let is_clean =
             get_worktree_status(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert!(!is_clean);
@@ -200,9 +203,10 @@ mod tests {
         // Create a worktree
         let options =
             CreateWorktreeOptions { branch: Some("info-branch".to_string()), ..Default::default() };
-        create_worktree(repo.path(), "test-info", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-info", options)
+            .await
+            .unwrap();
 
-        use crate::core::executors::RealCommandExecutor;
         let info =
             get_worktree_info(RealCommandExecutor::new(), repo.path(), "test-info").await.unwrap();
         assert_eq!(info.name, "test-info");
@@ -234,7 +238,6 @@ mod tests {
             .await
             .unwrap();
 
-        use crate::core::executors::RealCommandExecutor;
         let branch = get_worktree_branch(RealCommandExecutor::new(), &worktree_path).await.unwrap();
         assert_eq!(branch, "(detached HEAD)");
     }
@@ -244,7 +247,6 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let nonexistent_path = temp_dir.path().join("nonexistent");
 
-        use crate::core::executors::RealCommandExecutor;
         let branch =
             get_worktree_branch(RealCommandExecutor::new(), &nonexistent_path).await.unwrap();
         assert_eq!(branch, "unknown");
@@ -255,7 +257,6 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let nonexistent_path = temp_dir.path().join("nonexistent");
 
-        use crate::core::executors::RealCommandExecutor;
         let is_clean =
             get_worktree_status(RealCommandExecutor::new(), &nonexistent_path).await.unwrap();
         assert!(is_clean); // Defaults to clean on error

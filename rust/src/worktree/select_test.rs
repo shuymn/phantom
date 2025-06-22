@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod select_integration_tests {
+    use crate::core::executors::RealCommandExecutor;
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
     use crate::worktree::types::CreateWorktreeOptions;
@@ -42,9 +43,15 @@ mod select_integration_tests {
 
         // Create some worktrees
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "feature-1", options.clone()).await.unwrap();
-        create_worktree(repo.path(), "feature-2", options.clone()).await.unwrap();
-        create_worktree(repo.path(), "bugfix-1", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "feature-1", options.clone())
+            .await
+            .unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "feature-2", options.clone())
+            .await
+            .unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "bugfix-1", options)
+            .await
+            .unwrap();
 
         let mut mock = MockCommandExecutor::new();
 

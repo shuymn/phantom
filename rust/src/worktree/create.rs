@@ -10,11 +10,15 @@ use tokio::fs;
 use tracing::{debug, info};
 
 /// Create a new worktree
-pub async fn create_worktree(
+pub async fn create_worktree<E>(
+    executor: E,
     git_root: &Path,
     name: &str,
     options: CreateWorktreeOptions,
-) -> Result<CreateWorktreeSuccess> {
+) -> Result<CreateWorktreeSuccess>
+where
+    E: crate::core::command_executor::CommandExecutor + Clone + 'static,
+{
     // Validate the worktree name
     validate_worktree_name(name)?;
 
@@ -44,24 +48,17 @@ pub async fn create_worktree(
     info!("Creating worktree '{}' at {:?}", name, worktree_path);
 
     // Use the executor version directly
-    use crate::core::executors::RealCommandExecutor;
     use crate::git::libs::add_worktree::add_worktree;
-    add_worktree(
-        RealCommandExecutor::new(),
-        git_root,
-        &worktree_path,
-        Some(branch),
-        true,
-        commitish,
-    )
-    .await
-    .map_err(|e| match e {
-        PhantomError::Git { message, .. } => {
-            WorktreeError::GitOperation { operation: "worktree add".to_string(), details: message }
-                .into()
-        }
-        _ => e,
-    })?;
+    add_worktree(executor, git_root, &worktree_path, Some(branch), true, commitish).await.map_err(
+        |e| match e {
+            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
+                operation: "worktree add".to_string(),
+                details: message,
+            }
+            .into(),
+            _ => e,
+        },
+    )?;
 
     let mut result = CreateWorktreeSuccess {
         message: format!("Created worktree '{}' at {}", name, worktree_path.display()),
@@ -173,8 +170,9 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree(repo.path(), "feature", options).await;
+        let result = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -192,7 +190,8 @@ mod tests {
             branch: Some("custom-branch".to_string()),
             ..Default::default()
         };
-        let result = create_worktree(repo.path(), "feature", options).await;
+        use crate::core::executors::RealCommandExecutor;
+        let result = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -204,14 +203,16 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
 
         // Create first worktree
-        let result1 = create_worktree(repo.path(), "feature", options.clone()).await;
+        let result1 =
+            create_worktree(RealCommandExecutor, repo.path(), "feature", options.clone()).await;
         assert!(result1.is_ok());
 
         // Try to create duplicate
-        let result2 = create_worktree(repo.path(), "feature", options).await;
+        let result2 = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
         assert!(result2.is_err());
 
         match result2.unwrap_err() {
@@ -224,8 +225,10 @@ mod tests {
     async fn test_create_worktree_invalid_name() {
         let repo = TestRepo::new().await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree(repo.path(), "feature branch", options).await;
+        let result =
+            create_worktree(RealCommandExecutor, repo.path(), "feature branch", options).await;
 
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -256,11 +259,12 @@ mod tests {
         repo.create_file_and_commit("config.json", "{}", "Add config").await.unwrap();
         repo.create_file_and_commit(".env", "KEY=value", "Add env").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions {
             copy_files: Some(vec!["config.json".to_string(), ".env".to_string()]),
             ..Default::default()
         };
-        let result = create_worktree(repo.path(), "feature", options).await;
+        let result = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -282,11 +286,13 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
         repo.create_file_and_commit("config.json", "{}", "Add config").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions {
             copy_files: Some(vec!["config.json".to_string(), "missing.txt".to_string()]),
             ..Default::default()
         };
-        let result = create_worktree(repo.path(), "feature-missing", options).await;
+        let result =
+            create_worktree(RealCommandExecutor, repo.path(), "feature-missing", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -302,8 +308,10 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions { copy_files: Some(vec![]), ..Default::default() };
-        let result = create_worktree(repo.path(), "feature-empty", options).await;
+        let result =
+            create_worktree(RealCommandExecutor, repo.path(), "feature-empty", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -317,8 +325,11 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree(repo.path(), "verify-fields", options).await.unwrap();
+        let result = create_worktree(RealCommandExecutor, repo.path(), "verify-fields", options)
+            .await
+            .unwrap();
 
         assert!(result.message.contains("Created worktree 'verify-fields'"));
         assert!(result.path.ends_with("verify-fields"));

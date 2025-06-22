@@ -190,6 +190,7 @@ pub async fn exec_commands_in_dir(dir: &Path, commands: &[String]) -> Result<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::RealCommandExecutor;
     use crate::core::filesystems::RealFileSystem;
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
@@ -256,7 +257,7 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-worktree", options).await.unwrap();
+        create_worktree(RealCommandExecutor, repo.path(), "test-worktree", options).await.unwrap();
 
         // Execute command in worktree
         let filesystem = RealFileSystem::new();
@@ -310,7 +311,9 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-shell", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-shell", options)
+            .await
+            .unwrap();
 
         // We can't easily test shell spawning, but we can verify the function compiles
         let _ = spawn_shell_in_worktree::<crate::core::executors::RealCommandExecutor>;
@@ -339,7 +342,9 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-env", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-env", options)
+            .await
+            .unwrap();
 
         // Execute a safe command that verifies env vars are set without exposing them
         // Use printenv to check specific PHANTOM vars only

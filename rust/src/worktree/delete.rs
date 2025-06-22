@@ -188,10 +188,10 @@ mod tests {
 
         // Create a worktree
         let create_options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "feature", create_options).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        create_worktree(RealCommandExecutor, repo.path(), "feature", create_options).await.unwrap();
 
         // Delete the worktree
-        use crate::core::executors::RealCommandExecutor;
         use crate::core::filesystems::RealFileSystem;
         let filesystem = RealFileSystem::new();
         let delete_options = DeleteWorktreeOptions::default();
@@ -216,14 +216,17 @@ mod tests {
 
         // Create a worktree
         let create_options = CreateWorktreeOptions::default();
-        let create_result = create_worktree(repo.path(), "feature", create_options).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let create_result =
+            create_worktree(RealCommandExecutor, repo.path(), "feature", create_options)
+                .await
+                .unwrap();
 
         // Add uncommitted changes to the worktree
         let worktree_path = Path::new(&create_result.path);
         std::fs::write(worktree_path.join("new.txt"), "uncommitted content").unwrap();
 
         // Try to delete without force
-        use crate::core::executors::RealCommandExecutor;
         use crate::core::filesystems::RealFileSystem;
         let filesystem = RealFileSystem::new();
         let delete_options = DeleteWorktreeOptions { force: false };
