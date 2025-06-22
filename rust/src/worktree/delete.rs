@@ -6,7 +6,6 @@ use crate::worktree::types::DeleteWorktreeSuccess;
 use crate::worktree::validate::validate_worktree_exists;
 use crate::Result;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::{debug, info};
 
 /// Status of a worktree regarding uncommitted changes
@@ -17,10 +16,13 @@ pub struct WorktreeStatus {
 }
 
 /// Get the status of a worktree (uncommitted changes) with executor
-pub async fn get_worktree_status_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn get_worktree_status_with_executor<E>(
+    executor: E,
     worktree_path: &Path,
-) -> WorktreeStatus {
+) -> WorktreeStatus
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor =
         crate::git::git_executor_adapter::GitExecutor::new(executor).with_cwd(worktree_path);
 
@@ -44,16 +46,19 @@ pub async fn get_worktree_status_with_executor(
 /// Get the status of a worktree (uncommitted changes)
 pub async fn get_worktree_status(worktree_path: &Path) -> WorktreeStatus {
     use crate::core::executors::RealCommandExecutor;
-    get_worktree_status_with_executor(Arc::new(RealCommandExecutor), worktree_path).await
+    get_worktree_status_with_executor(RealCommandExecutor::new(), worktree_path).await
 }
 
 /// Remove a worktree using git commands with executor
-async fn remove_worktree_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+async fn remove_worktree_with_executor<E>(
+    executor: E,
     git_root: &Path,
     worktree_path: &Path,
     force: bool,
-) -> Result<()> {
+) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor =
         crate::git::git_executor_adapter::GitExecutor::new(executor).with_cwd(git_root);
 
@@ -85,11 +90,14 @@ async fn remove_worktree_with_executor(
 }
 
 /// Delete a branch with executor
-async fn delete_branch_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+async fn delete_branch_with_executor<E>(
+    executor: E,
     git_root: &Path,
     branch_name: &str,
-) -> Result<bool> {
+) -> Result<bool>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor =
         crate::git::git_executor_adapter::GitExecutor::new(executor).with_cwd(git_root);
 
@@ -103,13 +111,16 @@ async fn delete_branch_with_executor(
 }
 
 /// Delete a worktree with executor
-pub async fn delete_worktree_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn delete_worktree_with_executor<E>(
+    executor: E,
     git_root: &Path,
     name: &str,
     options: DeleteWorktreeOptions,
     filesystem: &dyn FileSystem,
-) -> Result<DeleteWorktreeSuccess> {
+) -> Result<DeleteWorktreeSuccess>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     // Validate worktree exists
     let validation = validate_worktree_exists(git_root, name, filesystem).await?;
     let worktree_path = validation.path;
@@ -160,14 +171,7 @@ pub async fn delete_worktree(
     use crate::core::executors::RealCommandExecutor;
     use crate::core::filesystems::RealFileSystem;
     let filesystem = RealFileSystem::new();
-    delete_worktree_with_executor(
-        Arc::new(RealCommandExecutor),
-        git_root,
-        name,
-        options,
-        &filesystem,
-    )
-    .await
+    delete_worktree_with_executor(RealCommandExecutor, git_root, name, options, &filesystem).await
 }
 
 #[cfg(test)]

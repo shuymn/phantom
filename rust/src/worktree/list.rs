@@ -5,7 +5,6 @@ use crate::worktree::paths::get_phantom_directory;
 use crate::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use std::sync::Arc;
 use tracing::debug;
 
 /// Information about a worktree
@@ -25,10 +24,13 @@ pub struct ListWorktreesSuccess {
 }
 
 /// Get the current branch of a worktree with executor
-pub async fn get_worktree_branch_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn get_worktree_branch_with_executor<E>(
+    executor: E,
     worktree_path: &Path,
-) -> Result<String> {
+) -> Result<String>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = GitExecutorAdapter::new(executor).with_cwd(worktree_path);
     match git_executor.run(&["branch", "--show-current"]).await {
         Ok(output) => {
@@ -42,14 +44,14 @@ pub async fn get_worktree_branch_with_executor(
 /// Get the current branch of a worktree
 pub async fn get_worktree_branch(worktree_path: &Path) -> Result<String> {
     use crate::core::executors::RealCommandExecutor;
-    get_worktree_branch_with_executor(Arc::new(RealCommandExecutor), worktree_path).await
+    get_worktree_branch_with_executor(RealCommandExecutor::new(), worktree_path).await
 }
 
 /// Get the status of a worktree (clean/dirty) with executor
-pub async fn get_worktree_status_with_executor(
-    executor: Arc<dyn CommandExecutor>,
-    worktree_path: &Path,
-) -> Result<bool> {
+pub async fn get_worktree_status_with_executor<E>(executor: E, worktree_path: &Path) -> Result<bool>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = GitExecutorAdapter::new(executor).with_cwd(worktree_path);
     match git_executor.run(&["status", "--porcelain"]).await {
         Ok(output) => Ok(output.trim().is_empty()), // Clean if no output
@@ -60,20 +62,23 @@ pub async fn get_worktree_status_with_executor(
 /// Get the status of a worktree (clean/dirty)
 pub async fn get_worktree_status(worktree_path: &Path) -> Result<bool> {
     use crate::core::executors::RealCommandExecutor;
-    get_worktree_status_with_executor(Arc::new(RealCommandExecutor), worktree_path).await
+    get_worktree_status_with_executor(RealCommandExecutor::new(), worktree_path).await
 }
 
 /// Get detailed information about a worktree with executor
-pub async fn get_worktree_info_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn get_worktree_info_with_executor<E>(
+    executor: E,
     git_root: &Path,
     name: &str,
-) -> Result<WorktreeInfo> {
+) -> Result<WorktreeInfo>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let worktree_path = get_phantom_directory(git_root).join(name);
 
     let (branch, is_clean) = tokio::join!(
         get_worktree_branch_with_executor(executor.clone(), &worktree_path),
-        get_worktree_status_with_executor(executor, &worktree_path)
+        get_worktree_status_with_executor(executor.clone(), &worktree_path)
     );
 
     Ok(WorktreeInfo {
@@ -87,14 +92,17 @@ pub async fn get_worktree_info_with_executor(
 /// Get detailed information about a worktree
 pub async fn get_worktree_info(git_root: &Path, name: &str) -> Result<WorktreeInfo> {
     use crate::core::executors::RealCommandExecutor;
-    get_worktree_info_with_executor(Arc::new(RealCommandExecutor), git_root, name).await
+    get_worktree_info_with_executor(RealCommandExecutor::new(), git_root, name).await
 }
 
 /// List all phantom worktrees with executor
-pub async fn list_worktrees_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn list_worktrees_with_executor<E>(
+    executor: E,
     git_root: &Path,
-) -> Result<ListWorktreesSuccess> {
+) -> Result<ListWorktreesSuccess>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     debug!("Listing worktrees from git root: {:?}", git_root);
 
     let git_worktrees = git_list_worktrees_with_executor(executor.clone(), git_root).await?;
@@ -141,7 +149,7 @@ pub async fn list_worktrees_with_executor(
 /// List all phantom worktrees
 pub async fn list_worktrees(git_root: &Path) -> Result<ListWorktreesSuccess> {
     use crate::core::executors::RealCommandExecutor;
-    list_worktrees_with_executor(Arc::new(RealCommandExecutor), git_root).await
+    list_worktrees_with_executor(RealCommandExecutor::new(), git_root).await
 }
 
 #[cfg(test)]

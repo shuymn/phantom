@@ -4,16 +4,18 @@ use crate::worktree::paths::get_worktree_path;
 use crate::worktree::validate::validate_worktree_name;
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use tokio::fs;
 use tracing::info;
 
 /// Attach a worktree to an existing branch with executor
-pub async fn attach_worktree_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn attach_worktree_with_executor<E>(
+    executor: E,
     git_root: &Path,
     branch_name: &str,
-) -> Result<()> {
+) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     // Validate the branch name
     validate_worktree_name(branch_name)?;
 
@@ -48,7 +50,7 @@ pub async fn attach_worktree_with_executor(
 /// Attach a worktree to an existing branch using the default executor
 pub async fn attach_worktree(git_root: &Path, branch_name: &str) -> Result<()> {
     use crate::core::executors::RealCommandExecutor;
-    attach_worktree_with_executor(Arc::new(RealCommandExecutor), git_root, branch_name).await
+    attach_worktree_with_executor(RealCommandExecutor, git_root, branch_name).await
 }
 
 #[cfg(test)]
@@ -67,7 +69,7 @@ mod tests {
         repo.create_branch("existing-branch").await.unwrap();
 
         // Switch back to main
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // Attach worktree
@@ -86,7 +88,7 @@ mod tests {
 
         // Create a branch and worktree
         repo.create_branch("existing-branch").await.unwrap();
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // First attach should succeed

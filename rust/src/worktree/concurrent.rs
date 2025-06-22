@@ -9,15 +9,17 @@ use crate::worktree::paths::get_phantom_directory;
 use crate::Result;
 use futures::future::join_all;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::debug;
 
 /// List all phantom worktrees with concurrent status checks
 /// This version processes status checks for all worktrees in parallel
-pub async fn list_worktrees_concurrent_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn list_worktrees_concurrent_with_executor<E>(
+    executor: E,
     git_root: &Path,
-) -> Result<ListWorktreesSuccess> {
+) -> Result<ListWorktreesSuccess>
+where
+    E: CommandExecutor + Clone + Send + Sync + 'static,
+{
     debug!("Listing worktrees concurrently from git root: {:?}", git_root);
 
     let git_worktrees = git_list_worktrees_with_executor(executor.clone(), git_root).await?;
@@ -76,15 +78,18 @@ pub async fn list_worktrees_concurrent_with_executor(
 /// List all phantom worktrees with concurrent status checks
 pub async fn list_worktrees_concurrent(git_root: &Path) -> Result<ListWorktreesSuccess> {
     use crate::core::executors::RealCommandExecutor;
-    list_worktrees_concurrent_with_executor(Arc::new(RealCommandExecutor), git_root).await
+    list_worktrees_concurrent_with_executor(RealCommandExecutor, git_root).await
 }
 
 /// Get information about multiple worktrees concurrently
-pub async fn get_worktrees_info_concurrent_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn get_worktrees_info_concurrent_with_executor<E>(
+    executor: E,
     git_root: &Path,
     names: &[&str],
-) -> Result<Vec<WorktreeInfo>> {
+) -> Result<Vec<WorktreeInfo>>
+where
+    E: CommandExecutor + Clone + Send + Sync + 'static,
+{
     use crate::worktree::list::get_worktree_info_with_executor;
 
     let info_futures: Vec<_> = names
@@ -102,10 +107,13 @@ pub async fn get_worktrees_info_concurrent_with_executor(
 }
 
 /// Batch check status of multiple worktrees concurrently
-pub async fn check_worktrees_status_concurrent_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn check_worktrees_status_concurrent_with_executor<E>(
+    executor: E,
     worktree_paths: &[&Path],
-) -> Vec<(usize, Result<bool>)> {
+) -> Vec<(usize, Result<bool>)>
+where
+    E: CommandExecutor + Clone + Send + Sync + 'static,
+{
     let status_futures: Vec<_> = worktree_paths
         .iter()
         .enumerate()
@@ -140,8 +148,7 @@ mod tests {
             0,
         );
 
-        let result =
-            list_worktrees_concurrent_with_executor(Arc::new(mock), &git_root).await.unwrap();
+        let result = list_worktrees_concurrent_with_executor(mock, &git_root).await.unwrap();
 
         assert!(result.worktrees.is_empty());
         assert_eq!(result.message, Some("No worktrees found".to_string()));
@@ -174,7 +181,7 @@ mod tests {
         ];
 
         let results = check_worktrees_status_concurrent_with_executor(
-            Arc::new(mock),
+            mock,
             &paths.iter().map(|p| p.as_ref()).collect::<Vec<_>>(),
         )
         .await;

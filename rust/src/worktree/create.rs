@@ -7,7 +7,6 @@ use crate::worktree::types::{CreateWorktreeOptions, CreateWorktreeSuccess};
 use crate::worktree::validate::{validate_worktree_does_not_exist, validate_worktree_name};
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use tokio::fs;
 use tracing::{debug, info};
 
@@ -85,12 +84,15 @@ pub async fn create_worktree(
 }
 
 /// Create a new worktree using a GitBackend
-pub async fn create_worktree_with_backend(
-    backend: Arc<dyn GitBackend>,
+pub async fn create_worktree_with_backend<B>(
+    backend: &B,
     git_root: &Path,
     name: &str,
     options: CreateWorktreeOptions,
-) -> Result<CreateWorktreeSuccess> {
+) -> Result<CreateWorktreeSuccess>
+where
+    B: GitBackend,
+{
     // Validate the worktree name
     validate_worktree_name(name)?;
 
@@ -233,7 +235,7 @@ mod tests {
 
         let backend = create_backend_for_dir(repo.path());
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree_with_backend(backend, repo.path(), "feature", options).await;
+        let result = create_worktree_with_backend(&backend, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -331,7 +333,7 @@ mod tests {
             ..Default::default()
         };
         let result =
-            create_worktree_with_backend(backend, repo.path(), "backend-copy", options).await;
+            create_worktree_with_backend(&backend, repo.path(), "backend-copy", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
