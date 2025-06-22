@@ -3,16 +3,15 @@ use crate::core::const_utils::dirs;
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::Result;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use tracing::debug;
 
 /// Get the main git repository root (not the worktree root) with generic executor
 /// This version avoids dynamic dispatch for better performance
 pub async fn get_git_root<E>(executor: E) -> Result<PathBuf>
 where
-    E: CommandExecutor + 'static,
+    E: CommandExecutor + Clone + 'static,
 {
-    let git_executor = GitExecutor::new(Arc::new(executor));
+    let git_executor = GitExecutor::new(executor);
 
     // First try to get the git common directory
     let common_dir = git_executor.run(&["rev-parse", "--git-common-dir"]).await?;
@@ -54,47 +53,6 @@ where
 pub async fn get_git_root_default() -> Result<PathBuf> {
     use crate::core::executors::RealCommandExecutor;
     get_git_root(RealCommandExecutor::new()).await
-}
-
-/// Legacy function for benchmarking comparison only
-/// This uses dynamic dispatch which is less efficient than the generic version
-#[doc(hidden)]
-pub async fn get_git_root_with_executor(executor: Arc<dyn CommandExecutor>) -> Result<PathBuf> {
-    let git_executor = GitExecutor::new(executor);
-
-    // First try to get the git common directory
-    let common_dir = git_executor.run(&["rev-parse", "--git-common-dir"]).await?;
-    let common_dir = common_dir.trim();
-
-    debug!("Git common dir: {}", common_dir);
-
-    if common_dir.ends_with(&format!("/{}", dirs::GIT)) || common_dir == dirs::GIT {
-        // We're in a regular repository or worktree
-        let path = Path::new(common_dir);
-        if let Some(parent) = path.parent() {
-            let absolute = if parent.is_relative() {
-                std::env::current_dir()?.join(parent)
-            } else {
-                parent.to_path_buf()
-            };
-            // Always canonicalize the path to ensure consistency
-            return Ok(absolute.canonicalize().unwrap_or(absolute));
-        }
-    }
-
-    // If we get here, we might be in a bare repository or the main worktree
-    // Try to get the top-level directory
-    let top_level = git_executor.run(&["rev-parse", "--show-toplevel"]).await?;
-    let top_level = top_level.trim();
-
-    debug!("Git top level: {}", top_level);
-
-    let path = Path::new(top_level);
-    let absolute =
-        if path.is_relative() { std::env::current_dir()?.join(path) } else { path.to_path_buf() };
-
-    // Always canonicalize the path to ensure consistency
-    Ok(absolute.canonicalize().unwrap_or(absolute))
 }
 
 #[cfg(test)]

@@ -2,15 +2,17 @@ use crate::core::command_executor::CommandExecutor;
 use crate::git::git_executor_adapter;
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use tracing::debug;
 
 /// Check if a branch exists in the repository using a provided executor
-pub async fn branch_exists_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn branch_exists_with_executor<E>(
+    executor: E,
     git_root: &Path,
     branch_name: &str,
-) -> Result<bool> {
+) -> Result<bool>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = git_executor_adapter::GitExecutor::new(executor).with_cwd(git_root);
 
     debug!("Checking if branch '{}' exists in {:?}", branch_name, git_root);
@@ -40,7 +42,7 @@ pub async fn branch_exists_with_executor(
 /// Check if a branch exists in the repository
 pub async fn branch_exists(git_root: &Path, branch_name: &str) -> Result<bool> {
     use crate::core::executors::RealCommandExecutor;
-    branch_exists_with_executor(Arc::new(RealCommandExecutor), git_root, branch_name).await
+    branch_exists_with_executor(RealCommandExecutor, git_root, branch_name).await
 }
 
 #[cfg(test)]
@@ -125,9 +127,8 @@ mod tests {
             .in_dir("/test/repo")
             .returns_success();
 
-        let result = branch_exists_with_executor(Arc::new(mock), Path::new("/test/repo"), "main")
-            .await
-            .unwrap();
+        let result =
+            branch_exists_with_executor(mock, Path::new("/test/repo"), "main").await.unwrap();
         assert!(result);
     }
 
@@ -139,10 +140,9 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "error: reference 'refs/heads/nonexistent' not found", 1);
 
-        let result =
-            branch_exists_with_executor(Arc::new(mock), Path::new("/test/repo"), "nonexistent")
-                .await
-                .unwrap();
+        let result = branch_exists_with_executor(mock, Path::new("/test/repo"), "nonexistent")
+            .await
+            .unwrap();
         assert!(!result);
     }
 
@@ -154,8 +154,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "fatal: not a git repository", 128);
 
-        let result =
-            branch_exists_with_executor(Arc::new(mock), Path::new("/test/repo"), "broken").await;
+        let result = branch_exists_with_executor(mock, Path::new("/test/repo"), "broken").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }

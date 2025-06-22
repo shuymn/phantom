@@ -2,14 +2,16 @@ use crate::core::command_executor::CommandExecutor;
 use crate::git::libs::list_worktrees::list_worktrees_with_executor;
 use crate::Result;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::debug;
 
 /// Get the current worktree branch name (returns None if in main worktree)
-pub async fn get_current_worktree_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn get_current_worktree_with_executor<E>(
+    executor: E,
     git_root: &Path,
-) -> Result<Option<String>> {
+) -> Result<Option<String>>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     // Get the current working directory's git root
     let git_executor = crate::git::git_executor_adapter::GitExecutor::new(executor.clone());
     let current_path = git_executor.run(&["rev-parse", "--show-toplevel"]).await?;
@@ -53,7 +55,7 @@ pub async fn get_current_worktree_with_executor(
 /// Get the current worktree branch name (returns None if in main worktree)
 pub async fn get_current_worktree(git_root: &Path) -> Result<Option<String>> {
     use crate::core::executors::RealCommandExecutor;
-    get_current_worktree_with_executor(Arc::new(RealCommandExecutor), git_root).await
+    get_current_worktree_with_executor(RealCommandExecutor, git_root).await
 }
 
 #[cfg(test)]
@@ -81,9 +83,7 @@ mod tests {
             0,
         );
 
-        let executor = Arc::new(mock);
-        let result =
-            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None); // Main worktree returns None
     }
@@ -107,9 +107,7 @@ mod tests {
             0,
         );
 
-        let executor = Arc::new(mock);
-        let result =
-            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, Some("feature".to_string()));
     }
@@ -133,9 +131,7 @@ mod tests {
             0,
         );
 
-        let executor = Arc::new(mock);
-        let result =
-            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None); // Detached worktree has no branch
     }
@@ -158,9 +154,7 @@ mod tests {
             0,
         );
 
-        let executor = Arc::new(mock);
-        let result =
-            get_current_worktree_with_executor(executor, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None);
     }
@@ -184,7 +178,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a worktree with unique name
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
         let unique_name = format!("test-worktree-{}-{}", std::process::id(), timestamp);
@@ -208,7 +202,7 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Get the current commit
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         let commit = executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         let commit = commit.trim();
 
@@ -232,7 +226,7 @@ mod tests {
 
         // Verify the worktree was created properly by checking from within it
         let worktree_executor =
-            GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(&worktree_path);
+            GitExecutor::new(RealCommandExecutor::new()).with_cwd(&worktree_path);
         let worktree_result = worktree_executor.run(&["branch", "--show-current"]).await.unwrap();
         assert_eq!(worktree_result.trim(), ""); // Detached HEAD has no branch name
 

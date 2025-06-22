@@ -2,16 +2,18 @@ use crate::core::command_executor::CommandExecutor;
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::Result;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::info;
 
 /// Attach a worktree to an existing branch with executor
-pub async fn attach_worktree_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn attach_worktree_with_executor<E>(
+    executor: E,
     git_root: &Path,
     worktree_path: &Path,
     branch_name: &str,
-) -> Result<()> {
+) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = GitExecutor::new(executor).with_cwd(git_root);
 
     info!("Attaching worktree at {:?} to branch '{}'", worktree_path, branch_name);
@@ -29,13 +31,7 @@ pub async fn attach_worktree(
     branch_name: &str,
 ) -> Result<()> {
     use crate::core::executors::RealCommandExecutor;
-    attach_worktree_with_executor(
-        Arc::new(RealCommandExecutor),
-        git_root,
-        worktree_path,
-        branch_name,
-    )
-    .await
+    attach_worktree_with_executor(RealCommandExecutor, git_root, worktree_path, branch_name).await
 }
 
 #[cfg(test)]
@@ -54,7 +50,7 @@ mod tests {
         repo.create_branch("existing-branch").await.unwrap();
 
         // Switch back to main to allow worktree creation
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // Attach worktree to existing branch
@@ -68,8 +64,7 @@ mod tests {
         assert!(worktree_path.join("test.txt").exists());
 
         // Verify the worktree is on the correct branch
-        let executor_wt =
-            GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(&worktree_path);
+        let executor_wt = GitExecutor::new(RealCommandExecutor::new()).with_cwd(&worktree_path);
         let branch = executor_wt.run(&["branch", "--show-current"]).await.unwrap();
         assert_eq!(branch.trim(), "existing-branch");
     }
@@ -119,7 +114,7 @@ mod tests {
         // Create a branch
         repo.create_branch("test-branch").await.unwrap();
 
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.unwrap();
 
         // Create a directory that already exists

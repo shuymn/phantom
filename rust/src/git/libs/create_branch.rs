@@ -2,15 +2,17 @@ use crate::core::command_executor::CommandExecutor;
 use crate::git::git_executor_adapter;
 use crate::Result;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::debug;
 
 /// Create a new branch in the repository using a provided executor
-pub async fn create_branch_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn create_branch_with_executor<E>(
+    executor: E,
     git_root: &Path,
     branch_name: &str,
-) -> Result<()> {
+) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = git_executor_adapter::GitExecutor::new(executor).with_cwd(git_root);
 
     debug!("Creating branch '{}' in {:?}", branch_name, git_root);
@@ -25,7 +27,7 @@ pub async fn create_branch_with_executor(
 /// Create a new branch in the repository
 pub async fn create_branch(git_root: &Path, branch_name: &str) -> Result<()> {
     use crate::core::executors::RealCommandExecutor;
-    create_branch_with_executor(Arc::new(RealCommandExecutor), git_root, branch_name).await
+    create_branch_with_executor(RealCommandExecutor, git_root, branch_name).await
 }
 
 #[cfg(test)]
@@ -85,8 +87,7 @@ mod tests {
             .returns_success();
 
         let result =
-            create_branch_with_executor(Arc::new(mock), Path::new("/test/repo"), "new-feature")
-                .await;
+            create_branch_with_executor(mock, Path::new("/test/repo"), "new-feature").await;
         assert!(result.is_ok());
     }
 
@@ -99,8 +100,7 @@ mod tests {
             .returns_output("", "fatal: A branch named 'existing-branch' already exists.", 128);
 
         let result =
-            create_branch_with_executor(Arc::new(mock), Path::new("/test/repo"), "existing-branch")
-                .await;
+            create_branch_with_executor(mock, Path::new("/test/repo"), "existing-branch").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }
@@ -113,12 +113,8 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "fatal: 'refs/heads/invalid' is not a valid branch name.", 128);
 
-        let result = create_branch_with_executor(
-            Arc::new(mock),
-            Path::new("/test/repo"),
-            "refs/heads/invalid",
-        )
-        .await;
+        let result =
+            create_branch_with_executor(mock, Path::new("/test/repo"), "refs/heads/invalid").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }
@@ -131,8 +127,7 @@ mod tests {
             .in_dir("/not/a/repo")
             .returns_output("", "fatal: not a git repository", 128);
 
-        let result =
-            create_branch_with_executor(Arc::new(mock), Path::new("/not/a/repo"), "feature").await;
+        let result = create_branch_with_executor(mock, Path::new("/not/a/repo"), "feature").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }

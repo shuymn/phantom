@@ -3,21 +3,26 @@ use crate::git::const_utils::commands;
 use crate::worktree::const_validate::timeouts::GIT_OPERATION_TIMEOUT;
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, trace};
 
 /// Git command executor that uses CommandExecutor internally
 #[derive(Clone)]
-pub struct GitExecutor {
-    executor: Arc<dyn CommandExecutor>,
+pub struct GitExecutor<E>
+where
+    E: CommandExecutor + Clone,
+{
+    executor: E,
     cwd: Option<String>,
     timeout_duration: Duration,
 }
 
-impl GitExecutor {
+impl<E> GitExecutor<E>
+where
+    E: CommandExecutor + Clone,
+{
     /// Create a new GitExecutor with a CommandExecutor
-    pub fn new(executor: Arc<dyn CommandExecutor>) -> Self {
+    pub fn new(executor: E) -> Self {
         Self { executor, cwd: None, timeout_duration: GIT_OPERATION_TIMEOUT }
     }
 
@@ -92,7 +97,7 @@ mod tests {
             0,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         let result = executor.run(&["status", "--short"]).await.unwrap();
         assert_eq!(result, "M file.txt");
     }
@@ -102,7 +107,7 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("git").with_args(&["status"]).in_dir("/test/repo").returns_success();
 
-        let executor = GitExecutor::new(Arc::new(mock)).with_cwd("/test/repo");
+        let executor = GitExecutor::new(mock).with_cwd("/test/repo");
         let result = executor.run(&["status"]).await.unwrap();
         assert_eq!(result, "");
     }
@@ -116,7 +121,7 @@ mod tests {
             1,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         let result = executor.run(&["invalid"]).await;
         assert!(result.is_err());
 
@@ -138,7 +143,7 @@ mod tests {
             0,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         let lines = executor.run_lines(&["branch", "-a"]).await.unwrap();
         assert_eq!(lines, vec!["main", "  feature/test", "  feature/another"]);
     }
@@ -150,7 +155,7 @@ mod tests {
             .with_args(&["rev-parse", "--git-dir"])
             .returns_output(".git", "", 0);
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         assert!(executor.is_in_git_repo().await);
     }
 
@@ -163,7 +168,7 @@ mod tests {
             128,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         assert!(!executor.is_in_git_repo().await);
     }
 }

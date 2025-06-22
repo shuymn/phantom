@@ -3,18 +3,20 @@ use crate::git::const_utils::{commands, flags};
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use tracing::info;
 
 /// Add a new git worktree with executor
-pub async fn add_worktree_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn add_worktree_with_executor<E>(
+    executor: E,
     repo_path: &Path,
     worktree_path: &Path,
     branch: Option<&str>,
     new_branch: bool,
     commitish: Option<&str>,
-) -> Result<()> {
+) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = GitExecutor::new(executor).with_cwd(repo_path);
 
     let mut args = vec![commands::WORKTREE, commands::ADD];
@@ -66,7 +68,7 @@ pub async fn add_worktree(
 ) -> Result<()> {
     use crate::core::executors::RealCommandExecutor;
     add_worktree_with_executor(
-        Arc::new(RealCommandExecutor),
+        RealCommandExecutor,
         repo_path,
         worktree_path,
         branch,
@@ -119,7 +121,7 @@ mod tests {
 
         // Switch back to main branch to allow worktree creation
         use crate::core::executors::RealCommandExecutor;
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.ok();
 
         let temp_dir = tempdir().unwrap();
@@ -171,7 +173,7 @@ mod tests {
 
         // Get first commit hash
         use crate::core::executors::RealCommandExecutor;
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor).with_cwd(repo.path());
         let first_commit = executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         let first_commit = first_commit.trim();
 
@@ -200,8 +202,7 @@ mod tests {
         assert!(!worktree_path.join("file2.txt").exists());
 
         // Verify the commit hash
-        let worktree_executor =
-            GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(&worktree_path);
+        let worktree_executor = GitExecutor::new(RealCommandExecutor).with_cwd(&worktree_path);
         let worktree_commit = worktree_executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         assert_eq!(worktree_commit.trim(), first_commit);
     }

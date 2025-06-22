@@ -2,7 +2,6 @@ use crate::core::command_executor::CommandExecutor;
 use crate::git::git_executor_adapter::GitExecutor as GitExecutorAdapter;
 use crate::Result;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::debug;
 
 /// Get the current commit SHA with executor
@@ -16,21 +15,20 @@ use tracing::debug;
 /// use phantom::cli::context::ProductionContext;
 /// use phantom::Result;
 /// use std::path::Path;
-/// use std::sync::Arc;
 ///
 /// async fn handle_something(context: ProductionContext) -> Result<()> {
 ///     let commit = current_commit_with_executor(
-///         Arc::new(context.executor),
+///         context.executor,
 ///         Path::new("/repo/path")
 ///     ).await?;
 ///     println!("Current commit: {}", commit);
 ///     Ok(())
 /// }
 /// ```
-pub async fn current_commit_with_executor(
-    executor: Arc<dyn CommandExecutor>,
-    repo_path: &Path,
-) -> Result<String> {
+pub async fn current_commit_with_executor<E>(executor: E, repo_path: &Path) -> Result<String>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = GitExecutorAdapter::new(executor).with_cwd(repo_path);
 
     debug!("Getting current commit in {:?}", repo_path);
@@ -45,7 +43,7 @@ pub async fn current_commit_with_executor(
 /// Get the current commit SHA using the default executor
 pub async fn current_commit(repo_path: &Path) -> Result<String> {
     use crate::core::executors::RealCommandExecutor;
-    current_commit_with_executor(Arc::new(RealCommandExecutor), repo_path).await
+    current_commit_with_executor(RealCommandExecutor, repo_path).await
 }
 
 #[cfg(test)]
@@ -54,7 +52,6 @@ mod tests {
     use crate::core::executors::RealCommandExecutor;
     use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_current_commit_initial() {
@@ -97,7 +94,7 @@ mod tests {
 
         // Create and checkout new branch (without new commits)
         repo.create_branch("feature-branch").await.unwrap();
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "feature-branch"]).await.unwrap();
 
         // Should be same commit
@@ -114,7 +111,7 @@ mod tests {
         let commit_sha = current_commit(repo.path()).await.unwrap();
 
         // Checkout the commit directly (detached HEAD)
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor::new())).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", &commit_sha]).await.unwrap();
 
         // Should still return the same commit
@@ -134,8 +131,7 @@ mod tests {
             .in_dir("/test")
             .returns_output("abc123def456789012345678901234567890abcd", "", 0);
 
-        let commit =
-            current_commit_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
+        let commit = current_commit_with_executor(mock, Path::new("/test")).await.unwrap();
         assert_eq!(commit, "abc123def456789012345678901234567890abcd");
     }
 
@@ -155,7 +151,7 @@ mod tests {
             128,
         );
 
-        let result = current_commit_with_executor(Arc::new(mock), Path::new("/test")).await;
+        let result = current_commit_with_executor(mock, Path::new("/test")).await;
         assert!(result.is_err());
     }
 
@@ -171,8 +167,7 @@ mod tests {
             .in_dir("/test")
             .returns_output("abc123d", "", 0);
 
-        let commit =
-            current_commit_with_executor(Arc::new(mock), Path::new("/test")).await.unwrap();
+        let commit = current_commit_with_executor(mock, Path::new("/test")).await.unwrap();
         assert_eq!(commit, "abc123d");
     }
 }
