@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use super::kitty::{execute_kitty_command, is_inside_kitty, KittyOptions, KittySplitDirection};
 use super::spawn::{spawn_process, SpawnConfig, SpawnSuccess};
 use super::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
-use crate::core::executors::RealCommandExecutor;
 
 /// Supported terminal multiplexers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -48,7 +47,13 @@ pub async fn detect_multiplexer() -> Multiplexer {
 }
 
 /// Execute a command in the detected multiplexer
-pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<SpawnSuccess> {
+pub async fn execute_in_multiplexer<E>(
+    executor: E,
+    options: MultiplexerOptions,
+) -> Result<SpawnSuccess>
+where
+    E: crate::core::command_executor::CommandExecutor + Clone + 'static,
+{
     let multiplexer = detect_multiplexer().await;
 
     match multiplexer {
@@ -68,7 +73,7 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 window_name: options.window_name,
             };
 
-            execute_tmux_command(&RealCommandExecutor, tmux_options).await?;
+            execute_tmux_command(&executor, tmux_options).await?;
             Ok(SpawnSuccess { exit_code: 0 })
         }
         Multiplexer::Kitty => {
@@ -87,7 +92,7 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 window_title: options.window_name,
             };
 
-            execute_kitty_command(&RealCommandExecutor, kitty_options).await?;
+            execute_kitty_command(&executor, kitty_options).await?;
             Ok(SpawnSuccess { exit_code: 0 })
         }
         Multiplexer::None => {
@@ -340,7 +345,8 @@ mod tests {
         // the function doesn't panic
         let multiplexer = detect_multiplexer().await;
         if multiplexer == Multiplexer::None {
-            let result = execute_in_multiplexer(options).await;
+            use crate::core::executors::RealCommandExecutor;
+            let result = execute_in_multiplexer(RealCommandExecutor, options).await;
             // If no multiplexer, it should execute the command directly
             assert!(result.is_ok() || result.is_err());
         }
