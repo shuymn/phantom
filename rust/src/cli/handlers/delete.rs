@@ -9,7 +9,7 @@ use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::delete::delete_worktree;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::types::DeleteWorktreeOptions;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 
 /// Handle the delete command
 pub async fn handle<E, F, H>(args: DeleteArgs, context: HandlerContext<E, F, H>) -> Result<()>
@@ -20,17 +20,17 @@ where
 {
     // Validate args
     if args.name.is_none() && !args.current && !args.fzf {
-        return Err(anyhow!(
+        bail!(
             "Please provide a worktree name to delete, use --current to delete the current worktree, or use --fzf for interactive selection"
-        ));
+        );
     }
 
     if (args.name.is_some() || args.fzf) && args.current {
-        return Err(anyhow!("Cannot specify --current with a worktree name or --fzf option"));
+        bail!("Cannot specify --current with a worktree name or --fzf option");
     }
 
     if args.name.is_some() && args.fzf {
-        return Err(anyhow!("Cannot specify both a worktree name and --fzf option"));
+        bail!("Cannot specify both a worktree name and --fzf option");
     }
 
     // Get git root
@@ -46,9 +46,9 @@ where
         match current {
             Some(name) => name,
             None => {
-                return Err(anyhow!(
+                bail!(
                     "Not in a worktree directory. The --current option can only be used from within a worktree."
-                ));
+                );
             }
         }
     } else if args.fzf {

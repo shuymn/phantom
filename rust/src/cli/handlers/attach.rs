@@ -11,7 +11,7 @@ use crate::process::shell::shell_in_dir;
 use crate::worktree::attach::attach_worktree;
 use crate::worktree::paths::get_worktree_path;
 use crate::worktree::validate::validate_worktree_name;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use serde::Serialize;
 use tokio::fs;
 
@@ -39,11 +39,7 @@ where
     // Check if worktree already exists
     let worktree_path = get_worktree_path(&git_root, &args.branch);
     if fs::metadata(&worktree_path).await.is_ok() {
-        return Err(anyhow!(
-            "Worktree '{}' already exists at path: {}",
-            args.branch,
-            worktree_path.display()
-        ));
+        bail!("Worktree '{}' already exists at path: {}", args.branch, worktree_path.display());
     }
 
     // Check if branch exists
@@ -51,7 +47,7 @@ where
         .await
         .with_context(|| format!("Failed to check if branch '{}' exists", args.branch))?
     {
-        return Err(anyhow!("Branch '{}' not found in repository", args.branch));
+        bail!("Branch '{}' not found in repository", args.branch);
     }
 
     // Attach the worktree

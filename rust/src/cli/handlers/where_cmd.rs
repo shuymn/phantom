@@ -7,7 +7,7 @@ use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::locate::where_worktree;
 use crate::worktree::select::select_worktree_with_fzf;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 
 /// Handle the where command
 pub async fn handle<E, F, H>(args: WhereArgs, context: HandlerContext<E, F, H>) -> Result<()>
@@ -18,11 +18,11 @@ where
 {
     // Validate args
     if args.name.is_none() && !args.fzf {
-        return Err(anyhow!("Usage: phantom where <worktree-name> or phantom where --fzf"));
+        bail!("Usage: phantom where <worktree-name> or phantom where --fzf");
     }
 
     if args.name.is_some() && args.fzf {
-        return Err(anyhow!("Cannot specify both a worktree name and --fzf option"));
+        bail!("Cannot specify both a worktree name and --fzf option");
     }
 
     // Get git root

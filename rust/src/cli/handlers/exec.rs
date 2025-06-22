@@ -12,7 +12,7 @@ use crate::process::kitty::{
 use crate::process::shell::get_phantom_env;
 use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
 use crate::worktree::validate::validate_worktree_exists;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 
 /// Handle the exec command
 pub async fn handle<E, F, H>(args: ExecArgs, context: HandlerContext<E, F, H>) -> Result<()>
@@ -28,9 +28,9 @@ where
     } else {
         // Without --fzf, first arg is worktree name
         if args.command.is_empty() {
-            return Err(anyhow!(
+            bail!(
                 "Usage: phantom exec <worktree-name> <command> [args...] or phantom exec --fzf <command> [args...]"
-            ));
+            );
         }
 
         if args.name.is_some() {
@@ -39,7 +39,7 @@ where
         } else {
             // Otherwise, first command arg is the worktree name
             if args.command.len() < 2 {
-                return Err(anyhow!("Usage: phantom exec <worktree-name> <command> [args...]"));
+                bail!("Usage: phantom exec <worktree-name> <command> [args...]");
             }
             let mut cmd = args.command;
             let name = cmd.remove(0);
@@ -48,7 +48,7 @@ where
     };
 
     if command_args.is_empty() {
-        return Err(anyhow!("No command specified"));
+        bail!("No command specified");
     }
 
     // Determine tmux direction
@@ -75,11 +75,11 @@ where
 
     // Validate multiplexer options
     if tmux_direction.is_some() && !is_inside_tmux().await {
-        return Err(anyhow!("The --tmux option can only be used inside a tmux session"));
+        bail!("The --tmux option can only be used inside a tmux session");
     }
 
     if kitty_direction.is_some() && !is_inside_kitty().await {
-        return Err(anyhow!("The --kitty option can only be used inside a kitty terminal"));
+        bail!("The --kitty option can only be used inside a kitty terminal");
     }
 
     // Get git root
