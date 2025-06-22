@@ -2,8 +2,7 @@
 /// This shows how phantom uses async concurrency to improve performance
 use phantom::core::executors::MockCommandExecutor;
 use phantom::worktree::concurrent::{
-    check_worktrees_status_concurrent_with_executor, get_worktrees_info_concurrent_with_executor,
-    list_worktrees_concurrent_with_executor,
+    check_worktrees_status_concurrent, get_worktrees_info_concurrent, list_worktrees_concurrent,
 };
 use std::path::PathBuf;
 use std::time::Instant;
@@ -58,8 +57,7 @@ async fn main() {
     // Example 1: List worktrees with concurrent status checks
     println!("1. Listing worktrees with concurrent status checks:");
     let start = Instant::now();
-    let result =
-        list_worktrees_concurrent_with_executor(executor.clone(), &git_root).await.unwrap();
+    let result = list_worktrees_concurrent(executor.clone(), &git_root).await.unwrap();
     let duration = start.elapsed();
 
     for worktree in &result.worktrees {
@@ -76,7 +74,7 @@ async fn main() {
     println!("2. Getting info for multiple worktrees concurrently:");
     let names = vec!["feature-a", "feature-b", "feature-c"];
     let start = Instant::now();
-    let infos = get_worktrees_info_concurrent_with_executor(
+    let infos = get_worktrees_info_concurrent(
         executor.clone(),
         &git_root,
         &names.iter().map(|s| *s).collect::<Vec<_>>(),
@@ -98,7 +96,7 @@ async fn main() {
         PathBuf::from("/repo/.git/phantom/worktrees/feature-c"),
     ];
     let start = Instant::now();
-    let statuses = check_worktrees_status_concurrent_with_executor(
+    let statuses = check_worktrees_status_concurrent(
         executor,
         &paths.iter().map(|p| p.as_path()).collect::<Vec<_>>(),
     )
