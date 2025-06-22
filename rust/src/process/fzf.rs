@@ -3,7 +3,6 @@ use crate::{PhantomError, Result};
 use smallvec::smallvec;
 use std::io::Write;
 use std::process::{Command, Stdio};
-use std::sync::Arc;
 use tracing::{debug, error};
 
 /// Options for FZF selection
@@ -15,11 +14,14 @@ pub struct FzfOptions {
 }
 
 /// Select an item from a list using fzf with CommandExecutor
-pub async fn select_with_fzf_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn select_with_fzf_with_executor<E>(
+    executor: &E,
     items: Vec<String>,
     options: FzfOptions,
-) -> Result<Option<String>> {
+) -> Result<Option<String>>
+where
+    E: CommandExecutor,
+{
     debug!("Starting fzf selection with {} items", items.len());
 
     if items.is_empty() {
@@ -189,7 +191,10 @@ pub async fn select_with_fzf(items: Vec<String>, options: FzfOptions) -> Result<
 }
 
 /// Check if fzf is available in the system with CommandExecutor
-pub async fn is_fzf_available_with_executor(executor: Arc<dyn CommandExecutor>) -> bool {
+pub async fn is_fzf_available_with_executor<E>(executor: &E) -> bool
+where
+    E: CommandExecutor,
+{
     use crate::core::command_executor::CommandConfig;
 
     let config = CommandConfig::new("fzf").with_args_smallvec(smallvec!["--version".to_string()]);
@@ -235,7 +240,7 @@ mod tests {
             0,
         );
 
-        let result = is_fzf_available_with_executor(Arc::new(mock)).await;
+        let result = is_fzf_available_with_executor(&mock).await;
         assert!(result);
     }
 
@@ -244,7 +249,7 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("fzf").with_args(&["--version"]).returns_error("command not found");
 
-        let result = is_fzf_available_with_executor(Arc::new(mock)).await;
+        let result = is_fzf_available_with_executor(&mock).await;
         assert!(!result);
     }
 
@@ -279,8 +284,7 @@ mod tests {
     #[tokio::test]
     async fn test_select_with_fzf_with_executor_empty_items() {
         let mock = MockCommandExecutor::new();
-        let result =
-            select_with_fzf_with_executor(Arc::new(mock), vec![], FzfOptions::default()).await;
+        let result = select_with_fzf_with_executor(&mock, vec![], FzfOptions::default()).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -293,8 +297,7 @@ mod tests {
         // Set up expectation for fzf command
         mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("item1\n", "", 0);
 
-        let result =
-            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
+        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("item1".to_string()));
     }
@@ -335,8 +338,7 @@ mod tests {
             0,
         );
 
-        let result =
-            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
+        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("single-item".to_string()));
@@ -365,7 +367,7 @@ mod tests {
             .with_stdin_data("item1\nitem2")
             .returns_output("item2\n", "", 0);
 
-        let result = select_with_fzf_with_executor(Arc::new(mock), items, options).await;
+        let result = select_with_fzf_with_executor(&mock, items, options).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("item2".to_string()));
@@ -379,8 +381,7 @@ mod tests {
         // Simulate user pressing Ctrl+C (exit code 130)
         mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("", "", 130);
 
-        let result =
-            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
+        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), None);
@@ -394,8 +395,7 @@ mod tests {
         // Simulate no match found (exit code 1)
         mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("", "", 1);
 
-        let result =
-            select_with_fzf_with_executor(Arc::new(mock), items, FzfOptions::default()).await;
+        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), None);
@@ -494,8 +494,7 @@ mod tests {
             .returns_output("option-two\n", "", 0);
 
         let result =
-            select_with_fzf_with_executor(Arc::new(mock), items.clone(), FzfOptions::default())
-                .await;
+            select_with_fzf_with_executor(&mock, items.clone(), FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("option-two".to_string()));

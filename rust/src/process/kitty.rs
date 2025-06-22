@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use smallvec::smallvec;
 use std::collections::HashMap;
 use std::env;
-use std::sync::Arc;
 
 use super::spawn::SpawnSuccess;
 
@@ -39,10 +38,13 @@ pub async fn is_inside_kitty() -> bool {
 }
 
 /// Execute a command in kitty with CommandExecutor
-pub async fn execute_kitty_command_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn execute_kitty_command_with_executor<E>(
+    executor: &E,
     options: KittyOptions,
-) -> Result<()> {
+) -> Result<()>
+where
+    E: CommandExecutor,
+{
     let mut kitty_args: CommandArgs = smallvec!["@".to_string(), "launch".to_string()];
 
     // Set up the kitty command based on direction
@@ -96,7 +98,7 @@ pub async fn execute_kitty_command_with_executor(
 
 /// Execute a command in kitty (backward compatible)
 pub async fn execute_kitty_command(options: KittyOptions) -> Result<KittySuccess> {
-    execute_kitty_command_with_executor(Arc::new(RealCommandExecutor), options).await?;
+    execute_kitty_command_with_executor(&RealCommandExecutor, options).await?;
     Ok(SpawnSuccess { exit_code: 0 })
 }
 
@@ -334,7 +336,7 @@ mod tests {
             window_title: Some("Test Window".to_string()),
         };
 
-        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        let result = execute_kitty_command_with_executor(&mock, options).await;
         assert!(result.is_ok());
     }
 
@@ -354,7 +356,7 @@ mod tests {
             window_title: None,
         };
 
-        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        let result = execute_kitty_command_with_executor(&mock, options).await;
         assert!(result.is_ok());
     }
 
@@ -374,7 +376,7 @@ mod tests {
             window_title: None,
         };
 
-        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        let result = execute_kitty_command_with_executor(&mock, options).await;
         assert!(result.is_ok());
     }
 

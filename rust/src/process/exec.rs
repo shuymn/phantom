@@ -7,7 +7,6 @@ use crate::{PhantomError, Result};
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::{debug, error, info};
 
 /// Execute a command in a specific directory
@@ -26,14 +25,17 @@ pub async fn exec_in_dir(dir: &Path, command: &str, args: &[String]) -> Result<S
 }
 
 /// Execute a command in a worktree with optional CommandExecutor
-pub async fn exec_in_worktree_with_executor(
+pub async fn exec_in_worktree_with_executor<E>(
     git_root: &Path,
     worktree_name: &str,
     command: &str,
     args: &[String],
     filesystem: &dyn FileSystem,
-    executor: Option<Arc<dyn CommandExecutor>>,
-) -> Result<SpawnSuccess> {
+    executor: Option<E>,
+) -> Result<SpawnSuccess>
+where
+    E: CommandExecutor,
+{
     // Validate worktree exists
     let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
     let worktree_path = validation.path;
@@ -77,7 +79,15 @@ pub async fn exec_in_worktree(
     args: &[String],
     filesystem: &dyn FileSystem,
 ) -> Result<SpawnSuccess> {
-    exec_in_worktree_with_executor(git_root, worktree_name, command, args, filesystem, None).await
+    exec_in_worktree_with_executor::<crate::core::executors::RealCommandExecutor>(
+        git_root,
+        worktree_name,
+        command,
+        args,
+        filesystem,
+        None,
+    )
+    .await
 }
 
 /// Spawn a shell in a specific directory
@@ -97,12 +107,15 @@ pub async fn spawn_shell_in_dir(dir: &Path) -> Result<SpawnSuccess> {
 }
 
 /// Spawn a shell in a worktree with optional CommandExecutor
-pub async fn spawn_shell_in_worktree_with_executor(
+pub async fn spawn_shell_in_worktree_with_executor<E>(
     git_root: &Path,
     worktree_name: &str,
     filesystem: &dyn FileSystem,
-    executor: Option<Arc<dyn CommandExecutor>>,
-) -> Result<SpawnSuccess> {
+    executor: Option<E>,
+) -> Result<SpawnSuccess>
+where
+    E: CommandExecutor,
+{
     // Validate worktree exists
     let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
     let worktree_path = validation.path;
@@ -162,7 +175,13 @@ pub async fn spawn_shell_in_worktree(
     worktree_name: &str,
     filesystem: &dyn FileSystem,
 ) -> Result<SpawnSuccess> {
-    spawn_shell_in_worktree_with_executor(git_root, worktree_name, filesystem, None).await
+    spawn_shell_in_worktree_with_executor::<crate::core::executors::RealCommandExecutor>(
+        git_root,
+        worktree_name,
+        filesystem,
+        None,
+    )
+    .await
 }
 
 /// Execute multiple commands in sequence

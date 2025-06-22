@@ -5,7 +5,6 @@ use crate::Result;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::{debug, info};
 
 /// Detected shell information
@@ -167,10 +166,10 @@ pub fn current_phantom_worktree() -> Option<String> {
 }
 
 /// Open an interactive shell in a directory with CommandExecutor
-pub async fn shell_in_dir_with_executor(
-    executor: Arc<dyn CommandExecutor>,
-    dir: &Path,
-) -> Result<()> {
+pub async fn shell_in_dir_with_executor<E>(executor: &E, dir: &Path) -> Result<()>
+where
+    E: CommandExecutor,
+{
     let shell_info = detect_shell()?;
     let worktree_name = dir.file_name().and_then(|n| n.to_str()).unwrap_or("phantom");
 
@@ -189,7 +188,7 @@ pub async fn shell_in_dir_with_executor(
 
 /// Open an interactive shell in a directory (backward compatible)
 pub async fn shell_in_dir(dir: &Path) -> Result<()> {
-    shell_in_dir_with_executor(Arc::new(RealCommandExecutor), dir).await
+    shell_in_dir_with_executor(&RealCommandExecutor, dir).await
 }
 
 #[cfg(test)]
@@ -406,7 +405,7 @@ mod tests {
         mock.expect_command("/bin/bash").with_args(&["-i"]).returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
-        let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
+        let result = shell_in_dir_with_executor(&mock, &temp_dir).await;
         if let Err(e) = &result {
             eprintln!("Test failed with error: {:?}", e);
         }
@@ -426,7 +425,7 @@ mod tests {
         mock.expect_command("/usr/bin/zsh").with_args(&["-i"]).returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
-        let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
+        let result = shell_in_dir_with_executor(&mock, &temp_dir).await;
         if let Err(e) = &result {
             eprintln!("Test failed with error: {:?}", e);
         }
@@ -448,7 +447,7 @@ mod tests {
             .returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
-        let result = shell_in_dir_with_executor(Arc::new(mock), &temp_dir).await;
+        let result = shell_in_dir_with_executor(&mock, &temp_dir).await;
         if let Err(e) = &result {
             eprintln!("Test failed with error: {:?}", e);
         }
