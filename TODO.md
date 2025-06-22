@@ -54,13 +54,14 @@ Since this is an unreleased codebase, we can implement a comprehensive error han
   - Updated main.rs to extract PhantomError from anyhow chain
   - All 586 tests now pass
 
-#### Remaining Documentation Tasks
+#### Documentation (Completed)
 
-- [ ] **Update error handling documentation** in CONTRIBUTING.md
-  - Add reference to error-handling-guide.md
-  - Document the use of thiserror for library code and anyhow for CLI handlers
+- [x] **Updated error handling documentation** in CONTRIBUTING.md
+  - Added reference to error-handling-guide.md
+  - Documented the use of thiserror for library code and anyhow for CLI handlers
+  - Included quick examples and key guidelines
 
-**Note**: Error handling best practices are already documented in [error-handling-guide.md](./rust/docs/error-handling-guide.md)
+**Note**: Comprehensive error handling best practices are documented in [error-handling-guide.md](./rust/docs/error-handling-guide.md)
 
 #### Error Architecture
 
