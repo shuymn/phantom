@@ -22,21 +22,26 @@ Essential guides for understanding the codebase:
 
 Since this is an unreleased codebase, we can implement a comprehensive error handling improvement based on [error-handling-guide.md](./rust/docs/error-handling-guide.md):
 
-#### Immediate Actions (In Progress)
+#### Immediate Actions (Completed Phase 1)
 
 - [x] **Add anyhow dependency** for application-layer error handling
 - [x] **Convert all CLI handlers** to use `anyhow::Result` instead of `Result<T, PhantomError>`
-- [x] **Replace string-based error variants** with structured, specific error types:
+- [x] **Add rich context** at all external system boundaries in CLI layer
+
+#### Next Actions (Phase 2)
+
+- [ ] **Replace string-based error variants** with structured, specific error types:
   - `Worktree(String)` → Specific worktree error variants
   - `Validation(String)` → Specific validation error variants  
   - `FileOperation(String)` → Specific file operation error variants
   - `ProcessExecution(String)` → Enhanced with command context
-- [x] **Add rich context** at all external system boundaries:
-  - Git command execution with full command details
-  - File system operations with paths and operations
-  - Process execution with command and arguments
+  - `Config(String)` → Specific configuration error variants
+  - `Path(String)` → Specific path error variants
+- [ ] **Enhance Git error with command details**:
+  - Include full command, args, stderr in Git errors
+  - Add exit code context for better debugging
 - [ ] **Remove redundant ErrorContext trait** - anyhow provides better alternatives
-- [ ] **Update documentation** to reflect new error handling patterns
+- [ ] **Update error handling documentation** to reflect new patterns
 
 #### Error Architecture
 
