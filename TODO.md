@@ -42,7 +42,19 @@ Since this is an unreleased codebase, we can implement a comprehensive error han
   - Full context for debugging git command failures
 - [x] **Removed redundant ErrorContext trait** - using anyhow in CLI layer instead
 
-#### Remaining Tasks
+#### Phase 3: Post-Implementation Tasks (Completed)
+
+- [x] **Replace verbose error returns with bail! macro**:
+  - Replaced 17 instances of `return Err(anyhow!(...))` with `bail!(...)`
+  - Added necessary imports and cleaned up unused imports
+  - Makes error handling more idiomatic with anyhow
+- [x] **Fix all failing tests**:
+  - Fixed 8 unit tests to match new structured error types
+  - Fixed 5 CLI snapshot tests for proper exit codes and error messages
+  - Updated main.rs to extract PhantomError from anyhow chain
+  - All 586 tests now pass
+
+#### Remaining Documentation Tasks
 
 - [ ] **Update error handling documentation** in CONTRIBUTING.md
 - [ ] **Add error handling best practices** to the codebase documentation
