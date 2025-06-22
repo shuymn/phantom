@@ -140,6 +140,29 @@ pnpm test:file src/core/worktree/create.test.js
 - Use descriptive test names
 - Test both success and error cases
 
+### Test Organization
+
+- **Unit tests**: Place in `mod tests` blocks at the bottom of source files
+- **Integration tests**: Place in the `tests/` directory
+- **Important**: Do NOT create separate `*_test.rs` files alongside source files
+- Keep tests close to the code they test for better maintainability
+
+Example:
+```rust
+// src/mymodule.rs
+pub fn my_function() { /* implementation */ }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_my_function() {
+        // test implementation
+    }
+}
+```
+
 ## ✨ Code Quality
 
 ### Before Committing

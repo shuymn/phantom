@@ -15,7 +15,4 @@ pub mod types;
 pub mod validate;
 
 #[cfg(test)]
-mod select_test;
-
-#[cfg(test)]
 mod validate_proptest;
