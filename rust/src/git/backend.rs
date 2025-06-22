@@ -89,6 +89,67 @@ impl GitConfig {
     }
 }
 
+// Implement Sealed for Arc<dyn GitBackend>
+impl Sealed for std::sync::Arc<dyn GitBackend> {}
+
+// Implement GitBackend for Arc<dyn GitBackend> to allow Arc usage where B: GitBackend is required
+#[async_trait]
+impl GitBackend for std::sync::Arc<dyn GitBackend> {
+    async fn current_branch(&self) -> Result<String> {
+        (**self).current_branch().await
+    }
+
+    async fn list_branches(&self) -> Result<Vec<String>> {
+        (**self).list_branches().await
+    }
+
+    async fn create_branch(&self, name: &str) -> Result<()> {
+        (**self).create_branch(name).await
+    }
+
+    async fn branch_exists(&self, name: &str) -> Result<bool> {
+        (**self).branch_exists(name).await
+    }
+
+    async fn get_root(&self) -> Result<PathBuf> {
+        (**self).get_root().await
+    }
+
+    async fn list_worktrees(&self) -> Result<Vec<Worktree>> {
+        (**self).list_worktrees().await
+    }
+
+    async fn add_worktree(
+        &self,
+        path: &Path,
+        branch: Option<&str>,
+        new_branch: bool,
+        commitish: Option<&str>,
+    ) -> Result<()> {
+        (**self).add_worktree(path, branch, new_branch, commitish).await
+    }
+
+    async fn attach_worktree(&self, path: &Path, branch: &str) -> Result<()> {
+        (**self).attach_worktree(path, branch).await
+    }
+
+    async fn remove_worktree(&self, path: &Path) -> Result<()> {
+        (**self).remove_worktree(path).await
+    }
+
+    async fn current_commit(&self) -> Result<String> {
+        (**self).current_commit().await
+    }
+
+    async fn is_inside_work_tree(&self) -> Result<bool> {
+        (**self).is_inside_work_tree().await
+    }
+
+    async fn current_worktree(&self) -> Result<Option<String>> {
+        (**self).current_worktree().await
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
