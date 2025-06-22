@@ -57,7 +57,10 @@ Since this is an unreleased codebase, we can implement a comprehensive error han
 #### Remaining Documentation Tasks
 
 - [ ] **Update error handling documentation** in CONTRIBUTING.md
-- [ ] **Add error handling best practices** to the codebase documentation
+  - Add reference to error-handling-guide.md
+  - Document the use of thiserror for library code and anyhow for CLI handlers
+
+**Note**: Error handling best practices are already documented in [error-handling-guide.md](./rust/docs/error-handling-guide.md)
 
 #### Error Architecture
 
