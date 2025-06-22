@@ -72,6 +72,55 @@ pnpm ready
 - **No Code Duplication**: Common operations are centralized
 - **Clear Dependencies**: Dependencies flow from CLI → Core (including Git operations)
 
+### Error Handling (Rust)
+
+Phantom uses a structured approach to error handling that provides both type safety and good debugging experience:
+
+- **Library code**: Uses `thiserror` for type-safe, matchable errors
+- **Application code (CLI handlers)**: Uses `anyhow` for flexible error handling with context
+
+For detailed error handling guidelines, see [error-handling-guide.md](./rust/docs/error-handling-guide.md).
+
+#### Quick Examples
+
+```rust
+// In library code (core modules)
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum WorktreeError {
+    #[error("Worktree '{0}' not found")]
+    NotFound(String),
+    
+    #[error("Invalid worktree name: '{0}'")]
+    InvalidName(String),
+}
+
+// In CLI handlers
+use anyhow::{bail, Context, Result};
+
+pub async fn handle_command(args: Args) -> Result<()> {
+    // Use bail! for early returns with errors
+    if args.name.is_empty() {
+        bail!("Worktree name cannot be empty");
+    }
+    
+    // Add context to operations that might fail
+    create_worktree(&args.name)
+        .await
+        .with_context(|| format!("Failed to create worktree '{}'", args.name))?;
+    
+    Ok(())
+}
+```
+
+#### Key Guidelines
+
+1. **Use specific error types** in library code for better error handling
+2. **Add context** at system boundaries and when runtime values aid debugging
+3. **Use `bail!`** instead of `return Err(anyhow!(...))` for cleaner code
+4. **Preserve error chains** to maintain debugging information
+
 ## 🧪 Testing
 
 ### Running Tests
