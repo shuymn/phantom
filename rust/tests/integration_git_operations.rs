@@ -43,6 +43,7 @@ async fn create_real_git_repo() -> tempfile::TempDir {
 }
 
 #[tokio::test]
+#[serial_test::serial]
 async fn test_real_git_operations_workflow() {
     let repo = create_real_git_repo().await;
     let repo_path = repo.path();

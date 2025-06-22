@@ -102,6 +102,7 @@ mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
     use crate::test_utils::TestRepo;
+    use serial_test::serial;
 
     #[tokio::test]
     async fn test_get_git_root_generic() {
@@ -133,6 +134,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_get_git_root_real_repo() {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
