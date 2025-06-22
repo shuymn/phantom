@@ -4,7 +4,6 @@ mod tests {
     use crate::cli::context::HandlerContext;
     use crate::cli::handlers::attach::handle;
     use crate::core::executors::MockCommandExecutor;
-    use crate::PhantomError;
     use tempfile::tempdir;
 
     #[tokio::test]
@@ -84,12 +83,8 @@ mod tests {
 
         let result = handle(args, context).await;
         assert!(result.is_err());
-        match result.unwrap_err() {
-            PhantomError::BranchNotFound { branch } => {
-                assert_eq!(branch, "nonexistent");
-            }
-            e => panic!("Expected BranchNotFound error, got: {:?}", e),
-        }
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Branch 'nonexistent' not found"));
     }
 
     #[tokio::test]
@@ -126,12 +121,8 @@ mod tests {
 
         let result = handle(args, context).await;
         assert!(result.is_err());
-        match result.unwrap_err() {
-            PhantomError::WorktreeExists { name } => {
-                assert_eq!(name, "existing-branch");
-            }
-            e => panic!("Expected WorktreeExists error, got: {:?}", e),
-        }
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("Worktree 'existing-branch' already exists"));
     }
 
     #[tokio::test]
@@ -148,10 +139,8 @@ mod tests {
 
         let result = handle(args, context).await;
         assert!(result.is_err());
-        match result.unwrap_err() {
-            PhantomError::InvalidWorktreeName(_) | PhantomError::Validation(_) => {}
-            e => panic!("Expected InvalidWorktreeName or Validation error, got: {:?}", e),
-        }
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("empty") || err.to_string().contains("invalid"));
     }
 
     #[tokio::test]

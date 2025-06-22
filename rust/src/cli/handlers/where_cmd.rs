@@ -7,7 +7,7 @@ use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::locate::where_worktree;
 use crate::worktree::select::select_worktree_with_fzf;
-use crate::{PhantomError, Result};
+use anyhow::{anyhow, Context, Result};
 
 /// Handle the where command
 pub async fn handle<E, F, H>(args: WhereArgs, context: HandlerContext<E, F, H>) -> Result<()>
@@ -18,23 +18,23 @@ where
 {
     // Validate args
     if args.name.is_none() && !args.fzf {
-        return Err(PhantomError::Validation(
-            "Usage: phantom where <worktree-name> or phantom where --fzf".to_string(),
-        ));
+        return Err(anyhow!("Usage: phantom where <worktree-name> or phantom where --fzf"));
     }
 
     if args.name.is_some() && args.fzf {
-        return Err(PhantomError::Validation(
-            "Cannot specify both a worktree name and --fzf option".to_string(),
-        ));
+        return Err(anyhow!("Cannot specify both a worktree name and --fzf option"));
     }
 
     // Get git root
-    let git_root = get_git_root(context.executor.clone()).await?;
+    let git_root = get_git_root(context.executor.clone())
+        .await
+        .with_context(|| "Failed to determine git repository root")?;
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result = select_worktree_with_fzf(context.executor.clone(), &git_root).await?;
+        let result = select_worktree_with_fzf(context.executor.clone(), &git_root)
+            .await
+            .with_context(|| "Failed to select worktree with fzf")?;
 
         match result {
             Some(worktree) => worktree.name,
@@ -48,7 +48,10 @@ where
     };
 
     // Get the worktree path
-    match where_worktree(&git_root, &worktree_name, &context.filesystem).await {
+    match where_worktree(&git_root, &worktree_name, &context.filesystem)
+        .await
+        .with_context(|| format!("Failed to locate worktree '{}'", worktree_name))
+    {
         Ok(result) => {
             if args.json {
                 let json_result = WhereResult {
@@ -57,7 +60,7 @@ where
                     path: result.path,
                     error: None,
                 };
-                let _ = output().json(&json_result);
+                output().json(&json_result).with_context(|| "Failed to serialize JSON output")?;
             } else {
                 output().log(&result.path);
             }
@@ -71,7 +74,7 @@ where
                     path: String::new(),
                     error: Some(e.to_string()),
                 };
-                let _ = output().json(&json_result);
+                output().json(&json_result).with_context(|| "Failed to serialize JSON output")?;
                 Ok(())
             } else {
                 Err(e)

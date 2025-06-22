@@ -7,7 +7,7 @@ use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::concurrent::list_worktrees_concurrent;
 use crate::worktree::select::select_worktree_with_fzf;
-use crate::Result;
+use anyhow::{Context, Result};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -30,11 +30,16 @@ where
     F: FileSystem + Clone + 'static,
     H: ExitHandler + Clone + 'static,
 {
-    let git_root = get_git_root(context.executor.clone()).await?;
+    let git_root = get_git_root(context.executor.clone())
+        .await
+        .with_context(|| "Failed to determine git repository root")?;
 
     if args.fzf {
         // Use fzf for interactive selection
-        match select_worktree_with_fzf(context.executor.clone(), &git_root).await? {
+        match select_worktree_with_fzf(context.executor.clone(), &git_root)
+            .await
+            .with_context(|| "Failed to select worktree with fzf")?
+        {
             Some(worktree) => {
                 output().log(&worktree.name);
             }
@@ -44,12 +49,18 @@ where
         }
     } else {
         // List all worktrees using concurrent operations
-        let result = list_worktrees_concurrent(context.executor.clone(), &git_root).await?;
+        let result =
+            list_worktrees_concurrent(context.executor.clone(), &git_root).await.with_context(
+                || format!("Failed to list worktrees in git root: {}", git_root.display()),
+            )?;
 
         if result.worktrees.is_empty() {
             if args.json {
                 let json_output = ListJsonOutput { worktrees: vec![] };
-                output().log(&serde_json::to_string_pretty(&json_output)?);
+                output().log(
+                    &serde_json::to_string_pretty(&json_output)
+                        .with_context(|| "Failed to serialize JSON output")?,
+                );
             } else if !args.names {
                 output().log(result.message.as_deref().unwrap_or("No worktrees found."));
             }

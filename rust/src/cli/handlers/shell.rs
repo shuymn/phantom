@@ -13,7 +13,7 @@ use crate::process::shell::{detect_shell, get_phantom_env};
 use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::validate::validate_worktree_exists;
-use crate::{PhantomError, Result};
+use anyhow::{anyhow, Context, Result};
 
 /// Handle the shell command
 pub async fn handle<E, F, H>(args: ShellArgs, context: HandlerContext<E, F, H>) -> Result<()>
@@ -24,15 +24,11 @@ where
 {
     // Validate args
     if args.name.is_none() && !args.fzf {
-        return Err(PhantomError::Validation(
-            "Usage: phantom shell <worktree-name> or phantom shell --fzf".to_string(),
-        ));
+        return Err(anyhow!("Usage: phantom shell <worktree-name> or phantom shell --fzf"));
     }
 
     if args.name.is_some() && args.fzf {
-        return Err(PhantomError::Validation(
-            "Cannot specify both a worktree name and --fzf option".to_string(),
-        ));
+        return Err(anyhow!("Cannot specify both a worktree name and --fzf option"));
     }
 
     // Determine tmux direction
@@ -59,23 +55,23 @@ where
 
     // Validate multiplexer options
     if tmux_direction.is_some() && !is_inside_tmux().await {
-        return Err(PhantomError::Validation(
-            "The --tmux option can only be used inside a tmux session".to_string(),
-        ));
+        return Err(anyhow!("The --tmux option can only be used inside a tmux session"));
     }
 
     if kitty_direction.is_some() && !is_inside_kitty().await {
-        return Err(PhantomError::Validation(
-            "The --kitty option can only be used inside a kitty terminal".to_string(),
-        ));
+        return Err(anyhow!("The --kitty option can only be used inside a kitty terminal"));
     }
 
     // Get git root
-    let git_root = get_git_root(context.executor.clone()).await?;
+    let git_root = get_git_root(context.executor.clone())
+        .await
+        .with_context(|| "Failed to determine git repository root")?;
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result = select_worktree_with_fzf(context.executor.clone(), &git_root).await?;
+        let result = select_worktree_with_fzf(context.executor.clone(), &git_root)
+            .await
+            .with_context(|| "Failed to select worktree with fzf")?;
 
         match result {
             Some(worktree) => worktree.name,
@@ -89,12 +85,13 @@ where
     };
 
     // Validate worktree exists
-    let validation =
-        validate_worktree_exists(&git_root, &worktree_name, &context.filesystem).await?;
+    let validation = validate_worktree_exists(&git_root, &worktree_name, &context.filesystem)
+        .await
+        .with_context(|| format!("Failed to validate worktree '{}' exists", worktree_name))?;
     let worktree_path = validation.path;
 
     // Get shell info
-    let shell_info = detect_shell()?;
+    let shell_info = detect_shell().with_context(|| "Failed to detect shell")?;
     let shell_command = shell_info.path;
 
     // Handle tmux execution
@@ -112,13 +109,16 @@ where
             cwd: Some(worktree_path.to_string_lossy().to_string()),
             env: Some(get_phantom_env(&worktree_name, &worktree_path.to_string_lossy())),
             window_name: if direction == TmuxSplitDirection::New {
-                Some(worktree_name)
+                Some(worktree_name.clone())
             } else {
                 None
             },
         };
 
-        execute_tmux_command(&context.executor, options).await?;
+        execute_tmux_command(&context.executor, options)
+            .await
+            .map_err(|e| anyhow!(e))
+            .with_context(|| format!("Failed to open worktree '{}' in tmux", worktree_name))?;
         return Ok(());
     }
 
@@ -137,13 +137,16 @@ where
             cwd: Some(worktree_path.to_string_lossy().to_string()),
             env: Some(get_phantom_env(&worktree_name, &worktree_path.to_string_lossy())),
             window_title: if direction == KittySplitDirection::New {
-                Some(worktree_name)
+                Some(worktree_name.clone())
             } else {
                 None
             },
         };
 
-        execute_kitty_command(&context.executor, options).await?;
+        execute_kitty_command(&context.executor, options)
+            .await
+            .map_err(|e| anyhow!(e))
+            .with_context(|| format!("Failed to open worktree '{}' in kitty", worktree_name))?;
         return Ok(());
     }
 
@@ -157,7 +160,15 @@ where
         &context.filesystem,
         Some(context.executor.clone()),
     )
-    .await?;
+    .await
+    .map_err(|e| anyhow!(e))
+    .with_context(|| {
+        format!(
+            "Failed to spawn shell in worktree '{}' at path: {}",
+            worktree_name,
+            worktree_path.display()
+        )
+    })?;
 
     // Exit with the same code as the shell
     context.exit_handler.exit(result.exit_code);

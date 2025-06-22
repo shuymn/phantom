@@ -9,7 +9,7 @@ use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::delete::delete_worktree;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::types::DeleteWorktreeOptions;
-use crate::{PhantomError, Result};
+use anyhow::{anyhow, Context, Result};
 
 /// Handle the delete command
 pub async fn handle<E, F, H>(args: DeleteArgs, context: HandlerContext<E, F, H>) -> Result<()>
@@ -20,39 +20,42 @@ where
 {
     // Validate args
     if args.name.is_none() && !args.current && !args.fzf {
-        return Err(PhantomError::Validation(
-            "Please provide a worktree name to delete, use --current to delete the current worktree, or use --fzf for interactive selection".to_string(),
+        return Err(anyhow!(
+            "Please provide a worktree name to delete, use --current to delete the current worktree, or use --fzf for interactive selection"
         ));
     }
 
     if (args.name.is_some() || args.fzf) && args.current {
-        return Err(PhantomError::Validation(
-            "Cannot specify --current with a worktree name or --fzf option".to_string(),
-        ));
+        return Err(anyhow!("Cannot specify --current with a worktree name or --fzf option"));
     }
 
     if args.name.is_some() && args.fzf {
-        return Err(PhantomError::Validation(
-            "Cannot specify both a worktree name and --fzf option".to_string(),
-        ));
+        return Err(anyhow!("Cannot specify both a worktree name and --fzf option"));
     }
 
     // Get git root
-    let git_root = get_git_root(context.executor.clone()).await?;
+    let git_root = get_git_root(context.executor.clone())
+        .await
+        .with_context(|| "Failed to determine git repository root")?;
 
     // Get worktree name
     let worktree_name = if args.current {
-        let current = get_current_worktree(context.executor.clone(), &git_root).await?;
+        let current = get_current_worktree(context.executor.clone(), &git_root)
+            .await
+            .with_context(|| "Failed to get current worktree")?;
         match current {
             Some(name) => name,
             None => {
-                return Err(PhantomError::Validation(
-                    "Not in a worktree directory. The --current option can only be used from within a worktree.".to_string(),
+                return Err(anyhow!(
+                    "Not in a worktree directory. The --current option can only be used from within a worktree."
                 ));
             }
         }
     } else if args.fzf {
-        match select_worktree_with_fzf(context.executor.clone(), &git_root).await? {
+        match select_worktree_with_fzf(context.executor.clone(), &git_root)
+            .await
+            .with_context(|| "Failed to select worktree with fzf")?
+        {
             Some(worktree) => worktree.name,
             None => {
                 // User cancelled selection
@@ -74,6 +77,7 @@ where
         &context.filesystem,
     )
     .await
+    .with_context(|| format!("Failed to delete worktree '{}'", worktree_name))
     {
         Ok(result) => {
             if args.json {
@@ -83,7 +87,7 @@ where
                     message: result.message.clone(),
                     error: None,
                 };
-                let _ = output().json(&json_result);
+                output().json(&json_result).with_context(|| "Failed to serialize JSON output")?;
             } else {
                 output().log(&result.message);
             }
@@ -97,7 +101,7 @@ where
                     message: String::new(),
                     error: Some(e.to_string()),
                 };
-                let _ = output().json(&json_result);
+                output().json(&json_result).with_context(|| "Failed to serialize JSON output")?;
                 Ok(())
             } else {
                 Err(e)

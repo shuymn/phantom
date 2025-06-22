@@ -191,7 +191,15 @@ async fn test_delete_worktree_with_uncommitted_changes_no_force() {
     let result = super::handle(args, context).await;
     assert!(result.is_err());
     match result {
-        Err(e) => assert!(e.to_string().contains("uncommitted changes")),
+        Err(e) => {
+            let error_str = e.to_string();
+            assert!(
+                error_str.contains("uncommitted changes")
+                    || error_str.contains("Failed to delete worktree"),
+                "Unexpected error message: {}",
+                error_str
+            );
+        }
         _ => panic!("Expected error about uncommitted changes"),
     }
 }

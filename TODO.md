@@ -18,6 +18,53 @@ Essential guides for understanding the codebase:
 
 ## 📋 Future Enhancements
 
+### Error Handling Comprehensive Refactor
+
+Since this is an unreleased codebase, we can implement a comprehensive error handling improvement based on [error-handling-guide.md](./rust/docs/error-handling-guide.md):
+
+#### Immediate Actions (In Progress)
+
+- [x] **Add anyhow dependency** for application-layer error handling
+- [x] **Convert all CLI handlers** to use `anyhow::Result` instead of `Result<T, PhantomError>`
+- [x] **Replace string-based error variants** with structured, specific error types:
+  - `Worktree(String)` → Specific worktree error variants
+  - `Validation(String)` → Specific validation error variants  
+  - `FileOperation(String)` → Specific file operation error variants
+  - `ProcessExecution(String)` → Enhanced with command context
+- [x] **Add rich context** at all external system boundaries:
+  - Git command execution with full command details
+  - File system operations with paths and operations
+  - Process execution with command and arguments
+- [ ] **Remove redundant ErrorContext trait** - anyhow provides better alternatives
+- [ ] **Update documentation** to reflect new error handling patterns
+
+#### Error Architecture
+
+```rust
+// Core library errors (thiserror) - Type safe, matchable
+#[derive(Error, Debug)]
+pub enum GitError {
+    #[error("Command failed: {command} (exit code: {code})")]
+    CommandFailed { command: String, args: Vec<String>, code: i32, stderr: String },
+    // ... other specific variants
+}
+
+// Application layer (anyhow) - Rich context, simple propagation
+use anyhow::{Context, Result};
+
+async fn handle_operation() -> Result<()> {
+    git_operation()
+        .with_context(|| format!("Failed to create worktree '{}' at {}", name, path))?;
+    Ok(())
+}
+```
+
+#### Benefits
+- **Better debugging**: Specific error types with full context
+- **Type safety**: Compiler-enforced error handling in libraries
+- **Simplicity**: anyhow in CLI layer reduces boilerplate
+- **Rich errors**: Full command details, paths, and runtime values
+
 ### Known Issues
 
 - **Flaky Test**: One flaky test in `get_current_worktree` that occasionally fails in CI. See [test-race-condition-fix.md](./rust/docs/test-race-condition-fix.md) for details on race condition handling.

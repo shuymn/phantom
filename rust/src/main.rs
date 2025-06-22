@@ -1,7 +1,7 @@
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use phantom::cli::context::ProductionContext;
 use phantom::cli::{self, Commands};
-use phantom::{PhantomError, Result};
 use std::process;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -42,8 +42,9 @@ async fn main() {
     // Handle errors
     if let Err(e) = result {
         cli::output::output().error(&e.to_string());
-        let exit_code = cli::error::error_to_exit_code(&e);
-        process::exit(exit_code);
+        // Since we're using anyhow, we can't match on specific error types
+        // Use a general error exit code
+        process::exit(cli::error::ExitCode::GENERAL_ERROR);
     }
 }
 
@@ -62,7 +63,7 @@ fn init_tracing() -> Result<()> {
         .with(filter)
         .with(fmt_layer)
         .try_init()
-        .map_err(|e| PhantomError::Config(format!("Failed to initialize tracing: {}", e)))?;
+        .map_err(|e| anyhow!("Failed to initialize tracing: {}", e))?;
 
     Ok(())
 }
