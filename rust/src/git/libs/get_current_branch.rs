@@ -12,13 +12,13 @@ use tracing::debug;
 ///
 /// # Example
 /// ```no_run
-/// use phantom::git::libs::get_current_branch::get_current_branch_with_executor;
+/// use phantom::git::libs::get_current_branch::get_current_branch;
 /// use phantom::cli::context::ProductionContext;
 /// use phantom::Result;
 /// use std::path::Path;
 ///
 /// async fn handle_something(context: ProductionContext) -> Result<()> {
-///     let branch = get_current_branch_with_executor(
+///     let branch = get_current_branch(
 ///         context.executor,
 ///         Path::new("/repo/path")
 ///     ).await?;
@@ -26,7 +26,7 @@ use tracing::debug;
 ///     Ok(())
 /// }
 /// ```
-pub async fn get_current_branch_with_executor<E>(executor: E, repo_path: &Path) -> Result<String>
+pub async fn get_current_branch<E>(executor: E, repo_path: &Path) -> Result<String>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -41,12 +41,6 @@ where
     Ok(branch)
 }
 
-/// Get the current branch name using the default executor
-pub async fn get_current_branch(repo_path: &Path) -> Result<String> {
-    use crate::core::executors::RealCommandExecutor;
-    get_current_branch_with_executor(RealCommandExecutor, repo_path).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -59,7 +53,8 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
-        let branch = get_current_branch(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let branch = get_current_branch(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(branch, "main");
     }
 
@@ -73,7 +68,7 @@ mod tests {
         let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "feature-branch"]).await.unwrap();
 
-        let branch = get_current_branch(repo.path()).await.unwrap();
+        let branch = get_current_branch(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(branch, "feature-branch");
     }
 
@@ -91,7 +86,7 @@ mod tests {
         executor.run(&["checkout", commit]).await.unwrap();
 
         // In detached HEAD state, --show-current returns empty
-        let branch = get_current_branch(repo.path()).await.unwrap();
+        let branch = get_current_branch(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(branch, "");
     }
 
@@ -105,7 +100,7 @@ mod tests {
         let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "feature-with-dashes"]).await.unwrap();
 
-        let branch = get_current_branch(repo.path()).await.unwrap();
+        let branch = get_current_branch(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(branch, "feature-with-dashes");
     }
 
@@ -118,7 +113,7 @@ mod tests {
         let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", "-b", "feature/new-feature"]).await.unwrap();
 
-        let branch = get_current_branch(repo.path()).await.unwrap();
+        let branch = get_current_branch(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(branch, "feature/new-feature");
     }
 
@@ -134,7 +129,7 @@ mod tests {
             .in_dir("/test")
             .returns_output("feature-branch", "", 0);
 
-        let branch = get_current_branch_with_executor(mock, Path::new("/test")).await.unwrap();
+        let branch = get_current_branch(mock, Path::new("/test")).await.unwrap();
         assert_eq!(branch, "feature-branch");
     }
 
@@ -150,7 +145,7 @@ mod tests {
             .in_dir("/test")
             .returns_output("", "", 0);
 
-        let branch = get_current_branch_with_executor(mock, Path::new("/test")).await.unwrap();
+        let branch = get_current_branch(mock, Path::new("/test")).await.unwrap();
         assert_eq!(branch, "");
     }
 }

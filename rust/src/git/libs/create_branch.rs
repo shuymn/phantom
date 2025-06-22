@@ -5,11 +5,7 @@ use std::path::Path;
 use tracing::debug;
 
 /// Create a new branch in the repository using a provided executor
-pub async fn create_branch_with_executor<E>(
-    executor: E,
-    git_root: &Path,
-    branch_name: &str,
-) -> Result<()>
+pub async fn create_branch<E>(executor: E, git_root: &Path, branch_name: &str) -> Result<()>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -22,12 +18,6 @@ where
 
     debug!("Successfully created branch '{}'", branch_name);
     Ok(())
-}
-
-/// Create a new branch in the repository
-pub async fn create_branch(git_root: &Path, branch_name: &str) -> Result<()> {
-    use crate::core::executors::RealCommandExecutor;
-    create_branch_with_executor(RealCommandExecutor, git_root, branch_name).await
 }
 
 #[cfg(test)]
@@ -43,11 +33,13 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a new branch
-        create_branch(repo.path(), "feature-branch").await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        create_branch(RealCommandExecutor, repo.path(), "feature-branch").await.unwrap();
 
         // Verify the branch was created using branch_exists
         use crate::git::libs::branch_exists::branch_exists;
-        let exists = branch_exists(repo.path(), "feature-branch").await.unwrap();
+        let exists =
+            branch_exists(RealCommandExecutor, repo.path(), "feature-branch").await.unwrap();
         assert!(exists);
     }
 
@@ -57,11 +49,13 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a branch with slashes
-        create_branch(repo.path(), "feature/new-feature").await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        create_branch(RealCommandExecutor, repo.path(), "feature/new-feature").await.unwrap();
 
         // Verify the branch was created using branch_exists
         use crate::git::libs::branch_exists::branch_exists;
-        let exists = branch_exists(repo.path(), "feature/new-feature").await.unwrap();
+        let exists =
+            branch_exists(RealCommandExecutor, repo.path(), "feature/new-feature").await.unwrap();
         assert!(exists);
     }
 
@@ -71,10 +65,11 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Create a branch
-        create_branch(repo.path(), "feature-branch").await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        create_branch(RealCommandExecutor, repo.path(), "feature-branch").await.unwrap();
 
         // Try to create the same branch again
-        let result = create_branch(repo.path(), "feature-branch").await;
+        let result = create_branch(RealCommandExecutor, repo.path(), "feature-branch").await;
         assert!(result.is_err());
     }
 
@@ -86,8 +81,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_success();
 
-        let result =
-            create_branch_with_executor(mock, Path::new("/test/repo"), "new-feature").await;
+        let result = create_branch(mock, Path::new("/test/repo"), "new-feature").await;
         assert!(result.is_ok());
     }
 
@@ -99,8 +93,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "fatal: A branch named 'existing-branch' already exists.", 128);
 
-        let result =
-            create_branch_with_executor(mock, Path::new("/test/repo"), "existing-branch").await;
+        let result = create_branch(mock, Path::new("/test/repo"), "existing-branch").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }
@@ -113,8 +106,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "fatal: 'refs/heads/invalid' is not a valid branch name.", 128);
 
-        let result =
-            create_branch_with_executor(mock, Path::new("/test/repo"), "refs/heads/invalid").await;
+        let result = create_branch(mock, Path::new("/test/repo"), "refs/heads/invalid").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }
@@ -127,7 +119,7 @@ mod tests {
             .in_dir("/not/a/repo")
             .returns_output("", "fatal: not a git repository", 128);
 
-        let result = create_branch_with_executor(mock, Path::new("/not/a/repo"), "feature").await;
+        let result = create_branch(mock, Path::new("/not/a/repo"), "feature").await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), PhantomError::Git { exit_code: 128, .. }));
     }

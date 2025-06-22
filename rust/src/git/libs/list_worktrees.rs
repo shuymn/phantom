@@ -8,7 +8,7 @@ use std::path::Path;
 use tracing::debug;
 
 /// List all git worktrees in a repository with executor
-pub async fn list_worktrees_with_executor<E>(executor: E, repo_path: &Path) -> Result<Vec<Worktree>>
+pub async fn list_worktrees<E>(executor: E, repo_path: &Path) -> Result<Vec<Worktree>>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -23,16 +23,10 @@ where
     Ok(worktrees)
 }
 
-/// List all git worktrees in a repository using the default executor
-pub async fn list_worktrees(repo_path: &Path) -> Result<Vec<Worktree>> {
-    use crate::core::executors::RealCommandExecutor;
-    list_worktrees_with_executor(RealCommandExecutor, repo_path).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::executors::RealCommandExecutor;
+
     use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
 
@@ -41,7 +35,8 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
-        let worktrees = list_worktrees(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let worktrees = list_worktrees(RealCommandExecutor, repo.path()).await.unwrap();
 
         assert_eq!(worktrees.len(), 1);
         assert_eq!(worktrees[0].name, repo.path().file_name().unwrap().to_str().unwrap());
@@ -68,7 +63,8 @@ mod tests {
             .await
             .unwrap();
 
-        let worktrees = list_worktrees(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let worktrees = list_worktrees(RealCommandExecutor, repo.path()).await.unwrap();
 
         assert_eq!(worktrees.len(), 2);
 
@@ -110,7 +106,8 @@ mod tests {
             .await
             .unwrap();
 
-        let worktrees = list_worktrees(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let worktrees = list_worktrees(RealCommandExecutor, repo.path()).await.unwrap();
 
         assert_eq!(worktrees.len(), 2);
 

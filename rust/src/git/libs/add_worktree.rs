@@ -6,7 +6,7 @@ use std::path::Path;
 use tracing::info;
 
 /// Add a new git worktree with executor
-pub async fn add_worktree_with_executor<E>(
+pub async fn add_worktree<E>(
     executor: E,
     repo_path: &Path,
     worktree_path: &Path,
@@ -58,26 +58,6 @@ where
     Ok(())
 }
 
-/// Add a new git worktree using the default executor
-pub async fn add_worktree(
-    repo_path: &Path,
-    worktree_path: &Path,
-    branch: Option<&str>,
-    new_branch: bool,
-    commitish: Option<&str>,
-) -> Result<()> {
-    use crate::core::executors::RealCommandExecutor;
-    add_worktree_with_executor(
-        RealCommandExecutor,
-        repo_path,
-        worktree_path,
-        branch,
-        new_branch,
-        commitish,
-    )
-    .await
-}
-
 /// Add a new worktree with automatic branch name
 pub async fn add_worktree_auto(repo_path: &Path, worktree_name: &str) -> Result<()> {
     let worktree_path = repo_path
@@ -87,7 +67,9 @@ pub async fn add_worktree_auto(repo_path: &Path, worktree_name: &str) -> Result<
         })?
         .join(worktree_name);
 
-    add_worktree(repo_path, &worktree_path, Some(worktree_name), true, None).await
+    use crate::core::executors::RealCommandExecutor;
+    add_worktree(RealCommandExecutor, repo_path, &worktree_path, Some(worktree_name), true, None)
+        .await
 }
 
 #[cfg(test)]
@@ -104,9 +86,17 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("feature-branch");
 
-        add_worktree(repo.path(), &worktree_path, Some("feature-branch"), true, None)
-            .await
-            .unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        add_worktree(
+            RealCommandExecutor,
+            repo.path(),
+            &worktree_path,
+            Some("feature-branch"),
+            true,
+            None,
+        )
+        .await
+        .unwrap();
 
         assert!(worktree_path.exists());
         assert!(worktree_path.join(".git").exists());
@@ -127,9 +117,16 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("existing-worktree");
 
-        add_worktree(repo.path(), &worktree_path, Some("existing-branch"), false, None)
-            .await
-            .unwrap();
+        add_worktree(
+            RealCommandExecutor,
+            repo.path(),
+            &worktree_path,
+            Some("existing-branch"),
+            false,
+            None,
+        )
+        .await
+        .unwrap();
 
         assert!(worktree_path.exists());
     }
@@ -153,7 +150,9 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("test");
 
-        let result = add_worktree(repo.path(), &worktree_path, None, true, None).await;
+        use crate::core::executors::RealCommandExecutor;
+        let result =
+            add_worktree(RealCommandExecutor, repo.path(), &worktree_path, None, true, None).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -185,6 +184,7 @@ mod tests {
         let worktree_path = temp_dir.path().join("based-on-first");
 
         add_worktree(
+            RealCommandExecutor,
             repo.path(),
             &worktree_path,
             Some("feature-from-first"),

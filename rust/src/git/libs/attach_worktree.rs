@@ -5,7 +5,7 @@ use std::path::Path;
 use tracing::info;
 
 /// Attach a worktree to an existing branch with executor
-pub async fn attach_worktree_with_executor<E>(
+pub async fn attach_worktree<E>(
     executor: E,
     git_root: &Path,
     worktree_path: &Path,
@@ -24,20 +24,10 @@ where
     Ok(())
 }
 
-/// Attach a worktree to an existing branch using the default executor
-pub async fn attach_worktree(
-    git_root: &Path,
-    worktree_path: &Path,
-    branch_name: &str,
-) -> Result<()> {
-    use crate::core::executors::RealCommandExecutor;
-    attach_worktree_with_executor(RealCommandExecutor, git_root, worktree_path, branch_name).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::executors::RealCommandExecutor;
+
     use crate::test_utils::TestRepo;
     use tempfile::tempdir;
 
@@ -57,7 +47,10 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("my-worktree");
 
-        attach_worktree(repo.path(), &worktree_path, "existing-branch").await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        attach_worktree(RealCommandExecutor, repo.path(), &worktree_path, "existing-branch")
+            .await
+            .unwrap();
 
         assert!(worktree_path.exists());
         assert!(worktree_path.join(".git").exists());
@@ -78,7 +71,10 @@ mod tests {
         let worktree_path = temp_dir.path().join("my-worktree");
 
         // Should fail when trying to attach to non-existent branch
-        let result = attach_worktree(repo.path(), &worktree_path, "nonexistent-branch").await;
+        use crate::core::executors::RealCommandExecutor;
+        let result =
+            attach_worktree(RealCommandExecutor, repo.path(), &worktree_path, "nonexistent-branch")
+                .await;
         assert!(result.is_err());
         assert!(!worktree_path.exists());
     }
@@ -92,7 +88,9 @@ mod tests {
         let worktree_path = temp_dir.path().join("my-worktree");
 
         // Should fail when trying to attach to currently checked out branch
-        let result = attach_worktree(repo.path(), &worktree_path, "main").await;
+        use crate::core::executors::RealCommandExecutor;
+        let result =
+            attach_worktree(RealCommandExecutor, repo.path(), &worktree_path, "main").await;
         assert!(result.is_err());
 
         // Error should mention branch is already in use
@@ -123,7 +121,9 @@ mod tests {
         std::fs::create_dir(&worktree_path).unwrap();
 
         // Should fail when path already exists
-        let result = attach_worktree(repo.path(), &worktree_path, "test-branch").await;
+        use crate::core::executors::RealCommandExecutor;
+        let result =
+            attach_worktree(RealCommandExecutor, repo.path(), &worktree_path, "test-branch").await;
 
         // On some systems, git might create the worktree in the existing directory
         // Let's check if it's an error, and if so, check the message

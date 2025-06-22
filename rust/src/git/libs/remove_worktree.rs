@@ -5,11 +5,7 @@ use std::path::Path;
 use tracing::debug;
 
 /// Remove a worktree using a provided executor
-pub async fn remove_worktree_with_executor<E>(
-    executor: E,
-    cwd: &Path,
-    worktree_path: &Path,
-) -> Result<()>
+pub async fn remove_worktree<E>(executor: E, cwd: &Path, worktree_path: &Path) -> Result<()>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -20,12 +16,6 @@ where
     debug!("Worktree removed successfully");
 
     Ok(())
-}
-
-/// Remove a worktree using the default executor
-pub async fn remove_worktree(cwd: &Path, worktree_path: &Path) -> Result<()> {
-    use crate::core::executors::RealCommandExecutor;
-    remove_worktree_with_executor(RealCommandExecutor, cwd, worktree_path).await
 }
 
 #[cfg(test)]
@@ -41,7 +31,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "", 0);
 
-        let result = remove_worktree_with_executor(
+        let result = remove_worktree(
             mock,
             Path::new("/test/repo"),
             Path::new("/test/repo/worktrees/feature"),
@@ -63,7 +53,7 @@ mod tests {
                 128,
             );
 
-        let result = remove_worktree_with_executor(
+        let result = remove_worktree(
             mock,
             Path::new("/test/repo"),
             Path::new("/test/repo/worktrees/nonexistent"),
@@ -85,7 +75,7 @@ mod tests {
                 128
             );
 
-        let result = remove_worktree_with_executor(
+        let result = remove_worktree(
             mock,
             Path::new("/test/repo"),
             Path::new("/test/repo/worktrees/feature"),

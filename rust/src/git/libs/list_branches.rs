@@ -5,7 +5,7 @@ use std::path::Path;
 use tracing::debug;
 
 /// List all branches using a provided executor
-pub async fn list_branches_with_executor<E>(executor: E, cwd: &Path) -> Result<Vec<String>>
+pub async fn list_branches<E>(executor: E, cwd: &Path) -> Result<Vec<String>>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -24,12 +24,6 @@ where
     Ok(branches)
 }
 
-/// List all branches using the default executor
-pub async fn list_branches(cwd: &Path) -> Result<Vec<String>> {
-    use crate::core::executors::RealCommandExecutor;
-    list_branches_with_executor(RealCommandExecutor, cwd).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -41,7 +35,8 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
-        let branches = list_branches(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let branches = list_branches(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(branches, vec!["main"]);
     }
 
@@ -55,7 +50,8 @@ mod tests {
         repo.create_branch("feature-b").await.unwrap();
         repo.create_branch("bugfix/issue-123").await.unwrap();
 
-        let mut branches = list_branches(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let mut branches = list_branches(RealCommandExecutor, repo.path()).await.unwrap();
         branches.sort(); // Sort for consistent comparison
 
         assert_eq!(branches, vec!["bugfix/issue-123", "feature-a", "feature-b", "main"]);
@@ -69,7 +65,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("main\nfeature/awesome\nbugfix/critical\n", "", 0);
 
-        let branches = list_branches_with_executor(mock, Path::new("/test/repo")).await.unwrap();
+        let branches = list_branches(mock, Path::new("/test/repo")).await.unwrap();
 
         assert_eq!(branches, vec!["main", "feature/awesome", "bugfix/critical"]);
     }
@@ -82,7 +78,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("", "", 0);
 
-        let branches = list_branches_with_executor(mock, Path::new("/test/repo")).await.unwrap();
+        let branches = list_branches(mock, Path::new("/test/repo")).await.unwrap();
 
         assert!(branches.is_empty());
     }
@@ -95,7 +91,7 @@ mod tests {
             .in_dir("/test/repo")
             .returns_output("  main  \n  develop  \n\n  feature  \n", "", 0);
 
-        let branches = list_branches_with_executor(mock, Path::new("/test/repo")).await.unwrap();
+        let branches = list_branches(mock, Path::new("/test/repo")).await.unwrap();
 
         assert_eq!(branches, vec!["main", "develop", "feature"]);
     }

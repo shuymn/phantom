@@ -11,13 +11,13 @@ use tracing::debug;
 ///
 /// # Example
 /// ```no_run
-/// use phantom::git::libs::current_commit::current_commit_with_executor;
+/// use phantom::git::libs::current_commit::current_commit;
 /// use phantom::cli::context::ProductionContext;
 /// use phantom::Result;
 /// use std::path::Path;
 ///
 /// async fn handle_something(context: ProductionContext) -> Result<()> {
-///     let commit = current_commit_with_executor(
+///     let commit = current_commit(
 ///         context.executor,
 ///         Path::new("/repo/path")
 ///     ).await?;
@@ -25,7 +25,7 @@ use tracing::debug;
 ///     Ok(())
 /// }
 /// ```
-pub async fn current_commit_with_executor<E>(executor: E, repo_path: &Path) -> Result<String>
+pub async fn current_commit<E>(executor: E, repo_path: &Path) -> Result<String>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -40,16 +40,10 @@ where
     Ok(commit)
 }
 
-/// Get the current commit SHA using the default executor
-pub async fn current_commit(repo_path: &Path) -> Result<String> {
-    use crate::core::executors::RealCommandExecutor;
-    current_commit_with_executor(RealCommandExecutor, repo_path).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::executors::RealCommandExecutor;
+
     use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
 
@@ -58,7 +52,8 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
-        let commit = current_commit(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let commit = current_commit(RealCommandExecutor, repo.path()).await.unwrap();
         // SHA-1 hash should be 40 characters
         assert_eq!(commit.len(), 40);
         // Should be all hex characters
@@ -71,13 +66,14 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Get first commit
-        let first_commit = current_commit(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let first_commit = current_commit(RealCommandExecutor, repo.path()).await.unwrap();
 
         // Make another commit
         repo.create_file_and_commit("test2.txt", "content2", "Second commit").await.unwrap();
 
         // Get second commit
-        let second_commit = current_commit(repo.path()).await.unwrap();
+        let second_commit = current_commit(RealCommandExecutor, repo.path()).await.unwrap();
 
         // Should be different commits
         assert_ne!(first_commit, second_commit);
@@ -90,7 +86,8 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Get commit on main branch
-        let main_commit = current_commit(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let main_commit = current_commit(RealCommandExecutor, repo.path()).await.unwrap();
 
         // Create and checkout new branch (without new commits)
         repo.create_branch("feature-branch").await.unwrap();
@@ -98,7 +95,7 @@ mod tests {
         executor.run(&["checkout", "feature-branch"]).await.unwrap();
 
         // Should be same commit
-        let feature_commit = current_commit(repo.path()).await.unwrap();
+        let feature_commit = current_commit(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(main_commit, feature_commit);
     }
 
@@ -108,14 +105,15 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
         // Get the current commit
-        let commit_sha = current_commit(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let commit_sha = current_commit(RealCommandExecutor, repo.path()).await.unwrap();
 
         // Checkout the commit directly (detached HEAD)
         let executor = GitExecutor::new(RealCommandExecutor::new()).with_cwd(repo.path());
         executor.run(&["checkout", &commit_sha]).await.unwrap();
 
         // Should still return the same commit
-        let detached_commit = current_commit(repo.path()).await.unwrap();
+        let detached_commit = current_commit(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(commit_sha, detached_commit);
     }
 
@@ -131,7 +129,7 @@ mod tests {
             .in_dir("/test")
             .returns_output("abc123def456789012345678901234567890abcd", "", 0);
 
-        let commit = current_commit_with_executor(mock, Path::new("/test")).await.unwrap();
+        let commit = current_commit(mock, Path::new("/test")).await.unwrap();
         assert_eq!(commit, "abc123def456789012345678901234567890abcd");
     }
 
@@ -151,7 +149,7 @@ mod tests {
             128,
         );
 
-        let result = current_commit_with_executor(mock, Path::new("/test")).await;
+        let result = current_commit(mock, Path::new("/test")).await;
         assert!(result.is_err());
     }
 
@@ -167,7 +165,7 @@ mod tests {
             .in_dir("/test")
             .returns_output("abc123d", "", 0);
 
-        let commit = current_commit_with_executor(mock, Path::new("/test")).await.unwrap();
+        let commit = current_commit(mock, Path::new("/test")).await.unwrap();
         assert_eq!(commit, "abc123d");
     }
 }

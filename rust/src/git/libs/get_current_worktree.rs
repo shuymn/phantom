@@ -1,14 +1,11 @@
 use crate::core::command_executor::CommandExecutor;
-use crate::git::libs::list_worktrees::list_worktrees_with_executor;
+use crate::git::libs::list_worktrees::list_worktrees;
 use crate::Result;
 use std::path::Path;
 use tracing::debug;
 
 /// Get the current worktree branch name (returns None if in main worktree)
-pub async fn get_current_worktree_with_executor<E>(
-    executor: E,
-    git_root: &Path,
-) -> Result<Option<String>>
+pub async fn get_current_worktree<E>(executor: E, git_root: &Path) -> Result<Option<String>>
 where
     E: CommandExecutor + Clone + 'static,
 {
@@ -23,7 +20,7 @@ where
     debug!("Current worktree path: {:?}", current_path_canonical);
 
     // Get all worktrees
-    let worktrees = list_worktrees_with_executor(executor, git_root).await?;
+    let worktrees = list_worktrees(executor, git_root).await?;
 
     // Find the current worktree by comparing canonical paths
     let current_worktree = worktrees.into_iter().find(|wt| {
@@ -52,16 +49,10 @@ where
     }
 }
 
-/// Get the current worktree branch name (returns None if in main worktree)
-pub async fn get_current_worktree(git_root: &Path) -> Result<Option<String>> {
-    use crate::core::executors::RealCommandExecutor;
-    get_current_worktree_with_executor(RealCommandExecutor, git_root).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::executors::{MockCommandExecutor, RealCommandExecutor};
+    use crate::core::executors::MockCommandExecutor;
     use crate::git::git_executor_adapter::GitExecutor;
     use crate::test_utils::TestRepo;
     use serial_test::serial;
@@ -83,7 +74,7 @@ mod tests {
             0,
         );
 
-        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None); // Main worktree returns None
     }
@@ -107,7 +98,7 @@ mod tests {
             0,
         );
 
-        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, Some("feature".to_string()));
     }
@@ -131,7 +122,7 @@ mod tests {
             0,
         );
 
-        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None); // Detached worktree has no branch
     }
@@ -154,7 +145,7 @@ mod tests {
             0,
         );
 
-        let result = get_current_worktree_with_executor(mock, Path::new("/repo")).await.unwrap();
+        let result = get_current_worktree(mock, Path::new("/repo")).await.unwrap();
 
         assert_eq!(result, None);
     }
@@ -167,7 +158,8 @@ mod tests {
         // Change to the main repo directory
         let _guard = TestWorkingDir::new(repo.path());
 
-        let result = get_current_worktree(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let result = get_current_worktree(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(result, None);
     }
 
@@ -191,7 +183,8 @@ mod tests {
         // Change to the worktree directory
         let _guard = TestWorkingDir::new(&worktree_path);
 
-        let result = get_current_worktree(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let result = get_current_worktree(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(result, Some("feature-branch".to_string()));
     }
 
@@ -221,7 +214,8 @@ mod tests {
 
         // Test from the main repository directory
         env::set_current_dir(repo.path()).unwrap();
-        let result = get_current_worktree(repo.path()).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        let result = get_current_worktree(RealCommandExecutor, repo.path()).await.unwrap();
         assert_eq!(result, None);
 
         // Verify the worktree was created properly by checking from within it
