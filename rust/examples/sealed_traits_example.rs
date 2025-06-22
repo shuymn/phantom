@@ -63,7 +63,7 @@ fn main() {
     let executor = RealCommandExecutor::new();
     let filesystem = RealFileSystem::new();
     let exit_handler = RealExitHandler::new();
-    let git_backend = CommandBackend::default();
+    let git_backend = CommandBackend::<RealCommandExecutor>::default();
 
     // Pass them to functions expecting the traits
     accept_command_executor(&executor);

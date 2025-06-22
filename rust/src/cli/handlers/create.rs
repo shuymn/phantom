@@ -58,23 +58,24 @@ where
         copy_files: copy_files.clone(),
     };
 
-    let result = match create_worktree(&git_root, &args.name, options).await {
-        Ok(success) => success,
-        Err(e) => {
-            if args.json {
-                let result = CreateResult {
-                    success: false,
-                    name: args.name.clone(),
-                    branch: branch_name,
-                    path: String::new(),
-                    copied_files: None,
-                    error: Some(e.to_string()),
-                };
-                output().json(&result)?;
+    let result =
+        match create_worktree(context.executor.clone(), &git_root, &args.name, options).await {
+            Ok(success) => success,
+            Err(e) => {
+                if args.json {
+                    let result = CreateResult {
+                        success: false,
+                        name: args.name.clone(),
+                        branch: branch_name,
+                        path: String::new(),
+                        copied_files: None,
+                        error: Some(e.to_string()),
+                    };
+                    output().json(&result)?;
+                }
+                return Err(e);
             }
-            return Err(e);
-        }
-    };
+        };
 
     let worktree_path = get_worktree_path(&git_root, &args.name);
 
@@ -133,7 +134,7 @@ where
             window_name: Some(args.name.clone()),
         };
 
-        execute_in_multiplexer(options).await?;
+        execute_in_multiplexer(context.executor.clone(), options).await?;
     } else if args.shell {
         // Open shell in the new worktree
         shell_in_dir(&context.executor, &worktree_path).await?;
