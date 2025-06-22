@@ -26,6 +26,9 @@ impl Default for RealCommandExecutor {
 // Implement the sealed trait
 impl Sealed for RealCommandExecutor {}
 
+// Implement Sealed for &RealCommandExecutor
+impl Sealed for &RealCommandExecutor {}
+
 #[async_trait]
 impl CommandExecutor for RealCommandExecutor {
     async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
@@ -152,6 +155,14 @@ impl CommandExecutor for RealCommandExecutor {
         );
 
         Ok(CommandOutput::new(stdout, stderr, exit_code))
+    }
+}
+
+// Implement CommandExecutor for &RealCommandExecutor
+#[async_trait]
+impl CommandExecutor for &RealCommandExecutor {
+    async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
+        (*self).execute(config).await
     }
 }
 

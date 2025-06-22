@@ -113,6 +113,9 @@ impl Default for MockCommandExecutor {
 // Implement the sealed trait
 impl Sealed for MockCommandExecutor {}
 
+// Implement Sealed for &MockCommandExecutor
+impl Sealed for &MockCommandExecutor {}
+
 #[async_trait]
 impl CommandExecutor for MockCommandExecutor {
     async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
@@ -137,6 +140,14 @@ impl CommandExecutor for MockCommandExecutor {
             "Unexpected command execution: {} {:?}",
             config.program, config.args
         )))
+    }
+}
+
+// Implement CommandExecutor for &MockCommandExecutor
+#[async_trait]
+impl CommandExecutor for &MockCommandExecutor {
+    async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
+        (*self).execute(config).await
     }
 }
 

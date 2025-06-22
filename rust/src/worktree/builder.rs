@@ -3,7 +3,6 @@ use crate::git::backend::GitBackend;
 use crate::Result;
 use std::marker::PhantomData;
 use std::path::Path;
-use std::sync::Arc;
 
 /// Type states for the builder
 pub mod builder_states {
@@ -110,11 +109,10 @@ impl WorktreeBuilder<builder_states::WithName> {
     }
 
     /// Create the worktree directly, validating and building in one step
-    pub async fn create(
-        self,
-        backend: Arc<dyn GitBackend>,
-        git_root: &Path,
-    ) -> Result<CreateWorktreeSuccess> {
+    pub async fn create<B>(self, backend: &B, git_root: &Path) -> Result<CreateWorktreeSuccess>
+    where
+        B: GitBackend,
+    {
         let validated = self.validate()?;
         validated.create(backend, git_root).await
     }
@@ -137,11 +135,10 @@ impl WorktreeBuilder<builder_states::Ready> {
     }
 
     /// Create the worktree directly using a GitBackend
-    pub async fn create(
-        self,
-        backend: Arc<dyn GitBackend>,
-        git_root: &Path,
-    ) -> Result<CreateWorktreeSuccess> {
+    pub async fn create<B>(self, backend: &B, git_root: &Path) -> Result<CreateWorktreeSuccess>
+    where
+        B: GitBackend,
+    {
         let name = self.name.clone().unwrap(); // Safe because we validated
         let options = self.build();
         super::create::create_worktree_with_backend(backend, git_root, &name, options).await
@@ -230,7 +227,7 @@ mod tests {
         let result = build_worktree()
             .name("feature-test")
             .branch("feature/test-branch")
-            .create(backend, repo.path())
+            .create(&backend, repo.path())
             .await;
 
         assert!(result.is_ok());
@@ -253,7 +250,7 @@ mod tests {
             .base("HEAD")
             .validate()
             .unwrap()
-            .create(backend, repo.path())
+            .create(&backend, repo.path())
             .await;
 
         assert!(result.is_ok());
@@ -269,7 +266,7 @@ mod tests {
 
         let backend = create_backend_for_dir(repo.path());
 
-        let result = build_worktree().name("invalid..name").create(backend, repo.path()).await;
+        let result = build_worktree().name("invalid..name").create(&backend, repo.path()).await;
 
         assert!(result.is_err());
     }
