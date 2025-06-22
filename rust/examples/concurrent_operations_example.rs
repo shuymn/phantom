@@ -6,7 +6,6 @@ use phantom::worktree::concurrent::{
     list_worktrees_concurrent_with_executor,
 };
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Instant;
 
 #[tokio::main]
@@ -54,7 +53,7 @@ async fn main() {
         .in_dir("/repo/.git/phantom/worktrees/feature-c")
         .returns_output("", "", 0); // Clean
 
-    let executor = Arc::new(mock);
+    let executor = mock;
 
     // Example 1: List worktrees with concurrent status checks
     println!("1. Listing worktrees with concurrent status checks:");

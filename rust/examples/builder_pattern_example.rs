@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let _worktree = build_worktree()
         .name("feature-branch") // Required - transitions to WithName state
-        .create(backend.clone(), Path::new("."))
+        .create(&backend, Path::new("."))
         .await?;
 
     // Example 2: Full configuration with all options
@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .base("develop") // Optional: base commit/branch
         .copy_file(".env") // Optional: copy individual files
         .copy_file("config.json")
-        .create(backend.clone(), Path::new("."))
+        .create(&backend, Path::new("."))
         .await?;
 
     // Example 3: Using copy_files for batch operations
@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _worktree = build_worktree()
         .name("batch-copy-example")
         .copy_files(files_to_copy) // Copy multiple files at once
-        .create(backend.clone(), Path::new("."))
+        .create(&backend, Path::new("."))
         .await?;
 
     // Example 4: Two-step process with validation
@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Now we can access the validated name
     println!("Creating worktree: {}", validated.name());
 
-    let _worktree = validated.create(backend.clone(), Path::new(".")).await?;
+    let _worktree = validated.create(&backend, Path::new(".")).await?;
 
     // Example 5: Building options without creating
     println!("\nExample 5: Building options struct");
@@ -96,7 +96,7 @@ async fn create_feature_worktree(
         .name(name)
         .branch(format!("feature/{}", name))
         .copy_files(files)
-        .create(backend, Path::new("."))
+        .create(&backend, Path::new("."))
         .await?;
 
     println!("Created worktree: {}", result.message);

@@ -1,13 +1,11 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use phantom::core::executors::MockCommandExecutor;
-use phantom::git::libs::get_git_root::get_git_root as get_git_root_generic;
-use phantom::git::libs::get_git_root::get_git_root_with_executor;
+use phantom::git::libs::get_git_root::get_git_root;
 use std::sync::Arc;
 
-/// Benchmark the optimization of get_git_root to avoid Arc<dyn> overhead
-// Note: get_git_root_generic is now just get_git_root after the migration
-fn bench_get_git_root_optimization(c: &mut Criterion) {
-    let mut group = c.benchmark_group("get_git_root_optimization");
+/// Benchmark get_git_root performance
+fn bench_get_git_root_performance(c: &mut Criterion) {
+    let mut group = c.benchmark_group("get_git_root_performance");
 
     // Setup mock executor for consistent results
     let mut mock = MockCommandExecutor::new();
@@ -19,24 +17,12 @@ fn bench_get_git_root_optimization(c: &mut Criterion) {
         );
     }
 
-    // Benchmark old approach with Arc<dyn CommandExecutor>
-    group.bench_function("arc_dyn_approach", |b| {
+    // Benchmark get_git_root function
+    group.bench_function("get_git_root", |b| {
         let executor = mock.clone();
         b.iter(|| {
             tokio::runtime::Runtime::new().unwrap().block_on(async {
-                let arc_executor: Arc<dyn phantom::core::command_executor::CommandExecutor> =
-                    Arc::new(executor.clone());
-                let _ = get_git_root_with_executor(arc_executor).await;
-            });
-        });
-    });
-
-    // Benchmark new generic approach
-    group.bench_function("generic_approach", |b| {
-        let executor = mock.clone();
-        b.iter(|| {
-            tokio::runtime::Runtime::new().unwrap().block_on(async {
-                let _ = get_git_root_generic(executor.clone()).await;
+                let _ = get_git_root(executor.clone()).await;
             });
         });
     });
@@ -175,7 +161,7 @@ fn bench_smallvec_optimization(c: &mut Criterion) {
 
 criterion_group!(
     optimization_benches,
-    bench_get_git_root_optimization,
+    bench_get_git_root_performance,
     bench_cloning_patterns,
     bench_cow_strings,
     bench_smallvec_optimization
