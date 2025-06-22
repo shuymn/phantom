@@ -20,7 +20,12 @@ where
     E: crate::core::command_executor::CommandExecutor + Clone + 'static,
 {
     // Validate the worktree name
-    validate_worktree_name(name)?;
+    validate_worktree_name(name).map_err(|e| match e {
+        PhantomError::InvalidWorktreeName { name: _, reason } => {
+            PhantomError::InvalidWorktreeName { name: name.to_string(), reason }
+        }
+        _ => e,
+    })?;
 
     let branch = options.branch.as_deref().unwrap_or(name);
     let commitish = options.commitish.as_deref();
@@ -103,7 +108,12 @@ where
     B: GitBackend,
 {
     // Validate the worktree name
-    validate_worktree_name(name)?;
+    validate_worktree_name(name).map_err(|e| match e {
+        PhantomError::InvalidWorktreeName { name: _, reason } => {
+            PhantomError::InvalidWorktreeName { name: name.to_string(), reason }
+        }
+        _ => e,
+    })?;
 
     let branch = options.branch.as_deref().unwrap_or(name);
     let commitish = options.commitish.as_deref();

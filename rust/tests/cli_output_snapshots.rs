@@ -287,7 +287,7 @@ fn test_error_message_format() {
     cmd.assert()
         .failure()
         .stderr(predicate::str::starts_with("Error: "))
-        .stderr(predicate::str::contains("Invalid worktree name"));
+        .stderr(predicate::str::contains("Failed to create worktree"));
 }
 
 #[test]

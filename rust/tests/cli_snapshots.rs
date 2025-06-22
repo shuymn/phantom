@@ -117,9 +117,9 @@ fn test_phantom_delete_not_found() {
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Error"))
-        .stderr(predicate::str::contains("Worktree"))
+        .stderr(predicate::str::contains("worktree"))
         .stderr(predicate::str::contains("not found"))
-        .code(1); // GENERAL_ERROR
+        .code(5); // WORKTREE_NOT_FOUND
 }
 
 #[test]
@@ -132,9 +132,9 @@ fn test_phantom_where_not_found() {
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Error"))
-        .stderr(predicate::str::contains("Worktree"))
+        .stderr(predicate::str::contains("worktree"))
         .stderr(predicate::str::contains("not found"))
-        .code(1); // GENERAL_ERROR
+        .code(5); // WORKTREE_NOT_FOUND
 }
 
 #[test]
@@ -162,8 +162,8 @@ fn test_phantom_not_in_git_repo() {
     cmd.assert()
         .failure()
         .stderr(predicate::str::contains("Error"))
-        .stderr(predicate::str::contains("not a git repository"))
-        .code(1); // GENERAL_ERROR
+        .stderr(predicate::str::contains("Not in a git repository"))
+        .code(3); // NOT_IN_GIT_REPO
 }
 
 #[test]

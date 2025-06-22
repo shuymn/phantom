@@ -397,10 +397,10 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::ProcessExecutionError { reason } => {
-                assert!(reason.contains("Failed to spawn process"));
+            PhantomError::CommandNotFound { command } => {
+                assert_eq!(command, "nonexistent-command-xyz123");
             }
-            _ => panic!("Expected ProcessExecution error"),
+            _ => panic!("Expected CommandNotFound error"),
         }
     }
 

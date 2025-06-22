@@ -14,14 +14,21 @@ where
     let git_executor = GitExecutor::new(executor);
 
     // First try to get the git common directory
-    let common_dir = git_executor.run(&["rev-parse", "--git-common-dir"]).await?;
-    let common_dir = common_dir.trim();
+    let common_dir = match git_executor.run(&["rev-parse", "--git-common-dir"]).await {
+        Ok(output) => output.trim().to_string(),
+        Err(crate::PhantomError::Git { exit_code: 128, stderr, .. })
+            if stderr.contains("not a git repository") =>
+        {
+            return Err(crate::PhantomError::NotInGitRepository);
+        }
+        Err(e) => return Err(e),
+    };
 
     debug!("Git common dir: {}", common_dir);
 
     if common_dir.ends_with(&format!("/{}", dirs::GIT)) || common_dir == dirs::GIT {
         // We're in a regular repository or worktree
-        let path = Path::new(common_dir);
+        let path = Path::new(&common_dir);
         if let Some(parent) = path.parent() {
             let absolute = if parent.is_relative() {
                 std::env::current_dir()?.join(parent)

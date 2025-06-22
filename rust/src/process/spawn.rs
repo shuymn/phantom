@@ -504,9 +504,9 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             PhantomError::CommandNotFound { command } => {
-                assert_eq!(command, "nonexistent-command-xyz123");
+                assert_eq!(command, "command-that-does-not-exist-xyz");
             }
-            _ => panic!("Expected ProcessExecution error"),
+            _ => panic!("Expected CommandNotFound error"),
         }
     }
 

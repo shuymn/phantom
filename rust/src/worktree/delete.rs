@@ -4,7 +4,7 @@ use crate::worktree::errors::WorktreeError;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::worktree::types::DeleteWorktreeSuccess;
 use crate::worktree::validate::validate_worktree_exists;
-use crate::Result;
+use crate::{PhantomError, Result};
 use std::path::Path;
 use tracing::{debug, info};
 
@@ -117,11 +117,7 @@ where
 
     // Check for uncommitted changes
     if status.has_uncommitted_changes && !options.force {
-        return Err(WorktreeError::FileOperation(format!(
-            "Worktree '{}' has uncommitted changes ({} files). Use --force to delete anyway.",
-            name, status.changed_files
-        ))
-        .into());
+        return Err(PhantomError::WorktreeHasUncommittedChanges { name: name.to_string() });
     }
 
     // Remove the worktree
@@ -242,9 +238,9 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             PhantomError::WorktreeHasUncommittedChanges { name } => {
-                assert_eq!(name, "dirty-worktree");
+                assert_eq!(name, "feature");
             }
-            _ => panic!("Expected FileOperation error"),
+            _ => panic!("Expected WorktreeHasUncommittedChanges error"),
         }
 
         // Delete with force

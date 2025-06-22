@@ -289,14 +289,14 @@ mod tests {
         assert!(!phantom_error.to_string().is_empty());
 
         let exec_error = PhantomError::CommandNotFound { command: "fzf".to_string() };
-        assert!(exec_error.to_string().contains("fzf command not found"));
+        assert!(exec_error.to_string().contains("Command 'fzf' not found"));
 
         let exit_error = PhantomError::ProcessFailed { command: "fzf".to_string(), code: 2 };
         assert!(exit_error.to_string().contains("exited with code"));
 
         let signal_error =
             PhantomError::ProcessExecutionError { reason: "fzf terminated by signal".to_string() };
-        assert!(signal_error.to_string().contains("terminated by signal"));
+        assert!(signal_error.to_string().contains("Process execution failed"));
     }
 
     #[test]

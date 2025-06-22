@@ -47,7 +47,7 @@ where
         .await
         .with_context(|| format!("Failed to check if branch '{}' exists", args.branch))?
     {
-        bail!("Branch '{}' not found in repository", args.branch);
+        return Err(crate::PhantomError::BranchNotFound { branch: args.branch.clone() }.into());
     }
 
     // Attach the worktree

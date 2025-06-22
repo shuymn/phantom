@@ -424,7 +424,7 @@ mod tests {
 
         // Verify the error message format
         let error = PhantomError::CommandNotFound { command: "fzf".to_string() };
-        assert!(error.to_string().contains("fzf command not found"));
+        assert!(error.to_string().contains("Command 'fzf' not found"));
     }
 
     #[test]

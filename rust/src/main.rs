@@ -41,10 +41,31 @@ async fn main() {
 
     // Handle errors
     if let Err(e) = result {
-        cli::output::output().error(&e.to_string());
-        // Since we're using anyhow, we can't match on specific error types
-        // Use a general error exit code
-        process::exit(cli::error::ExitCode::GENERAL_ERROR);
+        // Format error message to include root cause
+        let error_message = if e.chain().count() > 1 {
+            // Include the full error chain for better context
+            format!("{:#}", e)
+        } else {
+            e.to_string()
+        };
+        cli::output::output().error(&error_message);
+
+        // Try to find a PhantomError in the error chain to determine the correct exit code
+        let exit_code = if let Some(phantom_err) = e.downcast_ref::<phantom::PhantomError>() {
+            cli::error::error_to_exit_code(phantom_err)
+        } else {
+            // Check the error chain for a PhantomError
+            let mut exit_code = cli::error::ExitCode::GENERAL_ERROR;
+            for cause in e.chain() {
+                if let Some(phantom_err) = cause.downcast_ref::<phantom::PhantomError>() {
+                    exit_code = cli::error::error_to_exit_code(phantom_err);
+                    break;
+                }
+            }
+            exit_code
+        };
+
+        process::exit(exit_code);
     }
 }
 

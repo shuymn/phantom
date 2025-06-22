@@ -94,14 +94,20 @@ mod tests {
         assert!(result.is_err());
 
         // Error should mention branch is already in use
-        let err_msg = result.unwrap_err().to_string();
-        // Git error messages can vary by version, check for common patterns
-        assert!(
-            err_msg.contains("already checked out")
-                || err_msg.contains("is already checked out")
-                || err_msg.contains("is checked out")
-                || err_msg.contains("is already used by worktree")
-        );
+        match result.unwrap_err() {
+            crate::PhantomError::Git { command: _, args: _, exit_code: _, stderr } => {
+                // Git error messages can vary by version, check for common patterns
+                assert!(
+                    stderr.contains("already checked out")
+                        || stderr.contains("is already checked out")
+                        || stderr.contains("is checked out")
+                        || stderr.contains("is already used by worktree"),
+                    "Unexpected error message: {}",
+                    stderr
+                );
+            }
+            e => panic!("Expected Git error, got: {:?}", e),
+        }
     }
 
     #[tokio::test]
