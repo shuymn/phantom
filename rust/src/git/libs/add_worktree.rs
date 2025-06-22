@@ -59,7 +59,10 @@ where
 }
 
 /// Add a new worktree with automatic branch name
-pub async fn add_worktree_auto(repo_path: &Path, worktree_name: &str) -> Result<()> {
+pub async fn add_worktree_auto<E>(executor: E, repo_path: &Path, worktree_name: &str) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let worktree_path = repo_path
         .parent()
         .ok_or_else(|| {
@@ -67,9 +70,7 @@ pub async fn add_worktree_auto(repo_path: &Path, worktree_name: &str) -> Result<
         })?
         .join(worktree_name);
 
-    use crate::core::executors::RealCommandExecutor;
-    add_worktree(RealCommandExecutor, repo_path, &worktree_path, Some(worktree_name), true, None)
-        .await
+    add_worktree(executor, repo_path, &worktree_path, Some(worktree_name), true, None).await
 }
 
 #[cfg(test)]
@@ -138,7 +139,8 @@ mod tests {
 
         // Use a unique name to avoid conflicts in parallel tests
         let unique_name = format!("auto-branch-{}", std::process::id());
-        add_worktree_auto(repo.path(), &unique_name).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        add_worktree_auto(RealCommandExecutor, repo.path(), &unique_name).await.unwrap();
 
         let expected_path = repo.path().parent().unwrap().join(&unique_name);
         assert!(expected_path.exists());
