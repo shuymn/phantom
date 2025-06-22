@@ -25,7 +25,7 @@ pub async fn exec_in_dir(dir: &Path, command: &str, args: &[String]) -> Result<S
 }
 
 /// Execute a command in a worktree with optional CommandExecutor
-pub async fn exec_in_worktree_with_executor<E>(
+pub async fn exec_in_worktree<E>(
     git_root: &Path,
     worktree_name: &str,
     command: &str,
@@ -71,25 +71,6 @@ where
     }
 }
 
-/// Execute a command in a worktree (backward compatible)
-pub async fn exec_in_worktree(
-    git_root: &Path,
-    worktree_name: &str,
-    command: &str,
-    args: &[String],
-    filesystem: &dyn FileSystem,
-) -> Result<SpawnSuccess> {
-    exec_in_worktree_with_executor::<crate::core::executors::RealCommandExecutor>(
-        git_root,
-        worktree_name,
-        command,
-        args,
-        filesystem,
-        None,
-    )
-    .await
-}
-
 /// Spawn a shell in a specific directory
 pub async fn spawn_shell_in_dir(dir: &Path) -> Result<SpawnSuccess> {
     let shell_info = detect_shell()?;
@@ -107,7 +88,7 @@ pub async fn spawn_shell_in_dir(dir: &Path) -> Result<SpawnSuccess> {
 }
 
 /// Spawn a shell in a worktree with optional CommandExecutor
-pub async fn spawn_shell_in_worktree_with_executor<E>(
+pub async fn spawn_shell_in_worktree<E>(
     git_root: &Path,
     worktree_name: &str,
     filesystem: &dyn FileSystem,
@@ -167,21 +148,6 @@ where
 
         Ok(result)
     }
-}
-
-/// Spawn a shell in a worktree (backward compatible)
-pub async fn spawn_shell_in_worktree(
-    git_root: &Path,
-    worktree_name: &str,
-    filesystem: &dyn FileSystem,
-) -> Result<SpawnSuccess> {
-    spawn_shell_in_worktree_with_executor::<crate::core::executors::RealCommandExecutor>(
-        git_root,
-        worktree_name,
-        filesystem,
-        None,
-    )
-    .await
 }
 
 /// Execute multiple commands in sequence
@@ -294,12 +260,13 @@ mod tests {
 
         // Execute command in worktree
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "test-worktree",
             "echo",
             &["hello".to_string()],
             &filesystem,
+            None,
         )
         .await;
 
@@ -312,12 +279,13 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
 
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "nonexistent",
             "echo",
             &["hello".to_string()],
             &filesystem,
+            None,
         )
         .await;
 
@@ -345,7 +313,8 @@ mod tests {
         create_worktree(repo.path(), "test-shell", options).await.unwrap();
 
         // We can't easily test shell spawning, but we can verify the function compiles
-        let _ = spawn_shell_in_worktree; // Just ensure it exists
+        let _ = spawn_shell_in_worktree::<crate::core::executors::RealCommandExecutor>;
+        // Just ensure it exists
     }
 
     #[tokio::test]
@@ -375,12 +344,13 @@ mod tests {
         // Execute a safe command that verifies env vars are set without exposing them
         // Use printenv to check specific PHANTOM vars only
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "test-env",
             "printenv",
             &["PHANTOM_WORKTREE".to_string()],
             &filesystem,
+            None,
         )
         .await;
         assert!(result.is_ok());
@@ -448,12 +418,13 @@ mod tests {
 
         // Try to execute in a worktree that doesn't exist
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "does-not-exist",
             "echo",
             &["test".to_string()],
             &filesystem,
+            None,
         )
         .await;
 

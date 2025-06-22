@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use super::kitty::{execute_kitty_command, is_inside_kitty, KittyOptions, KittySplitDirection};
 use super::spawn::{spawn_process, SpawnConfig, SpawnSuccess};
 use super::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
+use crate::core::executors::RealCommandExecutor;
 
 /// Supported terminal multiplexers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,7 +68,8 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 window_name: options.window_name,
             };
 
-            execute_tmux_command(tmux_options).await
+            execute_tmux_command(&RealCommandExecutor, tmux_options).await?;
+            Ok(SpawnSuccess { exit_code: 0 })
         }
         Multiplexer::Kitty => {
             let kitty_direction = match options.direction {
@@ -85,7 +87,8 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 window_title: options.window_name,
             };
 
-            execute_kitty_command(kitty_options).await
+            execute_kitty_command(&RealCommandExecutor, kitty_options).await?;
+            Ok(SpawnSuccess { exit_code: 0 })
         }
         Multiplexer::None => {
             // Fallback: just spawn the process normally

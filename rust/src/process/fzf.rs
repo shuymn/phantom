@@ -1,8 +1,6 @@
 use crate::core::command_executor::{CommandArgs, CommandExecutor};
 use crate::{PhantomError, Result};
 use smallvec::smallvec;
-use std::io::Write;
-use std::process::{Command, Stdio};
 use tracing::{debug, error};
 
 /// Options for FZF selection
@@ -14,7 +12,7 @@ pub struct FzfOptions {
 }
 
 /// Select an item from a list using fzf with CommandExecutor
-pub async fn select_with_fzf_with_executor<E>(
+pub async fn select_with_fzf<E>(
     executor: &E,
     items: Vec<String>,
     options: FzfOptions,
@@ -100,98 +98,8 @@ where
     }
 }
 
-/// Select an item from a list using fzf (backward compatible)
-pub async fn select_with_fzf(items: Vec<String>, options: FzfOptions) -> Result<Option<String>> {
-    debug!("Starting fzf selection with {} items", items.len());
-
-    if items.is_empty() {
-        debug!("No items to select from");
-        return Ok(None);
-    }
-
-    let mut cmd = Command::new("fzf");
-
-    // Add options
-    if let Some(prompt) = &options.prompt {
-        cmd.arg("--prompt").arg(prompt);
-    }
-
-    if let Some(header) = &options.header {
-        cmd.arg("--header").arg(header);
-    }
-
-    if let Some(preview_command) = &options.preview_command {
-        cmd.arg("--preview").arg(preview_command);
-    }
-
-    // Configure stdio
-    cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    // Spawn the process
-    let mut child = cmd.spawn().map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            PhantomError::ProcessExecution(
-                "fzf command not found. Please install fzf first.".to_string(),
-            )
-        } else {
-            PhantomError::Io(e)
-        }
-    })?;
-
-    // Write items to stdin
-    if let Some(mut stdin) = child.stdin.take() {
-        let input = items.join("\n");
-        stdin.write_all(input.as_bytes()).map_err(|e| {
-            error!("Failed to write to fzf stdin: {}", e);
-            PhantomError::Io(e)
-        })?;
-    }
-
-    // Wait for the process to complete
-    let output = child.wait_with_output().map_err(|e| {
-        error!("Failed to wait for fzf: {}", e);
-        PhantomError::Io(e)
-    })?;
-
-    // Check exit status
-    match output.status.code() {
-        Some(0) => {
-            // Success - user selected an item
-            let selected = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if selected.is_empty() {
-                Ok(None)
-            } else {
-                debug!("User selected: {}", selected);
-                Ok(Some(selected))
-            }
-        }
-        Some(1) => {
-            // No match found
-            debug!("No match found in fzf");
-            Ok(None)
-        }
-        Some(130) => {
-            // User pressed Ctrl+C
-            debug!("User cancelled fzf selection");
-            Ok(None)
-        }
-        Some(code) => {
-            // Other error
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(PhantomError::ProcessExecution(format!(
-                "fzf exited with code {}: {}",
-                code, stderr
-            )))
-        }
-        None => {
-            // Process terminated by signal
-            Err(PhantomError::ProcessExecution("fzf terminated by signal".to_string()))
-        }
-    }
-}
-
 /// Check if fzf is available in the system with CommandExecutor
-pub async fn is_fzf_available_with_executor<E>(executor: &E) -> bool
+pub async fn is_fzf_available<E>(executor: &E) -> bool
 where
     E: CommandExecutor,
 {
@@ -205,31 +113,10 @@ where
     }
 }
 
-/// Check if fzf is available in the system (backward compatible)
-pub fn is_fzf_available() -> bool {
-    Command::new("fzf")
-        .arg("--version")
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-
-    #[test]
-    fn test_is_fzf_available() {
-        // This test will pass or fail depending on whether fzf is installed
-        let available = is_fzf_available();
-        // We can't assert a specific value as it depends on the environment
-        if available {
-            println!("fzf is available");
-        } else {
-            println!("fzf is not available");
-        }
-    }
 
     #[tokio::test]
     async fn test_is_fzf_available_with_executor_true() {
@@ -240,7 +127,7 @@ mod tests {
             0,
         );
 
-        let result = is_fzf_available_with_executor(&mock).await;
+        let result = is_fzf_available(&mock).await;
         assert!(result);
     }
 
@@ -249,7 +136,7 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("fzf").with_args(&["--version"]).returns_error("command not found");
 
-        let result = is_fzf_available_with_executor(&mock).await;
+        let result = is_fzf_available(&mock).await;
         assert!(!result);
     }
 
@@ -275,16 +162,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_select_with_fzf_empty_items() {
-        let result = select_with_fzf(vec![], FzfOptions::default()).await;
-        assert!(result.is_ok());
-        assert!(result.unwrap().is_none());
-    }
-
-    #[tokio::test]
     async fn test_select_with_fzf_with_executor_empty_items() {
         let mock = MockCommandExecutor::new();
-        let result = select_with_fzf_with_executor(&mock, vec![], FzfOptions::default()).await;
+        let result = select_with_fzf(&mock, vec![], FzfOptions::default()).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -297,7 +177,7 @@ mod tests {
         // Set up expectation for fzf command
         mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("item1\n", "", 0);
 
-        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
+        let result = select_with_fzf(&mock, items, FzfOptions::default()).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("item1".to_string()));
     }
@@ -338,7 +218,7 @@ mod tests {
             0,
         );
 
-        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
+        let result = select_with_fzf(&mock, items, FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("single-item".to_string()));
@@ -367,7 +247,7 @@ mod tests {
             .with_stdin_data("item1\nitem2")
             .returns_output("item2\n", "", 0);
 
-        let result = select_with_fzf_with_executor(&mock, items, options).await;
+        let result = select_with_fzf(&mock, items, options).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("item2".to_string()));
@@ -381,7 +261,7 @@ mod tests {
         // Simulate user pressing Ctrl+C (exit code 130)
         mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("", "", 130);
 
-        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
+        let result = select_with_fzf(&mock, items, FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), None);
@@ -395,7 +275,7 @@ mod tests {
         // Simulate no match found (exit code 1)
         mock.expect_command("fzf").with_stdin_data("item1\nitem2").returns_output("", "", 1);
 
-        let result = select_with_fzf_with_executor(&mock, items, FzfOptions::default()).await;
+        let result = select_with_fzf(&mock, items, FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), None);
@@ -493,8 +373,7 @@ mod tests {
             .with_stdin_data("option-one\noption-two\noption-three")
             .returns_output("option-two\n", "", 0);
 
-        let result =
-            select_with_fzf_with_executor(&mock, items.clone(), FzfOptions::default()).await;
+        let result = select_with_fzf(&mock, items.clone(), FzfOptions::default()).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Some("option-two".to_string()));
@@ -506,6 +385,7 @@ mod tests {
 
     #[test]
     fn test_fzf_command_args() {
+        use std::process::Command;
         let mut cmd = Command::new("fzf");
 
         // Test adding prompt

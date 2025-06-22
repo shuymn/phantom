@@ -1,5 +1,4 @@
 use crate::core::command_executor::{CommandArgs, CommandConfig, CommandExecutor};
-use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use serde::{Deserialize, Serialize};
 use smallvec::smallvec;
@@ -38,10 +37,7 @@ pub async fn is_inside_kitty() -> bool {
 }
 
 /// Execute a command in kitty with CommandExecutor
-pub async fn execute_kitty_command_with_executor<E>(
-    executor: &E,
-    options: KittyOptions,
-) -> Result<()>
+pub async fn execute_kitty_command<E>(executor: &E, options: KittyOptions) -> Result<()>
 where
     E: CommandExecutor,
 {
@@ -94,12 +90,6 @@ where
     let config = CommandConfig::new("kitty").with_args_smallvec(kitty_args);
     executor.execute(config).await?;
     Ok(())
-}
-
-/// Execute a command in kitty (backward compatible)
-pub async fn execute_kitty_command(options: KittyOptions) -> Result<KittySuccess> {
-    execute_kitty_command_with_executor(&RealCommandExecutor, options).await?;
-    Ok(SpawnSuccess { exit_code: 0 })
 }
 
 #[cfg(test)]
@@ -336,7 +326,7 @@ mod tests {
             window_title: Some("Test Window".to_string()),
         };
 
-        let result = execute_kitty_command_with_executor(&mock, options).await;
+        let result = execute_kitty_command(&mock, options).await;
         assert!(result.is_ok());
     }
 
@@ -356,7 +346,7 @@ mod tests {
             window_title: None,
         };
 
-        let result = execute_kitty_command_with_executor(&mock, options).await;
+        let result = execute_kitty_command(&mock, options).await;
         assert!(result.is_ok());
     }
 
@@ -376,7 +366,7 @@ mod tests {
             window_title: None,
         };
 
-        let result = execute_kitty_command_with_executor(&mock, options).await;
+        let result = execute_kitty_command(&mock, options).await;
         assert!(result.is_ok());
     }
 

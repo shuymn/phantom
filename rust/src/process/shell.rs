@@ -1,6 +1,5 @@
 use crate::core::command_executor::{CommandConfig, CommandExecutor};
 use crate::core::const_utils::env_vars;
-use crate::core::executors::RealCommandExecutor;
 use crate::Result;
 use std::collections::HashMap;
 use std::env;
@@ -166,7 +165,7 @@ pub fn current_phantom_worktree() -> Option<String> {
 }
 
 /// Open an interactive shell in a directory with CommandExecutor
-pub async fn shell_in_dir_with_executor<E>(executor: &E, dir: &Path) -> Result<()>
+pub async fn shell_in_dir<E>(executor: &E, dir: &Path) -> Result<()>
 where
     E: CommandExecutor,
 {
@@ -184,11 +183,6 @@ where
 
     executor.execute(config).await?;
     Ok(())
-}
-
-/// Open an interactive shell in a directory (backward compatible)
-pub async fn shell_in_dir(dir: &Path) -> Result<()> {
-    shell_in_dir_with_executor(&RealCommandExecutor, dir).await
 }
 
 #[cfg(test)]
@@ -405,7 +399,7 @@ mod tests {
         mock.expect_command("/bin/bash").with_args(&["-i"]).returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
-        let result = shell_in_dir_with_executor(&mock, &temp_dir).await;
+        let result = shell_in_dir(&mock, &temp_dir).await;
         if let Err(e) = &result {
             eprintln!("Test failed with error: {:?}", e);
         }
@@ -425,7 +419,7 @@ mod tests {
         mock.expect_command("/usr/bin/zsh").with_args(&["-i"]).returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
-        let result = shell_in_dir_with_executor(&mock, &temp_dir).await;
+        let result = shell_in_dir(&mock, &temp_dir).await;
         if let Err(e) = &result {
             eprintln!("Test failed with error: {:?}", e);
         }
@@ -447,18 +441,11 @@ mod tests {
             .returns_output("", "", 0);
 
         let temp_dir = std::env::temp_dir().join("phantom-test");
-        let result = shell_in_dir_with_executor(&mock, &temp_dir).await;
+        let result = shell_in_dir(&mock, &temp_dir).await;
         if let Err(e) = &result {
             eprintln!("Test failed with error: {:?}", e);
         }
         assert!(result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_shell_in_dir() {
-        // We can't actually test interactive shell spawning,
-        // but we can verify the function compiles
-        let _ = shell_in_dir; // Just ensure it exists
     }
 
     #[test]
