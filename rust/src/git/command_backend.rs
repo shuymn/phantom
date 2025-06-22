@@ -1,3 +1,4 @@
+use crate::core::executors::RealCommandExecutor;
 use crate::core::sealed::Sealed;
 use crate::core::types::Worktree;
 use crate::git::backend::{GitBackend, GitConfig};
@@ -5,7 +6,7 @@ use crate::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
     create_branch::create_branch, current_commit::current_commit,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
-    get_git_root::get_git_root_default, is_inside_work_tree::is_inside_work_tree,
+    get_git_root::get_git_root, is_inside_work_tree::is_inside_work_tree,
     list_branches::list_branches, list_worktrees::list_worktrees, remove_worktree::remove_worktree,
 };
 use crate::Result;
@@ -37,31 +38,31 @@ impl Sealed for CommandBackend {}
 impl GitBackend for CommandBackend {
     async fn current_branch(&self) -> Result<String> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        get_current_branch(cwd).await
+        get_current_branch(RealCommandExecutor, cwd).await
     }
 
     async fn list_branches(&self) -> Result<Vec<String>> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        list_branches(cwd).await
+        list_branches(RealCommandExecutor, cwd).await
     }
 
     async fn create_branch(&self, name: &str) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        create_branch(cwd, name).await
+        create_branch(RealCommandExecutor, cwd, name).await
     }
 
     async fn branch_exists(&self, name: &str) -> Result<bool> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        branch_exists(cwd, name).await
+        branch_exists(RealCommandExecutor, cwd, name).await
     }
 
     async fn get_root(&self) -> Result<PathBuf> {
-        get_git_root_default().await
+        get_git_root(RealCommandExecutor::new()).await
     }
 
     async fn list_worktrees(&self) -> Result<Vec<Worktree>> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        list_worktrees(cwd).await
+        list_worktrees(RealCommandExecutor, cwd).await
     }
 
     async fn add_worktree(
@@ -72,31 +73,31 @@ impl GitBackend for CommandBackend {
         commitish: Option<&str>,
     ) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        add_worktree(cwd, path, branch, new_branch, commitish).await
+        add_worktree(RealCommandExecutor, cwd, path, branch, new_branch, commitish).await
     }
 
     async fn attach_worktree(&self, path: &Path, branch: &str) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        attach_worktree(cwd, path, branch).await
+        attach_worktree(RealCommandExecutor, cwd, path, branch).await
     }
 
     async fn remove_worktree(&self, path: &Path) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        remove_worktree(cwd, path).await
+        remove_worktree(RealCommandExecutor, cwd, path).await
     }
 
     async fn current_commit(&self) -> Result<String> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        current_commit(cwd).await
+        current_commit(RealCommandExecutor, cwd).await
     }
 
     async fn is_inside_work_tree(&self) -> Result<bool> {
-        is_inside_work_tree(self.config.cwd.as_deref()).await
+        is_inside_work_tree(RealCommandExecutor, self.config.cwd.as_deref()).await
     }
 
     async fn current_worktree(&self) -> Result<Option<String>> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        get_current_worktree(cwd).await
+        get_current_worktree(RealCommandExecutor, cwd).await
     }
 }
 
