@@ -51,11 +51,17 @@ where
     use crate::git::libs::add_worktree::add_worktree;
     add_worktree(executor, git_root, &worktree_path, Some(branch), true, commitish).await.map_err(
         |e| match e {
-            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
-                operation: "worktree add".to_string(),
-                details: message,
+            PhantomError::Git { command: _, args, exit_code, stderr } => {
+                WorktreeError::GitOperation {
+                    operation: format!(
+                        "git {} failed with exit code {}",
+                        args.join(" "),
+                        exit_code
+                    ),
+                    details: stderr,
+                }
+                .into()
             }
-            .into(),
             _ => e,
         },
     )?;
@@ -124,11 +130,17 @@ where
     info!("Creating worktree '{}' at {:?}", name, worktree_path);
     backend.add_worktree(&worktree_path, Some(branch), true, commitish).await.map_err(
         |e| match e {
-            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
-                operation: "worktree add".to_string(),
-                details: message,
+            PhantomError::Git { command: _, args, exit_code, stderr } => {
+                WorktreeError::GitOperation {
+                    operation: format!(
+                        "git {} failed with exit code {}",
+                        args.join(" "),
+                        exit_code
+                    ),
+                    details: stderr,
+                }
+                .into()
             }
-            .into(),
             _ => e,
         },
     )?;
@@ -216,7 +228,7 @@ mod tests {
         assert!(result2.is_err());
 
         match result2.unwrap_err() {
-            PhantomError::Worktree(msg) => assert!(msg.contains("already exists")),
+            PhantomError::WorktreeExists { name } => assert_eq!(name, "feature"),
             _ => panic!("Expected WorktreeError"),
         }
     }
@@ -232,7 +244,10 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::Validation(msg) => assert!(msg.contains("can only contain")),
+            PhantomError::InvalidWorktreeName { name, reason } => {
+                assert_eq!(name, "feature branch");
+                assert!(reason.contains("can only contain"));
+            }
             _ => panic!("Expected ValidationError"),
         }
     }

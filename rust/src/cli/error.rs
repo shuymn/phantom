@@ -35,9 +35,13 @@ pub fn error_to_exit_code(error: &crate::PhantomError) -> i32 {
         PhantomError::WorktreeExists { .. } => ExitCode::WORKTREE_EXISTS,
         PhantomError::WorktreeNotFound { .. } => ExitCode::WORKTREE_NOT_FOUND,
         PhantomError::BranchNotFound { .. } => ExitCode::BRANCH_NOT_FOUND,
-        PhantomError::Config(_) => ExitCode::CONFIG_ERROR,
-        PhantomError::ProcessExecution(_) => ExitCode::EXEC_ERROR,
-        PhantomError::Validation(_) => ExitCode::VALIDATION_ERROR,
+        PhantomError::ConfigNotFound { .. } => ExitCode::CONFIG_ERROR,
+        PhantomError::ConfigInvalid { .. } => ExitCode::CONFIG_ERROR,
+        PhantomError::CommandNotFound { .. } => ExitCode::EXEC_ERROR,
+        PhantomError::ProcessFailed { .. } => ExitCode::EXEC_ERROR,
+        PhantomError::ProcessExecutionError { .. } => ExitCode::EXEC_ERROR,
+        PhantomError::ValidationFailed { .. } => ExitCode::VALIDATION_ERROR,
+        PhantomError::InvalidWorktreeName { .. } => ExitCode::VALIDATION_ERROR,
         _ => ExitCode::GENERAL_ERROR,
     }
 }
@@ -83,17 +87,21 @@ mod tests {
         );
 
         assert_eq!(
-            error_to_exit_code(&PhantomError::Config("test error".to_string())),
+            error_to_exit_code(&PhantomError::ConfigInvalid { reason: "test error".to_string() }),
             ExitCode::CONFIG_ERROR
         );
 
         assert_eq!(
-            error_to_exit_code(&PhantomError::ProcessExecution("test error".to_string())),
+            error_to_exit_code(&PhantomError::ProcessExecutionError {
+                reason: "test error".to_string()
+            }),
             ExitCode::EXEC_ERROR
         );
 
         assert_eq!(
-            error_to_exit_code(&PhantomError::Validation("test error".to_string())),
+            error_to_exit_code(&PhantomError::ValidationFailed {
+                reason: "test error".to_string()
+            }),
             ExitCode::VALIDATION_ERROR
         );
 

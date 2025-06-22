@@ -32,26 +32,27 @@ pub enum WorktreeError {
 impl From<WorktreeError> for PhantomError {
     fn from(err: WorktreeError) -> Self {
         match err {
-            WorktreeError::NotFound(name) => {
-                PhantomError::Worktree(format!("Worktree '{}' not found", name))
-            }
-            WorktreeError::AlreadyExists(name) => {
-                PhantomError::Worktree(format!("Worktree '{}' already exists", name))
-            }
-            WorktreeError::InvalidName(name) => {
-                PhantomError::Validation(format!("Invalid worktree name: '{}'", name))
+            WorktreeError::NotFound(name) => PhantomError::WorktreeNotFound { name },
+            WorktreeError::AlreadyExists(name) => PhantomError::WorktreeExists { name },
+            WorktreeError::InvalidName(reason) => {
+                PhantomError::InvalidWorktreeName { name: String::new(), reason }
             }
             WorktreeError::GitOperation { operation, details } => PhantomError::Git {
-                message: format!("Git {} failed: {}", operation, details),
+                command: "git".to_string(),
+                args: vec![operation.clone()],
                 exit_code: 1,
+                stderr: details,
             },
-            WorktreeError::BranchNotFound(branch) => PhantomError::Git {
-                message: format!("Branch '{}' not found", branch),
-                exit_code: 1,
+            WorktreeError::BranchNotFound(branch) => PhantomError::BranchNotFound { branch },
+            WorktreeError::FileOperation(msg) => PhantomError::FileOperationFailed {
+                operation: "unknown".to_string(),
+                path: std::path::PathBuf::new(),
+                reason: msg,
             },
-            WorktreeError::FileOperation(msg) => PhantomError::FileOperation(msg),
             WorktreeError::Io(err) => PhantomError::Io(err),
-            WorktreeError::Path(msg) => PhantomError::Path(msg),
+            WorktreeError::Path(msg) => {
+                PhantomError::InvalidPath { path: String::new(), reason: msg }
+            }
         }
     }
 }
@@ -94,28 +95,30 @@ mod tests {
         let err = WorktreeError::NotFound("test".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Worktree(msg) => {
-                assert!(msg.contains("test") && msg.contains("not found"))
+            PhantomError::WorktreeNotFound { name } => {
+                assert_eq!(name, "test");
             }
-            _ => panic!("Expected PhantomError::Worktree"),
+            _ => panic!("Expected PhantomError::WorktreeNotFound"),
         }
 
         // Test AlreadyExists conversion
         let err = WorktreeError::AlreadyExists("existing".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Worktree(msg) => {
-                assert!(msg.contains("existing") && msg.contains("already exists"))
+            PhantomError::WorktreeExists { name } => {
+                assert_eq!(name, "existing");
             }
-            _ => panic!("Expected PhantomError::Worktree"),
+            _ => panic!("Expected PhantomError::WorktreeExists"),
         }
 
         // Test InvalidName conversion
-        let err = WorktreeError::InvalidName("bad".to_string());
+        let err = WorktreeError::InvalidName("bad name".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Validation(msg) => assert!(msg.contains("bad")),
-            _ => panic!("Expected PhantomError::Validation"),
+            PhantomError::InvalidWorktreeName { name: _, reason } => {
+                assert_eq!(reason, "bad name");
+            }
+            _ => panic!("Expected PhantomError::InvalidWorktreeName"),
         }
 
         // Test GitOperation conversion
@@ -125,9 +128,11 @@ mod tests {
         };
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Git { message, exit_code } => {
-                assert!(message.contains("push") && message.contains("remote rejected"));
+            PhantomError::Git { command, args, exit_code, stderr } => {
+                assert_eq!(command, "git");
+                assert_eq!(args, vec!["push"]);
                 assert_eq!(exit_code, 1);
+                assert_eq!(stderr, "remote rejected");
             }
             _ => panic!("Expected PhantomError::Git"),
         }
@@ -136,27 +141,31 @@ mod tests {
         let err = WorktreeError::BranchNotFound("feature".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Git { message, exit_code } => {
-                assert!(message.contains("feature") && message.contains("not found"));
-                assert_eq!(exit_code, 1);
+            PhantomError::BranchNotFound { branch } => {
+                assert_eq!(branch, "feature");
             }
-            _ => panic!("Expected PhantomError::Git"),
+            _ => panic!("Expected PhantomError::BranchNotFound"),
         }
 
         // Test FileOperation conversion
         let err = WorktreeError::FileOperation("access denied".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::FileOperation(msg) => assert_eq!(msg, "access denied"),
-            _ => panic!("Expected PhantomError::FileOperation"),
+            PhantomError::FileOperationFailed { operation, path: _, reason } => {
+                assert_eq!(operation, "unknown");
+                assert_eq!(reason, "access denied");
+            }
+            _ => panic!("Expected PhantomError::FileOperationFailed"),
         }
 
         // Test Path conversion
         let err = WorktreeError::Path("invalid path".to_string());
         let phantom_err: PhantomError = err.into();
         match phantom_err {
-            PhantomError::Path(msg) => assert_eq!(msg, "invalid path"),
-            _ => panic!("Expected PhantomError::Path"),
+            PhantomError::InvalidPath { path: _, reason } => {
+                assert_eq!(reason, "invalid path");
+            }
+            _ => panic!("Expected PhantomError::InvalidPath"),
         }
     }
 

@@ -69,7 +69,9 @@ where
                 2 => {
                     // Error
                     error!("fzf returned an error: {}", output.stderr);
-                    Err(PhantomError::ProcessExecution(format!("fzf error: {}", output.stderr)))
+                    Err(PhantomError::ProcessExecutionError {
+                        reason: format!("fzf error: {}", output.stderr),
+                    })
                 }
                 130 => {
                     // User cancelled (Ctrl+C)
@@ -78,19 +80,17 @@ where
                 }
                 _ => {
                     error!("fzf exited with unexpected code: {}", output.exit_code);
-                    Err(PhantomError::ProcessExecution(format!(
-                        "fzf exited with code {}",
-                        output.exit_code
-                    )))
+                    Err(PhantomError::ProcessFailed {
+                        command: "fzf".to_string(),
+                        code: output.exit_code,
+                    })
                 }
             }
         }
         Err(e) => {
             if e.to_string().contains("command not found") || e.to_string().contains("No such file")
             {
-                Err(PhantomError::ProcessExecution(
-                    "fzf command not found. Please install fzf first.".to_string(),
-                ))
+                Err(PhantomError::CommandNotFound { command: "fzf".to_string() })
             } else {
                 Err(e)
             }
@@ -288,16 +288,14 @@ mod tests {
         let phantom_error = PhantomError::Io(io_error);
         assert!(!phantom_error.to_string().is_empty());
 
-        let exec_error = PhantomError::ProcessExecution(
-            "fzf command not found. Please install fzf first.".to_string(),
-        );
+        let exec_error = PhantomError::CommandNotFound { command: "fzf".to_string() };
         assert!(exec_error.to_string().contains("fzf command not found"));
 
-        let exit_error =
-            PhantomError::ProcessExecution("fzf exited with code 2: stderr output".to_string());
+        let exit_error = PhantomError::ProcessFailed { command: "fzf".to_string(), code: 2 };
         assert!(exit_error.to_string().contains("exited with code"));
 
-        let signal_error = PhantomError::ProcessExecution("fzf terminated by signal".to_string());
+        let signal_error =
+            PhantomError::ProcessExecutionError { reason: "fzf terminated by signal".to_string() };
         assert!(signal_error.to_string().contains("terminated by signal"));
     }
 

@@ -61,12 +61,10 @@ where
             let exit_code = output.exit_code;
 
             Err(PhantomError::Git {
-                message: if output.stderr.is_empty() {
-                    format!("git {} failed with exit code {}", args.join(" "), exit_code)
-                } else {
-                    output.stderr.trim().to_string()
-                },
+                command: commands::GIT.to_string(),
+                args: args.iter().map(|s| s.to_string()).collect(),
                 exit_code,
+                stderr: output.stderr.trim().to_string(),
             })
         }
     }
@@ -126,9 +124,11 @@ mod tests {
         assert!(result.is_err());
 
         match result.unwrap_err() {
-            PhantomError::Git { message, exit_code } => {
-                assert_eq!(message, "git: 'invalid' is not a git command");
+            PhantomError::Git { command, args, exit_code, stderr } => {
+                assert_eq!(command, "git");
+                assert_eq!(args, vec!["invalid"]);
                 assert_eq!(exit_code, 1);
+                assert_eq!(stderr, "git: 'invalid' is not a git command");
             }
             _ => panic!("Expected Git error"),
         }

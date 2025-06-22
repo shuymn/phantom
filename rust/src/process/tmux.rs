@@ -161,7 +161,7 @@ where
         }
         Err(_) => {
             // If tmux command fails to execute (e.g., tmux not installed)
-            Err(crate::PhantomError::ProcessExecution("Failed to execute tmux".to_string()))
+            Err(crate::PhantomError::CommandNotFound { command: "tmux".to_string() })
         }
     }
 }
@@ -567,12 +567,12 @@ mod tests {
     fn test_tmux_error_handling() {
         use crate::PhantomError;
         // Test ProcessExecution error handling
-        let exec_error = PhantomError::ProcessExecution("tmux failed".to_string());
+        let exec_error = PhantomError::ProcessExecutionError { reason: "tmux failed".to_string() };
         assert!(exec_error.to_string().contains("tmux failed"));
 
         // Test pattern matching for has-session
         match exec_error {
-            PhantomError::ProcessExecution(_) => {}
+            PhantomError::ProcessExecutionError { .. } => {}
             _ => panic!("Expected ProcessExecution error"),
         }
     }

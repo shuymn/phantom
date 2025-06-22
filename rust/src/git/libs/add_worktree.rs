@@ -27,9 +27,9 @@ where
             args.push(flags::BRANCH_FLAG);
             args.push(branch_name);
         } else {
-            return Err(PhantomError::InvalidWorktreeName(
-                "Branch name required when creating new branch".to_string(),
-            ));
+            return Err(PhantomError::ValidationFailed {
+                reason: "Branch name required when creating new branch".to_string(),
+            });
         }
     }
 
@@ -65,8 +65,9 @@ where
 {
     let worktree_path = repo_path
         .parent()
-        .ok_or_else(|| {
-            PhantomError::InvalidWorktreeName("Cannot determine parent directory".to_string())
+        .ok_or_else(|| PhantomError::InvalidPath {
+            path: repo_path.to_string_lossy().to_string(),
+            reason: "Cannot determine parent directory".to_string(),
         })?
         .join(worktree_name);
 
@@ -158,8 +159,8 @@ mod tests {
         assert!(result.is_err());
 
         match result.unwrap_err() {
-            PhantomError::InvalidWorktreeName(msg) => {
-                assert!(msg.contains("Branch name required"));
+            PhantomError::ValidationFailed { reason } => {
+                assert!(reason.contains("Branch name required"));
             }
             _ => panic!("Expected InvalidWorktreeName error"),
         }

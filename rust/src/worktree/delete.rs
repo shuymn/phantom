@@ -241,9 +241,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::FileOperation(msg) => {
-                assert!(msg.contains("uncommitted changes"));
-                assert!(msg.contains("--force"));
+            PhantomError::WorktreeHasUncommittedChanges { name } => {
+                assert_eq!(name, "dirty-worktree");
             }
             _ => panic!("Expected FileOperation error"),
         }
@@ -283,7 +282,7 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::Worktree(msg) => assert!(msg.contains("not found")),
+            PhantomError::WorktreeNotFound { name } => assert_eq!(name, "nonexistent"),
             _ => panic!("Expected Worktree error"),
         }
     }

@@ -30,13 +30,15 @@ pub async fn migrate_config(
     } else if source_path.extension().and_then(|s| s.to_str()) == Some("toml") {
         ConfigFormat::Toml
     } else {
-        return Err(PhantomError::Config(
-            "Cannot determine source config format from file extension".to_string(),
-        ));
+        return Err(PhantomError::ConfigInvalid {
+            reason: "Cannot determine source config format from file extension".to_string(),
+        });
     };
 
     if source_format == target_format {
-        return Err(PhantomError::Config("Source and target formats are the same".to_string()));
+        return Err(PhantomError::ConfigInvalid {
+            reason: "Source and target formats are the same".to_string(),
+        });
     }
 
     // Load the config
@@ -50,9 +52,13 @@ pub async fn migrate_config(
         ));
 
         info!("Creating backup at {}", backup_path.display());
-        fs::copy(source_path, &backup_path)
-            .await
-            .map_err(|e| PhantomError::FileOperation(format!("Failed to create backup: {}", e)))?;
+        fs::copy(source_path, &backup_path).await.map_err(|e| {
+            PhantomError::FileOperationFailed {
+                operation: "create backup".to_string(),
+                path: backup_path.clone(),
+                reason: e.to_string(),
+            }
+        })?;
 
         Some(backup_path.to_string_lossy().to_string())
     } else {
@@ -98,16 +104,22 @@ pub async fn migrate_toml_to_json(
 /// Save config in the specified format
 async fn save_config(config: &PhantomConfig, path: &Path, format: ConfigFormat) -> Result<()> {
     let content = match format {
-        ConfigFormat::Json => serde_json::to_string_pretty(config).map_err(|e| {
-            PhantomError::Config(format!("Failed to serialize config to JSON: {}", e))
-        })?,
-        ConfigFormat::Toml => toml::to_string_pretty(config).map_err(|e| {
-            PhantomError::Config(format!("Failed to serialize config to TOML: {}", e))
-        })?,
+        ConfigFormat::Json => {
+            serde_json::to_string_pretty(config).map_err(|e| PhantomError::ConfigInvalid {
+                reason: format!("Failed to serialize config to JSON: {}", e),
+            })?
+        }
+        ConfigFormat::Toml => {
+            toml::to_string_pretty(config).map_err(|e| PhantomError::ConfigInvalid {
+                reason: format!("Failed to serialize config to TOML: {}", e),
+            })?
+        }
     };
 
-    fs::write(path, content).await.map_err(|e| {
-        PhantomError::FileOperation(format!("Failed to write config to {}: {}", path.display(), e))
+    fs::write(path, content).await.map_err(|e| PhantomError::FileOperationFailed {
+        operation: "write".to_string(),
+        path: path.to_path_buf(),
+        reason: e.to_string(),
     })?;
 
     Ok(())

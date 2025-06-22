@@ -22,19 +22,23 @@ impl TestRepo {
 
         // Initialize git repo with explicit main branch
         git.command(&["init", "-b", "main"]).current_dir(&path).output().map_err(|e| {
-            crate::PhantomError::ProcessExecution(format!("Failed to init git repo: {}", e))
+            crate::PhantomError::ProcessExecutionError {
+                reason: format!("Failed to init git repo: {}", e),
+            }
         })?;
 
         // Configure git user for tests
         git.command(&["config", "user.name", "Test User"]).current_dir(&path).output().map_err(
-            |e| crate::PhantomError::ProcessExecution(format!("Failed to set user.name: {}", e)),
+            |e| crate::PhantomError::ProcessExecutionError {
+                reason: format!("Failed to set user.name: {}", e),
+            },
         )?;
 
         git.command(&["config", "user.email", "test@example.com"])
             .current_dir(&path)
             .output()
-            .map_err(|e| {
-                crate::PhantomError::ProcessExecution(format!("Failed to set user.email: {}", e))
+            .map_err(|e| crate::PhantomError::ProcessExecutionError {
+                reason: format!("Failed to set user.email: {}", e),
             })?;
 
         Ok(Self { dir, path, git })
@@ -51,11 +55,15 @@ impl TestRepo {
         tokio::fs::write(&file_path, content).await.map_err(crate::PhantomError::Io)?;
 
         self.git.command(&["add", filename]).current_dir(&self.path).output().map_err(|e| {
-            crate::PhantomError::ProcessExecution(format!("Failed to add file: {}", e))
+            crate::PhantomError::ProcessExecutionError {
+                reason: format!("Failed to add file: {}", e),
+            }
         })?;
 
         self.git.command(&["commit", "-m", message]).current_dir(&self.path).output().map_err(
-            |e| crate::PhantomError::ProcessExecution(format!("Failed to commit: {}", e)),
+            |e| crate::PhantomError::ProcessExecutionError {
+                reason: format!("Failed to commit: {}", e),
+            },
         )?;
 
         Ok(())
@@ -67,8 +75,8 @@ impl TestRepo {
             .command(&["checkout", "-b", branch_name])
             .current_dir(&self.path)
             .output()
-            .map_err(|e| {
-                crate::PhantomError::ProcessExecution(format!("Failed to create branch: {}", e))
+            .map_err(|e| crate::PhantomError::ProcessExecutionError {
+                reason: format!("Failed to create branch: {}", e),
             })?;
 
         Ok(())

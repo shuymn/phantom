@@ -11,17 +11,22 @@ fn error_to_exit_code_int(error: &PhantomError) -> i32 {
         PhantomError::WorktreeExists { .. } => 2,
         PhantomError::WorktreeNotFound { .. } => 3,
         PhantomError::BranchNotFound { .. } => 4,
-        PhantomError::InvalidWorktreeName(_) => 5,
-        PhantomError::Config(_) => 6,
-        PhantomError::MultiplexerNotFound(_) => 7,
-        PhantomError::ProcessExecution(_) => 8,
-        PhantomError::UnsupportedFeature(_) => 9,
+        PhantomError::InvalidWorktreeName { .. } => 5,
+        PhantomError::ConfigNotFound { .. } => 6,
+        PhantomError::ConfigInvalid { .. } => 6,
+        PhantomError::MultiplexerNotFound { .. } => 7,
+        PhantomError::CommandNotFound { .. } => 8,
+        PhantomError::ProcessFailed { .. } => 8,
+        PhantomError::ProcessExecutionError { .. } => 8,
+        PhantomError::UnsupportedFeature { .. } => 9,
         PhantomError::Io(_) => 10,
         PhantomError::Json(_) => 11,
-        PhantomError::Worktree(_) => 12,
-        PhantomError::Validation(_) => 13,
-        PhantomError::FileOperation(_) => 14,
-        PhantomError::Path(_) => 15,
+        PhantomError::WorktreeDirectoryCreationFailed { .. } => 12,
+        PhantomError::WorktreeHasUncommittedChanges { .. } => 12,
+        PhantomError::CannotDeleteCurrent { .. } => 12,
+        PhantomError::ValidationFailed { .. } => 13,
+        PhantomError::FileOperationFailed { .. } => 14,
+        PhantomError::InvalidPath { .. } => 15,
     }
 }
 
@@ -58,10 +63,20 @@ mod tests {
     #[test]
     fn test_error_to_exit_code() {
         // Test Git error with custom exit code
-        let error = PhantomError::Git { message: "test".to_string(), exit_code: 128 };
+        let error = PhantomError::Git {
+            command: "git".to_string(),
+            args: vec!["status".to_string()],
+            exit_code: 128,
+            stderr: "test".to_string(),
+        };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(128));
 
-        let error = PhantomError::Git { message: "test".to_string(), exit_code: 64 };
+        let error = PhantomError::Git {
+            command: "git".to_string(),
+            args: vec!["status".to_string()],
+            exit_code: 64,
+            stderr: "test".to_string(),
+        };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(64));
 
         // Test all error variants
@@ -77,19 +92,25 @@ mod tests {
         let error = PhantomError::BranchNotFound { branch: "test".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(4));
 
-        let error = PhantomError::InvalidWorktreeName("test".to_string());
+        let error = PhantomError::InvalidWorktreeName {
+            name: "test".to_string(),
+            reason: "invalid".to_string(),
+        };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(5));
 
-        let error = PhantomError::Config("test".to_string());
+        let error = PhantomError::ConfigInvalid { reason: "test".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(6));
 
-        let error = PhantomError::MultiplexerNotFound("tmux".to_string());
+        let error = PhantomError::MultiplexerNotFound { name: "tmux".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(7));
 
-        let error = PhantomError::ProcessExecution("test".to_string());
+        let error = PhantomError::ProcessExecutionError { reason: "test".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(8));
 
-        let error = PhantomError::UnsupportedFeature("test".to_string());
+        let error = PhantomError::UnsupportedFeature {
+            feature: "test".to_string(),
+            platform: "linux".to_string(),
+        };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(9));
 
         let error = PhantomError::Io(std::io::Error::new(std::io::ErrorKind::Other, "test"));
@@ -98,16 +119,21 @@ mod tests {
         let error = PhantomError::Json(serde_json::from_str::<String>("invalid").unwrap_err());
         assert_eq!(error_to_exit_code(&error), ExitCode::from(11));
 
-        let error = PhantomError::Worktree("test".to_string());
+        let error = PhantomError::WorktreeHasUncommittedChanges { name: "test".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(12));
 
-        let error = PhantomError::Validation("test".to_string());
+        let error = PhantomError::ValidationFailed { reason: "test".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(13));
 
-        let error = PhantomError::FileOperation("test".to_string());
+        let error = PhantomError::FileOperationFailed {
+            operation: "read".to_string(),
+            path: PathBuf::from("/test"),
+            reason: "test".to_string(),
+        };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(14));
 
-        let error = PhantomError::Path("test".to_string());
+        let error =
+            PhantomError::InvalidPath { path: "test".to_string(), reason: "invalid".to_string() };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(15));
     }
 
@@ -174,7 +200,7 @@ mod tests {
         let display = format!("{}", error);
         assert!(display.contains("test-worktree"));
 
-        let error = PhantomError::Config("Invalid config".to_string());
+        let error = PhantomError::ConfigInvalid { reason: "Invalid config".to_string() };
         let display = format!("{}", error);
         assert!(display.contains("Invalid config"));
     }
@@ -183,22 +209,37 @@ mod tests {
     fn test_phantom_error_all_variants() {
         // Ensure all error variants have proper display implementations
         let errors: Vec<PhantomError> = vec![
-            PhantomError::Git { message: "git error".to_string(), exit_code: 1 },
+            PhantomError::Git {
+                command: "git".to_string(),
+                args: vec!["status".to_string()],
+                exit_code: 1,
+                stderr: "git error".to_string(),
+            },
             PhantomError::NotInGitRepository,
             PhantomError::WorktreeExists { name: "wt".to_string() },
             PhantomError::WorktreeNotFound { name: "wt".to_string() },
             PhantomError::BranchNotFound { branch: "br".to_string() },
-            PhantomError::InvalidWorktreeName("invalid".to_string()),
-            PhantomError::Config("cfg".to_string()),
-            PhantomError::MultiplexerNotFound("tmux".to_string()),
-            PhantomError::ProcessExecution("proc".to_string()),
-            PhantomError::UnsupportedFeature("feat".to_string()),
+            PhantomError::InvalidWorktreeName {
+                name: "invalid".to_string(),
+                reason: "test".to_string(),
+            },
+            PhantomError::ConfigInvalid { reason: "cfg".to_string() },
+            PhantomError::MultiplexerNotFound { name: "tmux".to_string() },
+            PhantomError::ProcessExecutionError { reason: "proc".to_string() },
+            PhantomError::UnsupportedFeature {
+                feature: "feat".to_string(),
+                platform: "linux".to_string(),
+            },
             PhantomError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "io")),
             PhantomError::Json(serde_json::from_str::<String>("bad").unwrap_err()),
-            PhantomError::Worktree("wt err".to_string()),
-            PhantomError::Validation("val".to_string()),
-            PhantomError::FileOperation("file".to_string()),
-            PhantomError::Path("path".to_string()),
+            PhantomError::WorktreeHasUncommittedChanges { name: "wt".to_string() },
+            PhantomError::ValidationFailed { reason: "val".to_string() },
+            PhantomError::FileOperationFailed {
+                operation: "test".to_string(),
+                path: PathBuf::from("/test"),
+                reason: "file".to_string(),
+            },
+            PhantomError::InvalidPath { path: "path".to_string(), reason: "test".to_string() },
         ];
 
         for error in errors {

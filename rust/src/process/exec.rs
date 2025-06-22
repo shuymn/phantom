@@ -170,10 +170,10 @@ pub async fn exec_commands_in_dir(dir: &Path, commands: &[String]) -> Result<Vec
             Ok(result) => {
                 if result.exit_code != 0 {
                     error!("Command '{}' failed with exit code {}", command, result.exit_code);
-                    return Err(PhantomError::ProcessExecution(format!(
-                        "Command '{}' failed with exit code {}",
-                        command, result.exit_code
-                    )));
+                    return Err(PhantomError::ProcessFailed {
+                        command: command.clone(),
+                        code: result.exit_code,
+                    });
                 }
                 results.push(result);
             }
@@ -397,8 +397,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::ProcessExecution(msg) => {
-                assert!(msg.contains("Failed to spawn process"));
+            PhantomError::ProcessExecutionError { reason } => {
+                assert!(reason.contains("Failed to spawn process"));
             }
             _ => panic!("Expected ProcessExecution error"),
         }
@@ -438,9 +438,9 @@ mod tests {
             PhantomError::WorktreeNotFound { name } => {
                 assert_eq!(name, "does-not-exist");
             }
-            PhantomError::Worktree(msg) => {
-                // Also accept general worktree error
-                assert!(msg.contains("does-not-exist") || msg.contains("not found"));
+            PhantomError::WorktreeDirectoryCreationFailed { path } => {
+                // Also accept directory creation error
+                assert!(path.to_string_lossy().contains("does-not-exist"));
             }
             e => panic!("Expected WorktreeNotFound or Worktree error, got: {:?}", e),
         }

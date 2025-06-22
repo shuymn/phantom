@@ -56,10 +56,12 @@ impl MockCommandExecutor {
                     calls.iter().filter(|call| self.matches_expectation(call, expectation)).count();
 
                 if actual_calls != expected_times {
-                    return Err(PhantomError::ProcessExecution(format!(
-                        "Expected command '{}' to be called {} times, but was called {} times",
-                        expectation.program, expected_times, actual_calls
-                    )));
+                    return Err(PhantomError::ProcessExecutionError {
+                        reason: format!(
+                            "Expected command '{}' to be called {} times, but was called {} times",
+                            expectation.program, expected_times, actual_calls
+                        ),
+                    });
                 }
             }
         }
@@ -136,10 +138,9 @@ impl CommandExecutor for MockCommandExecutor {
             }
         }
 
-        Err(PhantomError::ProcessExecution(format!(
-            "Unexpected command execution: {} {:?}",
-            config.program, config.args
-        )))
+        Err(PhantomError::ProcessExecutionError {
+            reason: format!("Unexpected command execution: {} {:?}", config.program, config.args),
+        })
     }
 }
 

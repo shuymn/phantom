@@ -70,16 +70,15 @@ where
     match selected {
         Some(selection) => {
             // Extract the worktree name from the selection
-            let selected_name = selection
-                .split(' ')
-                .next()
-                .ok_or_else(|| PhantomError::Worktree("Invalid fzf selection".to_string()))?;
+            let selected_name = selection.split(' ').next().ok_or_else(|| {
+                PhantomError::ValidationFailed { reason: "Invalid fzf selection".to_string() }
+            })?;
 
             // Find the matching worktree
-            let selected_worktree = worktrees
-                .into_iter()
-                .find(|wt| wt.name == selected_name)
-                .ok_or_else(|| PhantomError::Worktree("Selected worktree not found".to_string()))?;
+            let selected_worktree =
+                worktrees.into_iter().find(|wt| wt.name == selected_name).ok_or_else(|| {
+                    PhantomError::WorktreeNotFound { name: selected_name.to_string() }
+                })?;
 
             Ok(Some(SelectWorktreeResult {
                 name: selected_worktree.name,
@@ -101,9 +100,7 @@ where
 {
     // Check if fzf is available
     if !is_fzf_available(executor).await {
-        return Err(PhantomError::Validation(
-            "fzf command not found. Please install fzf first.".to_string(),
-        ));
+        return Err(PhantomError::CommandNotFound { command: "fzf".to_string() });
     }
 
     let mut args: CommandArgs = smallvec![];
@@ -154,18 +151,16 @@ where
                     // User pressed Ctrl-C
                     Ok(None)
                 }
-                _ => Err(PhantomError::ProcessExecution(format!(
-                    "fzf exited with code {}: {}",
-                    output.exit_code, output.stderr
-                ))),
+                _ => Err(PhantomError::ProcessFailed {
+                    command: "fzf".to_string(),
+                    code: output.exit_code,
+                }),
             }
         }
         Err(e) => {
             if e.to_string().contains("command not found") || e.to_string().contains("No such file")
             {
-                Err(PhantomError::ProcessExecution(
-                    "fzf command not found. Please install fzf first.".to_string(),
-                ))
+                Err(PhantomError::CommandNotFound { command: "fzf".to_string() })
             } else {
                 Err(e)
             }
@@ -428,9 +423,7 @@ mod tests {
         let _options = FzfOptions::default();
 
         // Verify the error message format
-        let error = PhantomError::Validation(
-            "fzf command not found. Please install fzf first.".to_string(),
-        );
+        let error = PhantomError::CommandNotFound { command: "fzf".to_string() };
         assert!(error.to_string().contains("fzf command not found"));
     }
 
@@ -474,13 +467,19 @@ mod tests {
     fn test_error_handling() {
         // Test various error scenarios
         let errors = vec![
-            PhantomError::Worktree("Invalid fzf selection".to_string()),
-            PhantomError::Worktree("Selected worktree not found".to_string()),
-            PhantomError::ProcessExecution("Failed to spawn fzf: error".to_string()),
-            PhantomError::ProcessExecution("Failed to write to fzf stdin: error".to_string()),
-            PhantomError::ProcessExecution("Failed to wait for fzf: error".to_string()),
-            PhantomError::ProcessExecution("fzf exited with code 2: error".to_string()),
-            PhantomError::ProcessExecution("fzf terminated by signal".to_string()),
+            PhantomError::ValidationFailed { reason: "Invalid fzf selection".to_string() },
+            PhantomError::WorktreeNotFound { name: "selected".to_string() },
+            PhantomError::ProcessExecutionError {
+                reason: "Failed to spawn fzf: error".to_string(),
+            },
+            PhantomError::ProcessExecutionError {
+                reason: "Failed to write to fzf stdin: error".to_string(),
+            },
+            PhantomError::ProcessExecutionError {
+                reason: "Failed to wait for fzf: error".to_string(),
+            },
+            PhantomError::ProcessFailed { command: "fzf".to_string(), code: 2 },
+            PhantomError::ProcessExecutionError { reason: "fzf terminated by signal".to_string() },
         ];
 
         for error in errors {

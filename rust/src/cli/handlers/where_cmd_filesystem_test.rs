@@ -63,7 +63,11 @@ mod tests {
             from_path: None,
             to_path: None,
             contents: None,
-            result: Err(crate::PhantomError::FileOperation("File not found".to_string())),
+            result: Err(crate::PhantomError::FileOperationFailed {
+                operation: "metadata".to_string(),
+                path: PathBuf::from("/repo/.git/phantom/worktrees/nonexistent"),
+                reason: "File not found".to_string(),
+            }),
         });
 
         let context = HandlerContext::new(

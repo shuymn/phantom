@@ -23,9 +23,10 @@ where
     }
 
     // Create phantom directory if it doesn't exist
-    let phantom_dir = worktree_path
-        .parent()
-        .ok_or_else(|| PhantomError::InvalidWorktreeName("Invalid worktree path".to_string()))?;
+    let phantom_dir = worktree_path.parent().ok_or_else(|| PhantomError::InvalidPath {
+        path: worktree_path.to_string_lossy().to_string(),
+        reason: "Invalid worktree path - no parent directory".to_string(),
+    })?;
 
     if fs::metadata(&phantom_dir).await.is_err() {
         fs::create_dir_all(&phantom_dir).await.map_err(|e| {
@@ -105,7 +106,7 @@ mod tests {
         let result = attach_worktree(RealCommandExecutor, repo.path(), "").await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::InvalidWorktreeName(_) | PhantomError::Validation(_) => {}
+            PhantomError::InvalidWorktreeName { .. } | PhantomError::ValidationFailed { .. } => {}
             e => panic!("Expected InvalidWorktreeName or Validation error, got: {:?}", e),
         }
     }
