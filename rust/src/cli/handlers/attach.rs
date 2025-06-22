@@ -4,11 +4,11 @@ use crate::cli::output::output;
 use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
-use crate::git::libs::branch_exists::branch_exists_with_executor;
+use crate::git::libs::branch_exists::branch_exists;
 use crate::git::libs::get_git_root::get_git_root;
 use crate::process::exec::exec_in_dir;
 use crate::process::shell::shell_in_dir;
-use crate::worktree::attach::attach_worktree_with_executor;
+use crate::worktree::attach::attach_worktree;
 use crate::worktree::paths::get_worktree_path;
 use crate::worktree::validate::validate_worktree_name;
 use crate::{PhantomError, Result};
@@ -43,12 +43,12 @@ where
     }
 
     // Check if branch exists
-    if !branch_exists_with_executor(context.executor.clone(), &git_root, &args.branch).await? {
+    if !branch_exists(context.executor.clone(), &git_root, &args.branch).await? {
         return Err(PhantomError::BranchNotFound { branch: args.branch.clone() });
     }
 
     // Attach the worktree
-    attach_worktree_with_executor(context.executor.clone(), &git_root, &args.branch).await?;
+    attach_worktree(context.executor.clone(), &git_root, &args.branch).await?;
 
     if args.json {
         let json_output = AttachJsonOutput {
@@ -64,7 +64,7 @@ where
 
     // Handle post-attach actions
     if args.shell {
-        shell_in_dir(&worktree_path).await?;
+        shell_in_dir(&context.executor, &worktree_path).await?;
     } else if let Some(exec_cmd) = args.exec {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
         exec_in_dir(&worktree_path, &shell, &["-c".to_string(), exec_cmd]).await?;

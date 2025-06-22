@@ -5,7 +5,7 @@ use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root;
-use crate::worktree::concurrent::list_worktrees_concurrent_with_executor;
+use crate::worktree::concurrent::list_worktrees_concurrent;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::Result;
 use serde::Serialize;
@@ -34,7 +34,7 @@ where
 
     if args.fzf {
         // Use fzf for interactive selection
-        match select_worktree_with_fzf(&git_root).await? {
+        match select_worktree_with_fzf(context.executor.clone(), &git_root).await? {
             Some(worktree) => {
                 output().log(&worktree.name);
             }
@@ -44,8 +44,7 @@ where
         }
     } else {
         // List all worktrees using concurrent operations
-        let result =
-            list_worktrees_concurrent_with_executor(context.executor.clone(), &git_root).await?;
+        let result = list_worktrees_concurrent(context.executor.clone(), &git_root).await?;
 
         if result.worktrees.is_empty() {
             if args.json {

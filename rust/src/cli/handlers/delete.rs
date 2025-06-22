@@ -4,9 +4,9 @@ use crate::cli::output::output;
 use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
-use crate::git::libs::get_current_worktree::get_current_worktree_with_executor;
+use crate::git::libs::get_current_worktree::get_current_worktree;
 use crate::git::libs::get_git_root::get_git_root;
-use crate::worktree::delete::delete_worktree_with_executor;
+use crate::worktree::delete::delete_worktree;
 use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::{PhantomError, Result};
@@ -42,8 +42,7 @@ where
 
     // Get worktree name
     let worktree_name = if args.current {
-        let current =
-            get_current_worktree_with_executor(context.executor.clone(), &git_root).await?;
+        let current = get_current_worktree(context.executor.clone(), &git_root).await?;
         match current {
             Some(name) => name,
             None => {
@@ -53,7 +52,7 @@ where
             }
         }
     } else if args.fzf {
-        match select_worktree_with_fzf(&git_root).await? {
+        match select_worktree_with_fzf(context.executor.clone(), &git_root).await? {
             Some(worktree) => worktree.name,
             None => {
                 // User cancelled selection
@@ -67,7 +66,7 @@ where
     // Delete the worktree
     let options = DeleteWorktreeOptions { force: args.force };
 
-    match delete_worktree_with_executor(
+    match delete_worktree(
         context.executor.clone(),
         &git_root,
         &worktree_name,

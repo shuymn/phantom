@@ -5,15 +5,13 @@ use crate::core::command_executor::CommandExecutor;
 use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root;
-use crate::process::exec::spawn_shell_in_worktree_with_executor;
+use crate::process::exec::spawn_shell_in_worktree;
 use crate::process::kitty::{
-    execute_kitty_command_with_executor, is_inside_kitty, KittyOptions, KittySplitDirection,
+    execute_kitty_command, is_inside_kitty, KittyOptions, KittySplitDirection,
 };
 use crate::process::shell::{detect_shell, get_phantom_env};
-use crate::process::tmux::{
-    execute_tmux_command_with_executor, is_inside_tmux, TmuxOptions, TmuxSplitDirection,
-};
-use crate::worktree::select::select_worktree_with_fzf_with_executor;
+use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
+use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::validate::validate_worktree_exists;
 use crate::{PhantomError, Result};
 
@@ -77,8 +75,7 @@ where
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result =
-            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?;
+        let result = select_worktree_with_fzf(context.executor.clone(), &git_root).await?;
 
         match result {
             Some(worktree) => worktree.name,
@@ -121,7 +118,7 @@ where
             },
         };
 
-        execute_tmux_command_with_executor(&context.executor, options).await?;
+        execute_tmux_command(&context.executor, options).await?;
         return Ok(());
     }
 
@@ -146,7 +143,7 @@ where
             },
         };
 
-        execute_kitty_command_with_executor(&context.executor, options).await?;
+        execute_kitty_command(&context.executor, options).await?;
         return Ok(());
     }
 
@@ -154,7 +151,7 @@ where
     output().log(&format!("Entering worktree '{}' at {}", worktree_name, worktree_path.display()));
     output().log("Type 'exit' to return to your original directory\n");
 
-    let result = spawn_shell_in_worktree_with_executor(
+    let result = spawn_shell_in_worktree(
         &git_root,
         &worktree_name,
         &context.filesystem,

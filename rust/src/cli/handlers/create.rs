@@ -136,7 +136,7 @@ where
         execute_in_multiplexer(options).await?;
     } else if args.shell {
         // Open shell in the new worktree
-        shell_in_dir(&worktree_path).await?;
+        shell_in_dir(&context.executor, &worktree_path).await?;
     } else if let Some(exec_cmd) = args.exec {
         // Execute command in the new worktree
         exec_in_dir(&worktree_path, &exec_cmd, &[]).await?;

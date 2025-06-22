@@ -6,7 +6,7 @@ use crate::core::exit_handler::ExitHandler;
 use crate::core::filesystem::FileSystem;
 use crate::git::libs::get_git_root::get_git_root;
 use crate::worktree::locate::where_worktree;
-use crate::worktree::select::select_worktree_with_fzf_with_executor;
+use crate::worktree::select::select_worktree_with_fzf;
 use crate::{PhantomError, Result};
 
 /// Handle the where command
@@ -34,8 +34,7 @@ where
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result =
-            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?;
+        let result = select_worktree_with_fzf(context.executor.clone(), &git_root).await?;
 
         match result {
             Some(worktree) => worktree.name,
