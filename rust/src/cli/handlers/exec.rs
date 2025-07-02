@@ -204,6 +204,7 @@ mod tests {
     use crate::core::executors::MockCommandExecutor;
     use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
     use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
+    use crate::test_utils::EnvGuard;
     use std::path::PathBuf;
 
     #[tokio::test]
@@ -300,7 +301,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial_test::serial]
     async fn test_exec_tmux_outside_tmux_session() {
         let mock = MockCommandExecutor::new();
 
@@ -329,12 +329,15 @@ mod tests {
             kitty_h: false,
         };
 
-        let result = handle(args, context).await;
-        // This will likely pass because is_inside_tmux() checks env directly
-        // In a real test environment without TMUX set, this would fail
-        if std::env::var("TMUX").is_err() {
-            assert!(result.is_err());
-            assert!(result.unwrap_err().to_string().contains("inside a tmux session"));
+        {
+            let _guard = EnvGuard::remove("TMUX"); // Ensure TMUX is not set
+            let result = handle(args, context).await;
+            // This will likely pass because is_inside_tmux() checks env directly
+            // In a real test environment without TMUX set, this would fail
+            if std::env::var("TMUX").is_err() {
+                assert!(result.is_err());
+                assert!(result.unwrap_err().to_string().contains("inside a tmux session"));
+            }
         }
     }
 
@@ -406,7 +409,6 @@ mod tests {
         let mock_fs = MockFileSystem::new();
 
         // Set TMUX env var to simulate being inside tmux
-        use crate::test_utils::EnvGuard;
         let _guard = EnvGuard::set("TMUX", "/tmp/tmux-1000/default,12345,0");
 
         // Mock git root check
