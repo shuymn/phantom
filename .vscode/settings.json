@@ -1,4 +1,7 @@
 {
   "typescript.experimental.useTsgo": true,
-  "bacon-ls.runBaconInBackgroundCommandArguments": "--headless -j bacon-ls rust"
+  "rust-analyzer.check.extraArgs": [
+    "--target-dir",
+    "rust"
+  ]
 }
