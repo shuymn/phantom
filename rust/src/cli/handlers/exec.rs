@@ -300,6 +300,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_exec_tmux_outside_tmux_session() {
         let mock = MockCommandExecutor::new();
 
