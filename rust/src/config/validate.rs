@@ -33,8 +33,7 @@ fn validate_post_create(post_create: &PostCreateConfig) -> Result<()> {
             // Disallow absolute paths for security
             if const_starts_with(file, "/") || const_starts_with(file, "\\") {
                 return Err(ConfigError::ValidationError(format!(
-                    "postCreate.copyFiles cannot contain absolute paths: {}",
-                    file
+                    "postCreate.copyFiles cannot contain absolute paths: {file}"
                 ))
                 .into());
             }
@@ -44,8 +43,7 @@ fn validate_post_create(post_create: &PostCreateConfig) -> Result<()> {
             for component in components {
                 if !is_valid_path_component(component) {
                     return Err(ConfigError::ValidationError(format!(
-                        "postCreate.copyFiles cannot contain invalid path components: {}",
-                        file
+                        "postCreate.copyFiles cannot contain invalid path components: {file}"
                     ))
                     .into());
                 }

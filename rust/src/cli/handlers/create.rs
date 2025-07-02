@@ -225,8 +225,7 @@ mod tests {
                 assert!(
                     error_str.contains("Failed to determine git repository root")
                         || error_str.contains("not a git repository"),
-                    "Unexpected error message: {}",
-                    error_str
+                    "Unexpected error message: {error_str}"
                 );
             }
             _ => panic!("Expected error about git repository"),
@@ -329,8 +328,7 @@ mod tests {
                 assert!(
                     error_msg.contains("already exists")
                         || error_msg.contains("Failed to create worktree"),
-                    "Unexpected error message: {}",
-                    error_msg
+                    "Unexpected error message: {error_msg}"
                 );
             }
             Ok(_) => panic!("Expected error when worktree already exists"),
@@ -430,8 +428,7 @@ mod tests {
                 assert!(
                     error_str.contains("Failed to create worktree")
                         && error_str.contains("invalid name with spaces"),
-                    "Unexpected error message: {}",
-                    error_str
+                    "Unexpected error message: {error_str}"
                 );
             }
             _ => panic!("Expected validation error"),

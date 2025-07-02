@@ -167,7 +167,7 @@ mod tests {
             exit_code: 1,
             stderr: "error".to_string(),
         };
-        let debug_str = format!("{:?}", err);
+        let debug_str = format!("{err:?}");
         assert!(debug_str.contains("Git"));
         assert!(debug_str.contains("command"));
         assert!(debug_str.contains("args"));

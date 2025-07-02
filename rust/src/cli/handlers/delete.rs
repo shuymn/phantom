@@ -77,7 +77,7 @@ where
         &context.filesystem,
     )
     .await
-    .with_context(|| format!("Failed to delete worktree '{}'", worktree_name))
+    .with_context(|| format!("Failed to delete worktree '{worktree_name}'"))
     {
         Ok(result) => {
             if args.json {
@@ -311,8 +311,7 @@ mod tests {
                 assert!(
                     error_str.contains("uncommitted changes")
                         || error_str.contains("Failed to delete worktree"),
-                    "Unexpected error message: {}",
-                    error_str
+                    "Unexpected error message: {error_str}"
                 );
             }
             _ => panic!("Expected error about uncommitted changes"),

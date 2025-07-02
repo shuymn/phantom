@@ -48,7 +48,7 @@ where
         KittySplitDirection::New => {
             kitty_args.push("--type=tab".to_string());
             if let Some(window_title) = &options.window_title {
-                kitty_args.push(format!("--tab-title={}", window_title));
+                kitty_args.push(format!("--tab-title={window_title}"));
             }
         }
         KittySplitDirection::Vertical => {
@@ -61,7 +61,7 @@ where
 
     // Add working directory if specified
     if let Some(cwd) = &options.cwd {
-        kitty_args.push(format!("--cwd={}", cwd));
+        kitty_args.push(format!("--cwd={cwd}"));
     }
 
     // Add environment variables in sorted order for deterministic output
@@ -70,7 +70,7 @@ where
         sorted_keys.sort();
         for key in sorted_keys {
             if let Some(value) = env_vars.get(key) {
-                kitty_args.push(format!("--env={}={}", key, value));
+                kitty_args.push(format!("--env={key}={value}"));
             }
         }
     }
@@ -175,15 +175,15 @@ mod tests {
     #[test]
     fn test_kitty_split_direction_debug() {
         let new = KittySplitDirection::New;
-        let debug_str = format!("{:?}", new);
+        let debug_str = format!("{new:?}");
         assert!(debug_str.contains("New"));
 
         let vertical = KittySplitDirection::Vertical;
-        let debug_str = format!("{:?}", vertical);
+        let debug_str = format!("{vertical:?}");
         assert!(debug_str.contains("Vertical"));
 
         let horizontal = KittySplitDirection::Horizontal;
-        let debug_str = format!("{:?}", horizontal);
+        let debug_str = format!("{horizontal:?}");
         assert!(debug_str.contains("Horizontal"));
     }
 
@@ -198,7 +198,7 @@ mod tests {
             window_title: None,
         };
 
-        let debug_str = format!("{:?}", options);
+        let debug_str = format!("{options:?}");
         assert!(debug_str.contains("KittyOptions"));
         assert!(debug_str.contains("direction"));
         assert!(debug_str.contains("command"));

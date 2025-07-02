@@ -26,14 +26,14 @@ impl TestRepo {
         // Initialize git repo with explicit main branch
         git.command(&["init", "-b", "main"]).current_dir(&path).output().map_err(|e| {
             crate::PhantomError::ProcessExecutionError {
-                reason: format!("Failed to init git repo: {}", e),
+                reason: format!("Failed to init git repo: {e}"),
             }
         })?;
 
         // Configure git user for tests
         git.command(&["config", "user.name", "Test User"]).current_dir(&path).output().map_err(
             |e| crate::PhantomError::ProcessExecutionError {
-                reason: format!("Failed to set user.name: {}", e),
+                reason: format!("Failed to set user.name: {e}"),
             },
         )?;
 
@@ -41,7 +41,7 @@ impl TestRepo {
             .current_dir(&path)
             .output()
             .map_err(|e| crate::PhantomError::ProcessExecutionError {
-                reason: format!("Failed to set user.email: {}", e),
+                reason: format!("Failed to set user.email: {e}"),
             })?;
 
         Ok(Self { dir, path, git })
@@ -59,13 +59,13 @@ impl TestRepo {
 
         self.git.command(&["add", filename]).current_dir(&self.path).output().map_err(|e| {
             crate::PhantomError::ProcessExecutionError {
-                reason: format!("Failed to add file: {}", e),
+                reason: format!("Failed to add file: {e}"),
             }
         })?;
 
         self.git.command(&["commit", "-m", message]).current_dir(&self.path).output().map_err(
             |e| crate::PhantomError::ProcessExecutionError {
-                reason: format!("Failed to commit: {}", e),
+                reason: format!("Failed to commit: {e}"),
             },
         )?;
 
@@ -79,7 +79,7 @@ impl TestRepo {
             .current_dir(&self.path)
             .output()
             .map_err(|e| crate::PhantomError::ProcessExecutionError {
-                reason: format!("Failed to create branch: {}", e),
+                reason: format!("Failed to create branch: {e}"),
             })?;
 
         Ok(())

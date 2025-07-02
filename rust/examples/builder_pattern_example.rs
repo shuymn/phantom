@@ -94,7 +94,7 @@ async fn create_feature_worktree(
 
     let result = build_worktree()
         .name(name)
-        .branch(format!("feature/{}", name))
+        .branch(format!("feature/{name}"))
         .copy_files(files)
         .create(&backend, Path::new("."))
         .await?;

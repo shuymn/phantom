@@ -87,7 +87,7 @@ async fn test_worktree_creation_and_management() {
     // Create a new worktree with a new branch
     let timestamp =
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-    let worktree_path = repo_path.parent().unwrap().join(format!("test-worktree-{}", timestamp));
+    let worktree_path = repo_path.parent().unwrap().join(format!("test-worktree-{timestamp}"));
     add_worktree(
         RealCommandExecutor,
         repo_path,
@@ -151,8 +151,7 @@ async fn test_attach_worktree_to_existing_branch() {
     // Attach a worktree to the existing branch
     let timestamp =
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-    let worktree_path =
-        repo_path.parent().unwrap().join(format!("attached-worktree-{}", timestamp));
+    let worktree_path = repo_path.parent().unwrap().join(format!("attached-worktree-{timestamp}"));
     attach_worktree(RealCommandExecutor, repo_path, &worktree_path, "existing-branch")
         .await
         .expect("Failed to attach worktree");
@@ -188,7 +187,7 @@ async fn test_complex_worktree_scenario() {
     // Create branches
     for i in 1..=3 {
         executor
-            .run(&["checkout", "-b", &format!("feature-{}", i)])
+            .run(&["checkout", "-b", &format!("feature-{i}")])
             .await
             .expect("Failed to create branch");
         executor.run(&["checkout", "main"]).await.expect("Failed to switch back");
@@ -198,9 +197,8 @@ async fn test_complex_worktree_scenario() {
     let timestamp =
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
     for i in 1..=3 {
-        let worktree_path =
-            repo_path.parent().unwrap().join(format!("worktree-{}-{}", i, timestamp));
-        attach_worktree(RealCommandExecutor, repo_path, &worktree_path, &format!("feature-{}", i))
+        let worktree_path = repo_path.parent().unwrap().join(format!("worktree-{i}-{timestamp}"));
+        attach_worktree(RealCommandExecutor, repo_path, &worktree_path, &format!("feature-{i}"))
             .await
             .expect("Failed to attach worktree");
     }
@@ -212,12 +210,11 @@ async fn test_complex_worktree_scenario() {
 
     // Verify each worktree
     for i in 1..=3 {
-        let worktree_path =
-            repo_path.parent().unwrap().join(format!("worktree-{}-{}", i, timestamp));
+        let worktree_path = repo_path.parent().unwrap().join(format!("worktree-{i}-{timestamp}"));
         let current_branch = get_current_branch(RealCommandExecutor, &worktree_path)
             .await
             .expect("Failed to get branch");
-        assert_eq!(current_branch, format!("feature-{}", i));
+        assert_eq!(current_branch, format!("feature-{i}"));
 
         // get_current_worktree needs the git root, not the worktree path
         // Also need to change to the worktree directory first
@@ -225,7 +222,7 @@ async fn test_complex_worktree_scenario() {
         let current_worktree = get_current_worktree(RealCommandExecutor, repo_path)
             .await
             .expect("Failed to get worktree");
-        assert_eq!(current_worktree, Some(format!("feature-{}", i)));
+        assert_eq!(current_worktree, Some(format!("feature-{i}")));
     }
 
     // Restore original directory after loop
@@ -235,7 +232,7 @@ async fn test_complex_worktree_scenario() {
 
     // Verify all branches exist
     for i in 1..=3 {
-        assert!(branch_exists(RealCommandExecutor, repo_path, &format!("feature-{}", i))
+        assert!(branch_exists(RealCommandExecutor, repo_path, &format!("feature-{i}"))
             .await
             .expect("Failed to check branch"));
     }
@@ -249,8 +246,7 @@ async fn test_worktree_with_upstream_branch() {
     // Add worktree with new branch
     let timestamp =
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-    let worktree_path =
-        repo_path.parent().unwrap().join(format!("tracking-worktree-{}", timestamp));
+    let worktree_path = repo_path.parent().unwrap().join(format!("tracking-worktree-{timestamp}"));
     add_worktree(
         RealCommandExecutor,
         repo_path,
@@ -290,8 +286,7 @@ async fn test_detached_worktree() {
     // Create a detached worktree with unique name
     let timestamp =
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
-    let worktree_path =
-        repo_path.parent().unwrap().join(format!("detached-worktree-{}", timestamp));
+    let worktree_path = repo_path.parent().unwrap().join(format!("detached-worktree-{timestamp}"));
     executor
         .run(&["worktree", "add", "--detach", &worktree_path.to_string_lossy(), commit_hash])
         .await

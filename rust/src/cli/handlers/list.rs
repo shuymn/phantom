@@ -95,10 +95,10 @@ where
             for worktree in &result.worktrees {
                 let padded_name = format!("{:<width$}", worktree.name, width = max_name_length + 2);
                 let branch_info =
-                    worktree.branch.as_ref().map(|b| format!("({})", b)).unwrap_or_default();
+                    worktree.branch.as_ref().map(|b| format!("({b})")).unwrap_or_default();
                 let status = if !worktree.is_clean { " [dirty]" } else { "" };
 
-                output().log(&format!("{}{}{}", padded_name, branch_info, status));
+                output().log(&format!("{padded_name}{branch_info}{status}"));
             }
         }
     }

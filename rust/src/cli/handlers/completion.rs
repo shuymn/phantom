@@ -278,6 +278,6 @@ pub fn handle(args: CompletionArgs) -> Result<()> {
         Shell::Bash => BASH_COMPLETION,
     };
 
-    println!("{}", script);
+    println!("{script}");
     Ok(())
 }

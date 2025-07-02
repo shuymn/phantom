@@ -442,7 +442,7 @@ mod tests {
                 // Also accept directory creation error
                 assert!(path.to_string_lossy().contains("does-not-exist"));
             }
-            e => panic!("Expected WorktreeNotFound or Worktree error, got: {:?}", e),
+            e => panic!("Expected WorktreeNotFound or Worktree error, got: {e:?}"),
         }
     }
 }

@@ -187,7 +187,7 @@ mod tests {
         let options =
             FzfOptions { prompt: Some("test".to_string()), header: None, preview_command: None };
 
-        let debug_str = format!("{:?}", options);
+        let debug_str = format!("{options:?}");
         assert!(debug_str.contains("FzfOptions"));
         assert!(debug_str.contains("prompt: Some"));
     }

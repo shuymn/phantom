@@ -59,7 +59,7 @@ fn bench_cloning_patterns(c: &mut Criterion) {
         data: Vec<String>,
     }
 
-    let large_data = LargeData { data: (0..1000).map(|i| format!("Item {}", i)).collect() };
+    let large_data = LargeData { data: (0..1000).map(|i| format!("Item {i}")).collect() };
 
     group.bench_function("large_data_clone", |b| {
         b.iter(|| {

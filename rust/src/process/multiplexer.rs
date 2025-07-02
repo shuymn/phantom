@@ -235,30 +235,30 @@ mod tests {
     #[test]
     fn test_multiplexer_debug() {
         let tmux = Multiplexer::Tmux;
-        let debug_str = format!("{:?}", tmux);
+        let debug_str = format!("{tmux:?}");
         assert!(debug_str.contains("Tmux"));
 
         let kitty = Multiplexer::Kitty;
-        let debug_str = format!("{:?}", kitty);
+        let debug_str = format!("{kitty:?}");
         assert!(debug_str.contains("Kitty"));
 
         let none = Multiplexer::None;
-        let debug_str = format!("{:?}", none);
+        let debug_str = format!("{none:?}");
         assert!(debug_str.contains("None"));
     }
 
     #[test]
     fn test_split_direction_debug() {
         let new = SplitDirection::New;
-        let debug_str = format!("{:?}", new);
+        let debug_str = format!("{new:?}");
         assert!(debug_str.contains("New"));
 
         let vertical = SplitDirection::Vertical;
-        let debug_str = format!("{:?}", vertical);
+        let debug_str = format!("{vertical:?}");
         assert!(debug_str.contains("Vertical"));
 
         let horizontal = SplitDirection::Horizontal;
-        let debug_str = format!("{:?}", horizontal);
+        let debug_str = format!("{horizontal:?}");
         assert!(debug_str.contains("Horizontal"));
     }
 
@@ -273,7 +273,7 @@ mod tests {
             window_name: None,
         };
 
-        let debug_str = format!("{:?}", options);
+        let debug_str = format!("{options:?}");
         assert!(debug_str.contains("MultiplexerOptions"));
         assert!(debug_str.contains("direction"));
         assert!(debug_str.contains("command"));
@@ -405,9 +405,9 @@ mod tests {
 
         for m in multiplexers {
             match m {
-                Multiplexer::Tmux => assert_eq!(format!("{:?}", m), "Tmux"),
-                Multiplexer::Kitty => assert_eq!(format!("{:?}", m), "Kitty"),
-                Multiplexer::None => assert_eq!(format!("{:?}", m), "None"),
+                Multiplexer::Tmux => assert_eq!(format!("{m:?}"), "Tmux"),
+                Multiplexer::Kitty => assert_eq!(format!("{m:?}"), "Kitty"),
+                Multiplexer::None => assert_eq!(format!("{m:?}"), "None"),
             }
         }
     }

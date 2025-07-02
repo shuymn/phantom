@@ -17,7 +17,7 @@ impl ExitCode {
 
 /// Exit with an error message and code
 pub fn exit_with_error(message: &str, code: i32) -> ! {
-    eprintln!("Error: {}", message);
+    eprintln!("Error: {message}");
     process::exit(code);
 }
 

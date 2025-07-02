@@ -73,16 +73,16 @@ mod tests {
         let stderr_tty = is_stderr_tty();
 
         // In most CI environments, these will be false
-        println!("stdin is tty: {}", stdin_tty);
-        println!("stdout is tty: {}", stdout_tty);
-        println!("stderr is tty: {}", stderr_tty);
+        println!("stdin is tty: {stdin_tty}");
+        println!("stdout is tty: {stdout_tty}");
+        println!("stderr is tty: {stderr_tty}");
     }
 
     #[test]
     fn test_is_interactive() {
         let interactive = is_interactive();
         // Should be false in test environment
-        println!("Is interactive: {}", interactive);
+        println!("Is interactive: {interactive}");
     }
 
     #[test]
@@ -102,7 +102,7 @@ mod tests {
     fn test_terminal_size() {
         // This will depend on the terminal
         if let Some((width, height)) = terminal_size() {
-            println!("Terminal size: {}x{}", width, height);
+            println!("Terminal size: {width}x{height}");
             assert!(width > 0);
             assert!(height > 0);
         } else {

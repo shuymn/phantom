@@ -102,11 +102,10 @@ mod tests {
                         || stderr.contains("is already checked out")
                         || stderr.contains("is checked out")
                         || stderr.contains("is already used by worktree"),
-                    "Unexpected error message: {}",
-                    stderr
+                    "Unexpected error message: {stderr}"
                 );
             }
-            e => panic!("Expected Git error, got: {:?}", e),
+            e => panic!("Expected Git error, got: {e:?}"),
         }
     }
 

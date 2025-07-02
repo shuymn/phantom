@@ -111,7 +111,7 @@ impl FileSystem for RealFileSystem {
 
     async fn copy(&self, from: &Path, to: &Path) -> Result<u64> {
         fs::copy(from, to).await.map_err(|e| PhantomError::FileOperationFailed {
-            operation: format!("copy from {:?} to {:?}", from, to),
+            operation: format!("copy from {from:?} to {to:?}"),
             path: from.to_path_buf(),
             reason: e.to_string(),
         })

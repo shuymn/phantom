@@ -16,7 +16,7 @@ async fn main() {
     // Initialize tracing if verbose mode
     if cli.verbose {
         if let Err(e) = init_tracing() {
-            eprintln!("Failed to initialize tracing: {}", e);
+            eprintln!("Failed to initialize tracing: {e}");
         }
     }
 
@@ -44,7 +44,7 @@ async fn main() {
         // Format error message to include root cause
         let error_message = if e.chain().count() > 1 {
             // Include the full error chain for better context
-            format!("{:#}", e)
+            format!("{e:#}")
         } else {
             e.to_string()
         };

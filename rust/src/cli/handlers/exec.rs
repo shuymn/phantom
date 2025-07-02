@@ -107,7 +107,7 @@ where
     // Validate worktree exists
     let validation = validate_worktree_exists(&git_root, &worktree_name, &context.filesystem)
         .await
-        .with_context(|| format!("Failed to validate worktree '{}' exists", worktree_name))?;
+        .with_context(|| format!("Failed to validate worktree '{worktree_name}' exists"))?;
     let worktree_path = validation.path;
 
     // Split command into program and arguments
@@ -139,7 +139,7 @@ where
             .await
             .map_err(|e| anyhow!(e))
             .with_context(|| {
-                format!("Failed to execute command in tmux for worktree '{}'", worktree_name)
+                format!("Failed to execute command in tmux for worktree '{worktree_name}'")
             })?;
         return Ok(());
     }
@@ -169,7 +169,7 @@ where
             .await
             .map_err(|e| anyhow!(e))
             .with_context(|| {
-                format!("Failed to execute command in kitty for worktree '{}'", worktree_name)
+                format!("Failed to execute command in kitty for worktree '{worktree_name}'")
             })?;
         return Ok(());
     }

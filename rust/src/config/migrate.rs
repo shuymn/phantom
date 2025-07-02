@@ -106,12 +106,12 @@ async fn save_config(config: &PhantomConfig, path: &Path, format: ConfigFormat) 
     let content = match format {
         ConfigFormat::Json => {
             serde_json::to_string_pretty(config).map_err(|e| PhantomError::ConfigInvalid {
-                reason: format!("Failed to serialize config to JSON: {}", e),
+                reason: format!("Failed to serialize config to JSON: {e}"),
             })?
         }
         ConfigFormat::Toml => {
             toml::to_string_pretty(config).map_err(|e| PhantomError::ConfigInvalid {
-                reason: format!("Failed to serialize config to TOML: {}", e),
+                reason: format!("Failed to serialize config to TOML: {e}"),
             })?
         }
     };

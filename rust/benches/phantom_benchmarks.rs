@@ -154,14 +154,14 @@ fn bench_memory_patterns(c: &mut Criterion) {
     // Larger argument lists
     group.bench_function("vec_args_large", |b| {
         b.iter(|| {
-            let args: Vec<String> = (0..10).map(|i| format!("arg{}", i)).collect();
+            let args: Vec<String> = (0..10).map(|i| format!("arg{i}")).collect();
             black_box(args);
         });
     });
 
     group.bench_function("smallvec_args_large", |b| {
         b.iter(|| {
-            let args: SmallVec<[String; 4]> = (0..10).map(|i| format!("arg{}", i)).collect();
+            let args: SmallVec<[String; 4]> = (0..10).map(|i| format!("arg{i}")).collect();
             black_box(args);
         });
     });

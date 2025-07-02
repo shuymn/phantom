@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn test_worktree_error_debug() {
         let err = WorktreeError::NotFound("test".to_string());
-        let debug_str = format!("{:?}", err);
+        let debug_str = format!("{err:?}");
         assert!(debug_str.contains("NotFound"));
         assert!(debug_str.contains("test"));
     }

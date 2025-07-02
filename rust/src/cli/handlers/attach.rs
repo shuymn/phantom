@@ -140,7 +140,7 @@ mod tests {
 
         let result = handle(args, context).await;
         if let Err(e) = &result {
-            eprintln!("Handle failed with error: {:?}", e);
+            eprintln!("Handle failed with error: {e:?}");
         }
         assert!(result.is_ok());
     }
@@ -277,7 +277,7 @@ mod tests {
 
         let result = handle(args, context).await;
         if let Err(e) = &result {
-            eprintln!("Error in test_attach_with_json_output: {:?}", e);
+            eprintln!("Error in test_attach_with_json_output: {e:?}");
         }
         assert!(result.is_ok());
     }

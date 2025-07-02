@@ -18,21 +18,21 @@ impl Output {
     /// Print a normal message
     pub fn log(&self, message: &str) {
         if !self.quiet && !self.json {
-            println!("{}", message);
+            println!("{message}");
         }
     }
 
     /// Print a verbose message
     pub fn debug(&self, message: &str) {
         if self.verbose && !self.quiet && !self.json {
-            println!("{}", message);
+            println!("{message}");
         }
     }
 
     /// Print an error message
     pub fn error(&self, message: &str) {
         if !self.json {
-            eprintln!("Error: {}", message);
+            eprintln!("Error: {message}");
         }
     }
 
@@ -48,9 +48,9 @@ impl Output {
     pub fn success(&self, message: &str) {
         if !self.quiet && !self.json {
             if should_use_color() {
-                println!("\x1b[32m{}\x1b[0m", message);
+                println!("\x1b[32m{message}\x1b[0m");
             } else {
-                println!("{}", message);
+                println!("{message}");
             }
         }
     }
@@ -59,9 +59,9 @@ impl Output {
     pub fn warn(&self, message: &str) {
         if !self.quiet && !self.json {
             if should_use_color() {
-                eprintln!("\x1b[33mWarning: {}\x1b[0m", message);
+                eprintln!("\x1b[33mWarning: {message}\x1b[0m");
             } else {
-                eprintln!("Warning: {}", message);
+                eprintln!("Warning: {message}");
             }
         }
     }
@@ -69,7 +69,7 @@ impl Output {
     /// Print without newline
     pub fn print(&self, message: &str) {
         if !self.quiet && !self.json {
-            print!("{}", message);
+            print!("{message}");
             let _ = io::stdout().flush();
         }
     }

@@ -15,7 +15,7 @@ where
 
     // Use show-ref to check if the branch exists
     let result = git_executor
-        .run(&["show-ref", "--verify", "--quiet", &format!("refs/heads/{}", branch_name)])
+        .run(&["show-ref", "--verify", "--quiet", &format!("refs/heads/{branch_name}")])
         .await;
 
     match result {

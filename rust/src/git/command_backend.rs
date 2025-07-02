@@ -158,7 +158,7 @@ mod tests {
         let timestamp =
             std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
         let worktree_path =
-            repo.path().parent().unwrap().join(format!("test-worktree-{}", timestamp));
+            repo.path().parent().unwrap().join(format!("test-worktree-{timestamp}"));
         backend.add_worktree(&worktree_path, Some("feature"), true, None).await.unwrap();
 
         let worktrees = backend.list_worktrees().await.unwrap();

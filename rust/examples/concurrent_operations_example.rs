@@ -68,20 +68,20 @@ async fn main() {
             if worktree.is_clean { "clean" } else { "dirty" }
         );
     }
-    println!("   Completed in: {:?}\n", duration);
+    println!("   Completed in: {duration:?}\n");
 
     // Example 2: Get info for multiple worktrees concurrently
     println!("2. Getting info for multiple worktrees concurrently:");
     let names = ["feature-a", "feature-b", "feature-c"];
     let start = Instant::now();
     let infos =
-        get_worktrees_info_concurrent(executor.clone(), &git_root, &names.to_vec()).await.unwrap();
+        get_worktrees_info_concurrent(executor.clone(), &git_root, names.as_ref()).await.unwrap();
     let duration = start.elapsed();
 
     for info in infos {
         println!("   {}: {}", info.name, info.path);
     }
-    println!("   Completed in: {:?}\n", duration);
+    println!("   Completed in: {duration:?}\n");
 
     // Example 3: Batch status checks
     println!("3. Batch checking status of worktrees:");
@@ -103,10 +103,10 @@ async fn main() {
             Ok(is_clean) => {
                 println!("   Worktree {}: {}", idx, if is_clean { "clean" } else { "dirty" })
             }
-            Err(e) => println!("   Worktree {}: error - {}", idx, e),
+            Err(e) => println!("   Worktree {idx}: error - {e}"),
         }
     }
-    println!("   Completed in: {:?}\n", duration);
+    println!("   Completed in: {duration:?}\n");
 
     println!("=== Benefits of Concurrent Operations ===");
     println!("- Status checks run in parallel, not sequentially");

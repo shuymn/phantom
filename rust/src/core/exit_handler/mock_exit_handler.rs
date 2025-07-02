@@ -42,6 +42,6 @@ impl Sealed for MockExitHandler {}
 impl ExitHandler for MockExitHandler {
     fn exit(&self, code: i32) -> ! {
         self.exits.lock().unwrap().push(code);
-        panic!("MockExitHandler::exit called with code {}", code);
+        panic!("MockExitHandler::exit called with code {code}");
     }
 }

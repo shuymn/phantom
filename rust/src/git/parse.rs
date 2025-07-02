@@ -349,7 +349,7 @@ branch refs/heads/last-branch"#; // No trailing newline
     #[test]
     fn test_worktree_builder_debug() {
         let builder = WorktreeBuilder::new("/path/to/repo");
-        let debug_str = format!("{:?}", builder);
+        let debug_str = format!("{builder:?}");
         assert!(debug_str.contains("WorktreeBuilder"));
         assert!(debug_str.contains("/path/to/repo"));
     }

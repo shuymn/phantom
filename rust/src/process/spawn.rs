@@ -91,7 +91,7 @@ pub async fn spawn_process(config: SpawnConfig) -> Result<SpawnSuccess> {
             Ok(Ok(status)) => status,
             Ok(Err(e)) => {
                 return Err(PhantomError::ProcessExecutionError {
-                    reason: format!("Failed to wait for process: {}", e),
+                    reason: format!("Failed to wait for process: {e}"),
                 });
             }
             Err(_) => {
@@ -108,7 +108,7 @@ pub async fn spawn_process(config: SpawnConfig) -> Result<SpawnSuccess> {
         }
     } else {
         child.wait().await.map_err(|e| PhantomError::ProcessExecutionError {
-            reason: format!("Failed to wait for process: {}", e),
+            reason: format!("Failed to wait for process: {e}"),
         })?
     };
 
@@ -169,7 +169,7 @@ where
     }
 
     let output = cmd.output().await.map_err(|e| PhantomError::ProcessExecutionError {
-        reason: format!("Failed to execute command: {}", e),
+        reason: format!("Failed to execute command: {e}"),
     })?;
 
     if output.status.success() {
@@ -191,12 +191,12 @@ pub async fn setup_signal_handlers() -> Result<()> {
 
     let mut sigint =
         signal(SignalKind::interrupt()).map_err(|e| PhantomError::ProcessExecutionError {
-            reason: format!("Failed to setup SIGINT handler: {}", e),
+            reason: format!("Failed to setup SIGINT handler: {e}"),
         })?;
 
     let mut sigterm =
         signal(SignalKind::terminate()).map_err(|e| PhantomError::ProcessExecutionError {
-            reason: format!("Failed to setup SIGTERM handler: {}", e),
+            reason: format!("Failed to setup SIGTERM handler: {e}"),
         })?;
 
     tokio::spawn(async move {
@@ -358,7 +358,7 @@ mod tests {
             timeout_ms: Some(5000),
         };
 
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("SpawnConfig"));
         assert!(debug_str.contains("command"));
         assert!(debug_str.contains("test"));
@@ -389,7 +389,7 @@ mod tests {
     #[tokio::test]
     async fn test_spawn_success_debug() {
         let success = SpawnSuccess { exit_code: 0 };
-        let debug_str = format!("{:?}", success);
+        let debug_str = format!("{success:?}");
         assert!(debug_str.contains("SpawnSuccess"));
         assert!(debug_str.contains("exit_code"));
         assert!(debug_str.contains("0"));

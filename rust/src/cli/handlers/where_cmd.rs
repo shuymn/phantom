@@ -50,7 +50,7 @@ where
     // Get the worktree path
     match where_worktree(&git_root, &worktree_name, &context.filesystem)
         .await
-        .with_context(|| format!("Failed to locate worktree '{}'", worktree_name))
+        .with_context(|| format!("Failed to locate worktree '{worktree_name}'"))
     {
         Ok(result) => {
             if args.json {
@@ -388,8 +388,7 @@ mod tests {
         let error_str = result.unwrap_err().to_string();
         assert!(
             error_str.contains("not found") || error_str.contains("Failed to locate"),
-            "Unexpected error message: {}",
-            error_str
+            "Unexpected error message: {error_str}"
         );
     }
 }

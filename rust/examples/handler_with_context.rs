@@ -49,8 +49,8 @@ async fn main() {
     let prod_handler = StatusHandler::new(prod_context);
 
     match prod_handler.handle().await {
-        Ok(status) => println!("Status output:\n{}", status),
-        Err(e) => println!("Error: {}", e),
+        Ok(status) => println!("Status output:\n{status}"),
+        Err(e) => println!("Error: {e}"),
     }
 
     // Test usage
@@ -71,8 +71,8 @@ async fn main() {
     let test_handler = StatusHandler::new(test_context);
 
     match test_handler.handle().await {
-        Ok(status) => println!("Mock status output:\n{}", status),
-        Err(e) => println!("Error: {}", e),
+        Ok(status) => println!("Mock status output:\n{status}"),
+        Err(e) => println!("Error: {e}"),
     }
 
     println!("\n=== Example Complete ===");

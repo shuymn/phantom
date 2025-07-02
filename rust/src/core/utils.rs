@@ -38,7 +38,7 @@ pub fn error_to_exit_code(error: &PhantomError) -> ExitCode {
 /// Handle and display an error, then exit with appropriate code
 pub fn handle_error(error: PhantomError) -> ! {
     error!("{}", error);
-    eprintln!("Error: {}", error);
+    eprintln!("Error: {error}");
     std::process::exit(error_to_exit_code_int(&error));
 }
 
@@ -193,15 +193,15 @@ mod tests {
     fn test_error_display() {
         // Test that errors display correctly
         let error = PhantomError::NotInGitRepository;
-        let display = format!("{}", error);
+        let display = format!("{error}");
         assert!(display.contains("git repository"));
 
         let error = PhantomError::WorktreeExists { name: "test-worktree".to_string() };
-        let display = format!("{}", error);
+        let display = format!("{error}");
         assert!(display.contains("test-worktree"));
 
         let error = PhantomError::ConfigInvalid { reason: "Invalid config".to_string() };
-        let display = format!("{}", error);
+        let display = format!("{error}");
         assert!(display.contains("Invalid config"));
     }
 
@@ -244,7 +244,7 @@ mod tests {
 
         for error in errors {
             // Test that display doesn't panic
-            let _ = format!("{}", error);
+            let _ = format!("{error}");
             // Test that exit code conversion doesn't panic
             let _ = error_to_exit_code(&error);
         }

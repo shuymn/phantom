@@ -59,8 +59,8 @@ async fn main() {
     let git_service = GitService::new(real_executor);
 
     match git_service.get_current_branch().await {
-        Ok(branch) => println!("   Current branch: {}", branch),
-        Err(e) => println!("   Error: {}", e),
+        Ok(branch) => println!("   Current branch: {branch}"),
+        Err(e) => println!("   Error: {e}"),
     }
 
     // Example 2: Using mock executor for testing
@@ -89,7 +89,7 @@ async fn main() {
 
     // Test getting current branch
     let branch = test_service.get_current_branch().await.unwrap();
-    println!("   Mocked branch: {}", branch);
+    println!("   Mocked branch: {branch}");
 
     // Test committing changes
     test_service.commit_changes("feat: implement mock testing").await.unwrap();
@@ -98,7 +98,7 @@ async fn main() {
     // Verify all expectations were met
     match mock_executor.verify() {
         Ok(()) => println!("   ✓ All expectations verified!"),
-        Err(e) => println!("   ✗ Verification failed: {}", e),
+        Err(e) => println!("   ✗ Verification failed: {e}"),
     }
 
     // Example 3: Testing error scenarios
@@ -114,7 +114,7 @@ async fn main() {
 
     match error_service.get_current_branch().await {
         Ok(_) => println!("   Unexpected success"),
-        Err(e) => println!("   ✓ Expected error: {}", e),
+        Err(e) => println!("   ✓ Expected error: {e}"),
     }
 
     println!("\n=== Example Complete ===");

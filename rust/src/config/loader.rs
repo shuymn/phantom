@@ -56,7 +56,7 @@ async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
     })?;
 
     let config: PhantomConfig = serde_json::from_str(&content)
-        .map_err(|e| ConfigError::ParseError(format!("JSON error: {}", e)))?;
+        .map_err(|e| ConfigError::ParseError(format!("JSON error: {e}")))?;
 
     validate_config(&config)?;
 
@@ -77,7 +77,7 @@ async fn load_toml_config(path: &Path) -> Result<PhantomConfig> {
     })?;
 
     let config: PhantomConfig = toml::from_str(&content)
-        .map_err(|e| ConfigError::ParseError(format!("TOML error: {}", e)))?;
+        .map_err(|e| ConfigError::ParseError(format!("TOML error: {e}")))?;
 
     validate_config(&config)?;
 

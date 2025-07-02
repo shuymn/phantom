@@ -10,7 +10,7 @@ pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
         None => " [y/n] ",
     };
 
-    print!("{}{}", message, suffix);
+    print!("{message}{suffix}");
     io::stdout().flush().map_err(PhantomError::Io)?;
 
     let mut input = String::new();
@@ -40,9 +40,9 @@ pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
 /// Prompt the user for text input
 pub fn prompt(message: &str, default: Option<&str>) -> Result<String> {
     if let Some(default_value) = default {
-        print!("{} [{}] ", message, default_value);
+        print!("{message} [{default_value}] ");
     } else {
-        print!("{} ", message);
+        print!("{message} ");
     }
     io::stdout().flush().map_err(PhantomError::Io)?;
 
@@ -69,7 +69,7 @@ pub fn select<T: AsRef<str>>(
     options: &[T],
     default: Option<usize>,
 ) -> Result<usize> {
-    println!("{}", message);
+    println!("{message}");
 
     for (i, option) in options.iter().enumerate() {
         let marker = if Some(i) == default { ">" } else { " " };
@@ -144,7 +144,7 @@ mod tests {
             let trimmed = input.to_lowercase();
             match trimmed.as_str() {
                 "y" | "yes" => {}
-                _ => panic!("Should match yes for input: {}", input),
+                _ => panic!("Should match yes for input: {input}"),
             }
         }
 
@@ -154,7 +154,7 @@ mod tests {
             let trimmed = input.to_lowercase();
             match trimmed.as_str() {
                 "n" | "no" => {}
-                _ => panic!("Should match no for input: {}", input),
+                _ => panic!("Should match no for input: {input}"),
             }
         }
     }
@@ -168,7 +168,7 @@ mod tests {
         assert_eq!(formatted, "Enter value [default-value] ");
 
         // Test without default
-        let formatted_no_default = format!("{} ", message);
+        let formatted_no_default = format!("{message} ");
         assert_eq!(formatted_no_default, "Enter value ");
     }
 

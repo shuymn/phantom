@@ -95,7 +95,7 @@ fn detect_from_parent_process() -> Option<ShellInfo> {
     use std::fs;
 
     let ppid = get_parent_pid()?;
-    let cmdline_path = format!("/proc/{}/cmdline", ppid);
+    let cmdline_path = format!("/proc/{ppid}/cmdline");
 
     if let Ok(cmdline) = fs::read_to_string(&cmdline_path) {
         let args: Vec<&str> = cmdline.split('\0').collect();
@@ -147,7 +147,7 @@ pub fn get_phantom_env(worktree_name: &str, worktree_path: &str) -> HashMap<Stri
 
     // Update prompt if PS1 is set
     if let Ok(ps1) = env::var("PS1") {
-        let phantom_ps1 = format!("(phantom:{}) {}", worktree_name, ps1);
+        let phantom_ps1 = format!("(phantom:{worktree_name}) {ps1}");
         env.insert("PS1".to_string(), phantom_ps1);
     }
 
@@ -270,7 +270,7 @@ mod tests {
             shell_type: ShellType::Zsh,
         };
 
-        let debug_str = format!("{:?}", info);
+        let debug_str = format!("{info:?}");
         assert!(debug_str.contains("ShellInfo"));
         assert!(debug_str.contains("zsh"));
     }
@@ -401,7 +401,7 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("phantom-test");
         let result = shell_in_dir(&mock, &temp_dir).await;
         if let Err(e) = &result {
-            eprintln!("Test failed with error: {:?}", e);
+            eprintln!("Test failed with error: {e:?}");
         }
         assert!(result.is_ok());
 
@@ -420,7 +420,7 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("phantom-test");
         let result = shell_in_dir(&mock, &temp_dir).await;
         if let Err(e) = &result {
-            eprintln!("Test failed with error: {:?}", e);
+            eprintln!("Test failed with error: {e:?}");
         }
         assert!(result.is_ok());
 
@@ -441,7 +441,7 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("phantom-test");
         let result = shell_in_dir(&mock, &temp_dir).await;
         if let Err(e) = &result {
-            eprintln!("Test failed with error: {:?}", e);
+            eprintln!("Test failed with error: {e:?}");
         }
         assert!(result.is_ok());
     }
