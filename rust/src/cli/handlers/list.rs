@@ -1,10 +1,13 @@
 use crate::cli::commands::list::ListArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
-use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::worktree::list::list_worktrees_with_executor;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
+use crate::git::libs::get_git_root::get_git_root;
+use crate::worktree::concurrent::list_worktrees_concurrent;
 use crate::worktree::select::select_worktree_with_fzf;
-use crate::Result;
+use anyhow::{Context, Result};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -21,12 +24,22 @@ struct WorktreeJsonItem {
 }
 
 /// Handle the list command
-pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
-    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
+pub async fn handle<E, F, H>(args: ListArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
+    let git_root = get_git_root(context.executor.clone())
+        .await
+        .with_context(|| "Failed to determine git repository root")?;
 
     if args.fzf {
         // Use fzf for interactive selection
-        match select_worktree_with_fzf(&git_root).await? {
+        match select_worktree_with_fzf(context.executor.clone(), &git_root)
+            .await
+            .with_context(|| "Failed to select worktree with fzf")?
+        {
             Some(worktree) => {
                 output().log(&worktree.name);
             }
@@ -35,13 +48,19 @@ pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
             }
         }
     } else {
-        // List all worktrees
-        let result = list_worktrees_with_executor(context.executor.clone(), &git_root).await?;
+        // List all worktrees using concurrent operations
+        let result =
+            list_worktrees_concurrent(context.executor.clone(), &git_root).await.with_context(
+                || format!("Failed to list worktrees in git root: {}", git_root.display()),
+            )?;
 
         if result.worktrees.is_empty() {
             if args.json {
                 let json_output = ListJsonOutput { worktrees: vec![] };
-                output().log(&serde_json::to_string_pretty(&json_output)?);
+                output().log(
+                    &serde_json::to_string_pretty(&json_output)
+                        .with_context(|| "Failed to serialize JSON output")?,
+                );
             } else if !args.names {
                 output().log(result.message.as_deref().unwrap_or("No worktrees found."));
             }
@@ -76,10 +95,10 @@ pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
             for worktree in &result.worktrees {
                 let padded_name = format!("{:<width$}", worktree.name, width = max_name_length + 2);
                 let branch_info =
-                    worktree.branch.as_ref().map(|b| format!("({})", b)).unwrap_or_default();
+                    worktree.branch.as_ref().map(|b| format!("({b})")).unwrap_or_default();
                 let status = if !worktree.is_clean { " [dirty]" } else { "" };
 
-                output().log(&format!("{}{}{}", padded_name, branch_info, status));
+                output().log(&format!("{padded_name}{branch_info}{status}"));
             }
         }
     }
@@ -91,7 +110,6 @@ pub async fn handle(args: ListArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use std::sync::Arc;
 
     // IMPORTANT: Mock testing lesson learned
     //
@@ -115,9 +133,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: false };
 
@@ -144,9 +162,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: false };
 
@@ -194,9 +212,9 @@ mod tests {
             .returns_output("M README.md\n", "", 0); // Dirty
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: false };
 
@@ -235,9 +253,9 @@ mod tests {
             .returns_output("", "", 0);
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: true, names: false };
 
@@ -276,9 +294,9 @@ mod tests {
             .returns_output("", "", 0);
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ListArgs { fzf: false, json: false, names: true };
 

@@ -1,5 +1,5 @@
 use crate::cli::commands::completion::{CompletionArgs, Shell};
-use crate::Result;
+use anyhow::Result;
 
 const FISH_COMPLETION: &str = r#"# Fish completion for phantom
 # Place this in ~/.config/fish/completions/phantom.fish
@@ -278,6 +278,6 @@ pub fn handle(args: CompletionArgs) -> Result<()> {
         Shell::Bash => BASH_COMPLETION,
     };
 
-    println!("{}", script);
+    println!("{script}");
     Ok(())
 }

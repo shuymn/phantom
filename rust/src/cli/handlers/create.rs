@@ -2,19 +2,30 @@ use crate::cli::commands::create::{CreateArgs, CreateResult};
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
 use crate::config::loader::load_config;
-use crate::git::libs::get_git_root::get_git_root_with_executor;
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
+use crate::git::libs::get_git_root::get_git_root;
 use crate::process::exec::exec_in_dir;
 use crate::process::multiplexer::{execute_in_multiplexer, MultiplexerOptions, SplitDirection};
 use crate::process::shell::shell_in_dir;
 use crate::worktree::create::create_worktree;
 use crate::worktree::paths::get_worktree_path;
 use crate::worktree::types::CreateWorktreeOptions;
-use crate::Result;
+use anyhow::{Context, Result};
 
 /// Handle the create command
-pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
+pub async fn handle<E, F, H>(args: CreateArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
     // Get git root
-    let git_root = match get_git_root_with_executor(context.executor.clone()).await {
+    let git_root = match get_git_root(context.executor.clone())
+        .await
+        .with_context(|| "Failed to determine git repository root")
+    {
         Ok(root) => root,
         Err(e) => {
             if args.json {
@@ -35,7 +46,11 @@ pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
     };
 
     // Load config for copy files
-    let config = load_config(&git_root).await.ok().flatten();
+    let config = load_config(&git_root)
+        .await
+        .with_context(|| format!("Failed to load config from git root: {}", git_root.display()))
+        .ok()
+        .flatten();
     let copy_files = if let Some(files) = args.copy_files {
         Some(files)
     } else {
@@ -50,7 +65,11 @@ pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
         copy_files: copy_files.clone(),
     };
 
-    let result = match create_worktree(&git_root, &args.name, options).await {
+    let result = match create_worktree(context.executor.clone(), &git_root, &args.name, options)
+        .await
+        .with_context(|| {
+            format!("Failed to create worktree '{}' with branch '{}'", args.name, branch_name)
+        }) {
         Ok(success) => success,
         Err(e) => {
             if args.json {
@@ -62,7 +81,7 @@ pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
                     copied_files: None,
                     error: Some(e.to_string()),
                 };
-                output().json(&result)?;
+                output().json(&result).with_context(|| "Failed to serialize JSON output")?;
             }
             return Err(e);
         }
@@ -80,7 +99,7 @@ pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
             copied_files: result.copied_files.clone(),
             error: None,
         };
-        output().json(&json_result)?;
+        output().json(&json_result).with_context(|| "Failed to serialize JSON output")?;
     } else {
         output()
             .success(&format!("Created worktree '{}' with branch '{}'", args.name, branch_name));
@@ -125,13 +144,23 @@ pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
             window_name: Some(args.name.clone()),
         };
 
-        execute_in_multiplexer(options).await?;
+        execute_in_multiplexer(context.executor.clone(), options)
+            .await
+            .with_context(|| format!("Failed to open multiplexer for worktree '{}'", args.name))?;
     } else if args.shell {
         // Open shell in the new worktree
-        shell_in_dir(&worktree_path).await?;
+        shell_in_dir(&context.executor, &worktree_path).await.with_context(|| {
+            format!("Failed to open shell in worktree path: {}", worktree_path.display())
+        })?;
     } else if let Some(exec_cmd) = args.exec {
         // Execute command in the new worktree
-        exec_in_dir(&worktree_path, &exec_cmd, &[]).await?;
+        exec_in_dir(&worktree_path, &exec_cmd, &[]).await.with_context(|| {
+            format!(
+                "Failed to execute command '{}' in worktree path: {}",
+                exec_cmd,
+                worktree_path.display()
+            )
+        })?;
     }
 
     Ok(())
@@ -141,7 +170,6 @@ pub async fn handle(args: CreateArgs, context: HandlerContext) -> Result<()> {
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
-    use std::sync::Arc;
 
     // IMPORTANT: Create handler testing limitations
     //
@@ -165,9 +193,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -192,7 +220,14 @@ mod tests {
         let result = handle(args, context).await;
         assert!(result.is_err());
         match result {
-            Err(e) => assert!(e.to_string().contains("not a git repository")),
+            Err(e) => {
+                let error_str = e.to_string();
+                assert!(
+                    error_str.contains("Failed to determine git repository root")
+                        || error_str.contains("not a git repository"),
+                    "Unexpected error message: {error_str}"
+                );
+            }
             _ => panic!("Expected error about git repository"),
         }
     }
@@ -209,9 +244,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -260,9 +295,9 @@ mod tests {
             );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -285,19 +320,18 @@ mod tests {
         };
 
         let result = handle(args, context).await;
-        assert!(result.is_err());
         match result {
             Err(e) => {
                 let error_msg = e.to_string();
                 // The error could be about already existing or about filesystem operations
                 // since create_worktree tries to create directories
                 assert!(
-                    error_msg.contains("already exists") || error_msg.contains("phantom directory"),
-                    "Unexpected error: {}",
-                    error_msg
+                    error_msg.contains("already exists")
+                        || error_msg.contains("Failed to create worktree"),
+                    "Unexpected error message: {error_msg}"
                 );
             }
-            _ => panic!("Expected error"),
+            Ok(_) => panic!("Expected error when worktree already exists"),
         }
     }
 
@@ -320,9 +354,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "feature".to_string(),
@@ -361,9 +395,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = CreateArgs {
             name: "invalid name with spaces".to_string(),
@@ -388,7 +422,15 @@ mod tests {
         let result = handle(args, context).await;
         assert!(result.is_err());
         match result {
-            Err(e) => assert!(e.to_string().contains("can only contain")),
+            Err(e) => {
+                let error_str = e.to_string();
+                // The validation error is wrapped by create handler context
+                assert!(
+                    error_str.contains("Failed to create worktree")
+                        && error_str.contains("invalid name with spaces"),
+                    "Unexpected error message: {error_str}"
+                );
+            }
             _ => panic!("Expected validation error"),
         }
     }

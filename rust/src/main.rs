@@ -1,7 +1,7 @@
+use anyhow::{anyhow, Result};
 use clap::Parser;
-use phantom::cli::context::HandlerContext;
+use phantom::cli::context::ProductionContext;
 use phantom::cli::{self, Commands};
-use phantom::{PhantomError, Result};
 use std::process;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -16,12 +16,12 @@ async fn main() {
     // Initialize tracing if verbose mode
     if cli.verbose {
         if let Err(e) = init_tracing() {
-            eprintln!("Failed to initialize tracing: {}", e);
+            eprintln!("Failed to initialize tracing: {e}");
         }
     }
 
     // Create handler context
-    let context = HandlerContext::default();
+    let context = ProductionContext::default();
 
     // Handle commands
     let result = match cli.command {
@@ -41,8 +41,30 @@ async fn main() {
 
     // Handle errors
     if let Err(e) = result {
-        cli::output::output().error(&e.to_string());
-        let exit_code = cli::error::error_to_exit_code(&e);
+        // Format error message to include root cause
+        let error_message = if e.chain().count() > 1 {
+            // Include the full error chain for better context
+            format!("{e:#}")
+        } else {
+            e.to_string()
+        };
+        cli::output::output().error(&error_message);
+
+        // Try to find a PhantomError in the error chain to determine the correct exit code
+        let exit_code = if let Some(phantom_err) = e.downcast_ref::<phantom::PhantomError>() {
+            cli::error::error_to_exit_code(phantom_err)
+        } else {
+            // Check the error chain for a PhantomError
+            let mut exit_code = cli::error::ExitCode::GENERAL_ERROR;
+            for cause in e.chain() {
+                if let Some(phantom_err) = cause.downcast_ref::<phantom::PhantomError>() {
+                    exit_code = cli::error::error_to_exit_code(phantom_err);
+                    break;
+                }
+            }
+            exit_code
+        };
+
         process::exit(exit_code);
     }
 }
@@ -62,7 +84,7 @@ fn init_tracing() -> Result<()> {
         .with(filter)
         .with(fmt_layer)
         .try_init()
-        .map_err(|e| PhantomError::Config(format!("Failed to initialize tracing: {}", e)))?;
+        .map_err(|e| anyhow!("Failed to initialize tracing: {}", e))?;
 
     Ok(())
 }

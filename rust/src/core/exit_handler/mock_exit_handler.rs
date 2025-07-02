@@ -1,9 +1,17 @@
 use super::*;
+use crate::core::sealed::Sealed;
 use std::sync::{Arc, Mutex};
 
 /// Mock exit handler for testing
+#[derive(Clone)]
 pub struct MockExitHandler {
     exits: Arc<Mutex<Vec<i32>>>,
+}
+
+impl Default for MockExitHandler {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MockExitHandler {
@@ -27,10 +35,13 @@ impl MockExitHandler {
     }
 }
 
+// Implement the sealed trait
+impl Sealed for MockExitHandler {}
+
 #[async_trait]
 impl ExitHandler for MockExitHandler {
     fn exit(&self, code: i32) -> ! {
         self.exits.lock().unwrap().push(code);
-        panic!("MockExitHandler::exit called with code {}", code);
+        panic!("MockExitHandler::exit called with code {code}");
     }
 }

@@ -1,10 +1,9 @@
-use crate::core::command_executor::{CommandConfig, CommandExecutor};
-use crate::core::executors::RealCommandExecutor;
+use crate::core::command_executor::{CommandArgs, CommandConfig, CommandExecutor};
 use crate::Result;
 use serde::{Deserialize, Serialize};
+use smallvec::smallvec;
 use std::collections::HashMap;
 use std::env;
-use std::sync::Arc;
 
 use super::spawn::SpawnSuccess;
 
@@ -38,18 +37,18 @@ pub async fn is_inside_kitty() -> bool {
 }
 
 /// Execute a command in kitty with CommandExecutor
-pub async fn execute_kitty_command_with_executor(
-    executor: Arc<dyn CommandExecutor>,
-    options: KittyOptions,
-) -> Result<()> {
-    let mut kitty_args = vec!["@".to_string(), "launch".to_string()];
+pub async fn execute_kitty_command<E>(executor: &E, options: KittyOptions) -> Result<()>
+where
+    E: CommandExecutor,
+{
+    let mut kitty_args: CommandArgs = smallvec!["@".to_string(), "launch".to_string()];
 
     // Set up the kitty command based on direction
     match options.direction {
         KittySplitDirection::New => {
             kitty_args.push("--type=tab".to_string());
             if let Some(window_title) = &options.window_title {
-                kitty_args.push(format!("--tab-title={}", window_title));
+                kitty_args.push(format!("--tab-title={window_title}"));
             }
         }
         KittySplitDirection::Vertical => {
@@ -62,7 +61,7 @@ pub async fn execute_kitty_command_with_executor(
 
     // Add working directory if specified
     if let Some(cwd) = &options.cwd {
-        kitty_args.push(format!("--cwd={}", cwd));
+        kitty_args.push(format!("--cwd={cwd}"));
     }
 
     // Add environment variables in sorted order for deterministic output
@@ -71,7 +70,7 @@ pub async fn execute_kitty_command_with_executor(
         sorted_keys.sort();
         for key in sorted_keys {
             if let Some(value) = env_vars.get(key) {
-                kitty_args.push(format!("--env={}={}", key, value));
+                kitty_args.push(format!("--env={key}={value}"));
             }
         }
     }
@@ -88,15 +87,9 @@ pub async fn execute_kitty_command_with_executor(
     }
 
     // Execute the kitty command
-    let config = CommandConfig::new("kitty").with_args(kitty_args);
+    let config = CommandConfig::new("kitty").with_args_smallvec(kitty_args);
     executor.execute(config).await?;
     Ok(())
-}
-
-/// Execute a command in kitty (backward compatible)
-pub async fn execute_kitty_command(options: KittyOptions) -> Result<KittySuccess> {
-    execute_kitty_command_with_executor(Arc::new(RealCommandExecutor), options).await?;
-    Ok(SpawnSuccess { exit_code: 0 })
 }
 
 #[cfg(test)]
@@ -173,7 +166,7 @@ mod tests {
     fn test_kitty_split_direction_copy_clone() {
         let original = KittySplitDirection::Vertical;
         let copied = original;
-        let cloned = original.clone();
+        let cloned = original;
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
@@ -182,15 +175,15 @@ mod tests {
     #[test]
     fn test_kitty_split_direction_debug() {
         let new = KittySplitDirection::New;
-        let debug_str = format!("{:?}", new);
+        let debug_str = format!("{new:?}");
         assert!(debug_str.contains("New"));
 
         let vertical = KittySplitDirection::Vertical;
-        let debug_str = format!("{:?}", vertical);
+        let debug_str = format!("{vertical:?}");
         assert!(debug_str.contains("Vertical"));
 
         let horizontal = KittySplitDirection::Horizontal;
-        let debug_str = format!("{:?}", horizontal);
+        let debug_str = format!("{horizontal:?}");
         assert!(debug_str.contains("Horizontal"));
     }
 
@@ -205,7 +198,7 @@ mod tests {
             window_title: None,
         };
 
-        let debug_str = format!("{:?}", options);
+        let debug_str = format!("{options:?}");
         assert!(debug_str.contains("KittyOptions"));
         assert!(debug_str.contains("direction"));
         assert!(debug_str.contains("command"));
@@ -333,7 +326,7 @@ mod tests {
             window_title: Some("Test Window".to_string()),
         };
 
-        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        let result = execute_kitty_command(&mock, options).await;
         assert!(result.is_ok());
     }
 
@@ -353,7 +346,7 @@ mod tests {
             window_title: None,
         };
 
-        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        let result = execute_kitty_command(&mock, options).await;
         assert!(result.is_ok());
     }
 
@@ -373,7 +366,7 @@ mod tests {
             window_title: None,
         };
 
-        let result = execute_kitty_command_with_executor(Arc::new(mock), options).await;
+        let result = execute_kitty_command(&mock, options).await;
         assert!(result.is_ok());
     }
 

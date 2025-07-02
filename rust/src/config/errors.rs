@@ -30,21 +30,23 @@ impl From<ConfigError> for PhantomError {
     fn from(err: ConfigError) -> Self {
         match err {
             ConfigError::NotFound(path) => {
-                PhantomError::Config(format!("Configuration file not found: {}", path))
+                PhantomError::ConfigNotFound { path: std::path::PathBuf::from(path) }
             }
-            ConfigError::ParseError(msg) => {
-                PhantomError::Config(format!("Failed to parse configuration: {}", msg))
-            }
+            ConfigError::ParseError(msg) => PhantomError::ConfigInvalid {
+                reason: format!("Failed to parse configuration: {msg}"),
+            },
             ConfigError::ValidationError(msg) => {
-                PhantomError::Validation(format!("Invalid configuration: {}", msg))
+                PhantomError::ConfigInvalid { reason: format!("Invalid configuration: {msg}") }
             }
             ConfigError::Io(err) => PhantomError::Io(err),
-            ConfigError::Json(err) => PhantomError::Config(format!("JSON error: {}", err)),
+            ConfigError::Json(err) => {
+                PhantomError::ConfigInvalid { reason: format!("JSON error: {err}") }
+            }
             ConfigError::TomlDe(err) => {
-                PhantomError::Config(format!("TOML deserialization error: {}", err))
+                PhantomError::ConfigInvalid { reason: format!("TOML deserialization error: {err}") }
             }
             ConfigError::TomlSer(err) => {
-                PhantomError::Config(format!("TOML serialization error: {}", err))
+                PhantomError::ConfigInvalid { reason: format!("TOML serialization error: {err}") }
             }
         }
     }
@@ -115,24 +117,30 @@ mod tests {
         let error = ConfigError::NotFound("config.toml".to_string());
         let phantom_error: PhantomError = error.into();
         match phantom_error {
-            PhantomError::Config(msg) => assert!(msg.contains("Configuration file not found")),
-            _ => panic!("Expected PhantomError::Config"),
+            PhantomError::ConfigNotFound { path } => {
+                assert!(path.to_string_lossy().contains("config.toml"))
+            }
+            _ => panic!("Expected PhantomError::ConfigInvalid"),
         }
 
         // Test ParseError conversion
         let error = ConfigError::ParseError("syntax error".to_string());
         let phantom_error: PhantomError = error.into();
         match phantom_error {
-            PhantomError::Config(msg) => assert!(msg.contains("Failed to parse configuration")),
-            _ => panic!("Expected PhantomError::Config"),
+            PhantomError::ConfigInvalid { reason } => {
+                assert!(reason.contains("Failed to parse configuration"))
+            }
+            _ => panic!("Expected PhantomError::ConfigInvalid"),
         }
 
         // Test ValidationError conversion
         let error = ConfigError::ValidationError("invalid value".to_string());
         let phantom_error: PhantomError = error.into();
         match phantom_error {
-            PhantomError::Validation(msg) => assert!(msg.contains("Invalid configuration")),
-            _ => panic!("Expected PhantomError::Validation"),
+            PhantomError::ConfigInvalid { reason } => {
+                assert!(reason.contains("Invalid configuration"))
+            }
+            _ => panic!("Expected PhantomError::ConfigInvalid"),
         }
 
         // Test Io conversion
@@ -146,8 +154,8 @@ mod tests {
         let error = ConfigError::Json(json_err);
         let phantom_error: PhantomError = error.into();
         match phantom_error {
-            PhantomError::Config(msg) => assert!(msg.contains("JSON error")),
-            _ => panic!("Expected PhantomError::Config"),
+            PhantomError::ConfigInvalid { reason } => assert!(reason.contains("JSON error")),
+            _ => panic!("Expected PhantomError::ConfigInvalid"),
         }
 
         // Test TomlDe conversion
@@ -155,15 +163,17 @@ mod tests {
         let error = ConfigError::TomlDe(toml_err);
         let phantom_error: PhantomError = error.into();
         match phantom_error {
-            PhantomError::Config(msg) => assert!(msg.contains("TOML deserialization error")),
-            _ => panic!("Expected PhantomError::Config"),
+            PhantomError::ConfigInvalid { reason } => {
+                assert!(reason.contains("TOML deserialization error"))
+            }
+            _ => panic!("Expected PhantomError::ConfigInvalid"),
         }
     }
 
     #[test]
     fn test_config_error_debug() {
         let error = ConfigError::NotFound("test.toml".to_string());
-        let debug_str = format!("{:?}", error);
+        let debug_str = format!("{error:?}");
         assert!(debug_str.contains("NotFound"));
         assert!(debug_str.contains("test.toml"));
     }

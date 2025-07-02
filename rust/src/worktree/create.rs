@@ -1,24 +1,31 @@
 use crate::git::backend::GitBackend;
-use crate::git::libs::add_worktree::add_worktree;
 use crate::worktree::errors::WorktreeError;
-use crate::worktree::file_copier::copy_files;
+use crate::worktree::file_copier::copy_files_concurrent;
 use crate::worktree::paths::{get_phantom_directory, get_worktree_path};
 use crate::worktree::types::{CreateWorktreeOptions, CreateWorktreeSuccess};
 use crate::worktree::validate::{validate_worktree_does_not_exist, validate_worktree_name};
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use tokio::fs;
 use tracing::{debug, info};
 
 /// Create a new worktree
-pub async fn create_worktree(
+pub async fn create_worktree<E>(
+    executor: E,
     git_root: &Path,
     name: &str,
     options: CreateWorktreeOptions,
-) -> Result<CreateWorktreeSuccess> {
+) -> Result<CreateWorktreeSuccess>
+where
+    E: crate::core::command_executor::CommandExecutor + Clone + 'static,
+{
     // Validate the worktree name
-    validate_worktree_name(name)?;
+    validate_worktree_name(name).map_err(|e| match e {
+        PhantomError::InvalidWorktreeName { name: _, reason } => {
+            PhantomError::InvalidWorktreeName { name: name.to_string(), reason }
+        }
+        _ => e,
+    })?;
 
     let branch = options.branch.as_deref().unwrap_or(name);
     let commitish = options.commitish.as_deref();
@@ -31,8 +38,7 @@ pub async fn create_worktree(
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
             PhantomError::Io(std::io::Error::other(format!(
-                "Failed to create phantom directory: {}",
-                e
+                "Failed to create phantom directory: {e}"
             )))
         })?;
     }
@@ -45,21 +51,23 @@ pub async fn create_worktree(
     // Add the worktree using the git backend
     info!("Creating worktree '{}' at {:?}", name, worktree_path);
 
-    // For now, we'll use the existing add_worktree function
-    // In the future, this should use the GitBackend trait
-    add_worktree(git_root, &worktree_path, Some(branch), true, commitish).await.map_err(
+    // Use the executor version directly
+    use crate::git::libs::add_worktree::add_worktree;
+    add_worktree(executor, git_root, &worktree_path, Some(branch), true, commitish).await.map_err(
         |e| match e {
-            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
-                operation: "worktree add".to_string(),
-                details: message,
+            PhantomError::Git { command: _, args, exit_code, stderr } => {
+                WorktreeError::GitOperation {
+                    operation: format!("git {} failed with exit code {exit_code}", args.join(" ")),
+                    details: stderr,
+                }
+                .into()
             }
-            .into(),
             _ => e,
         },
     )?;
 
     let mut result = CreateWorktreeSuccess {
-        message: format!("Created worktree '{}' at {}", name, worktree_path.display()),
+        message: format!("Created worktree '{name}' at {}", worktree_path.display()),
         path: worktree_path.to_string_lossy().to_string(),
         copied_files: None,
         skipped_files: None,
@@ -69,7 +77,7 @@ pub async fn create_worktree(
     // Handle file copying if requested
     if let Some(ref files_to_copy) = options.copy_files {
         if !files_to_copy.is_empty() {
-            match copy_files(git_root, &worktree_path, files_to_copy).await {
+            match copy_files_concurrent(git_root, &worktree_path, files_to_copy).await {
                 Ok(copy_result) => {
                     result.copied_files = Some(copy_result.copied_files);
                     result.skipped_files = Some(copy_result.skipped_files);
@@ -85,14 +93,22 @@ pub async fn create_worktree(
 }
 
 /// Create a new worktree using a GitBackend
-pub async fn create_worktree_with_backend(
-    backend: Arc<dyn GitBackend>,
+pub async fn create_worktree_with_backend<B>(
+    backend: &B,
     git_root: &Path,
     name: &str,
     options: CreateWorktreeOptions,
-) -> Result<CreateWorktreeSuccess> {
+) -> Result<CreateWorktreeSuccess>
+where
+    B: GitBackend,
+{
     // Validate the worktree name
-    validate_worktree_name(name)?;
+    validate_worktree_name(name).map_err(|e| match e {
+        PhantomError::InvalidWorktreeName { name: _, reason } => {
+            PhantomError::InvalidWorktreeName { name: name.to_string(), reason }
+        }
+        _ => e,
+    })?;
 
     let branch = options.branch.as_deref().unwrap_or(name);
     let commitish = options.commitish.as_deref();
@@ -104,8 +120,7 @@ pub async fn create_worktree_with_backend(
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
             PhantomError::Io(std::io::Error::other(format!(
-                "Failed to create phantom directory: {}",
-                e
+                "Failed to create phantom directory: {e}"
             )))
         })?;
     }
@@ -119,17 +134,19 @@ pub async fn create_worktree_with_backend(
     info!("Creating worktree '{}' at {:?}", name, worktree_path);
     backend.add_worktree(&worktree_path, Some(branch), true, commitish).await.map_err(
         |e| match e {
-            PhantomError::Git { message, .. } => WorktreeError::GitOperation {
-                operation: "worktree add".to_string(),
-                details: message,
+            PhantomError::Git { command: _, args, exit_code, stderr } => {
+                WorktreeError::GitOperation {
+                    operation: format!("git {} failed with exit code {exit_code}", args.join(" ")),
+                    details: stderr,
+                }
+                .into()
             }
-            .into(),
             _ => e,
         },
     )?;
 
     let mut result = CreateWorktreeSuccess {
-        message: format!("Created worktree '{}' at {}", name, worktree_path.display()),
+        message: format!("Created worktree '{name}' at {}", worktree_path.display()),
         path: worktree_path.to_string_lossy().to_string(),
         copied_files: None,
         skipped_files: None,
@@ -139,7 +156,7 @@ pub async fn create_worktree_with_backend(
     // Handle file copying if requested
     if let Some(ref files_to_copy) = options.copy_files {
         if !files_to_copy.is_empty() {
-            match copy_files(git_root, &worktree_path, files_to_copy).await {
+            match copy_files_concurrent(git_root, &worktree_path, files_to_copy).await {
                 Ok(copy_result) => {
                     result.copied_files = Some(copy_result.copied_files);
                     result.skipped_files = Some(copy_result.skipped_files);
@@ -165,8 +182,9 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree(repo.path(), "feature", options).await;
+        let result = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -184,7 +202,8 @@ mod tests {
             branch: Some("custom-branch".to_string()),
             ..Default::default()
         };
-        let result = create_worktree(repo.path(), "feature", options).await;
+        use crate::core::executors::RealCommandExecutor;
+        let result = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -196,18 +215,20 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
 
         // Create first worktree
-        let result1 = create_worktree(repo.path(), "feature", options.clone()).await;
+        let result1 =
+            create_worktree(RealCommandExecutor, repo.path(), "feature", options.clone()).await;
         assert!(result1.is_ok());
 
         // Try to create duplicate
-        let result2 = create_worktree(repo.path(), "feature", options).await;
+        let result2 = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
         assert!(result2.is_err());
 
         match result2.unwrap_err() {
-            PhantomError::Worktree(msg) => assert!(msg.contains("already exists")),
+            PhantomError::WorktreeExists { name } => assert_eq!(name, "feature"),
             _ => panic!("Expected WorktreeError"),
         }
     }
@@ -216,12 +237,17 @@ mod tests {
     async fn test_create_worktree_invalid_name() {
         let repo = TestRepo::new().await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree(repo.path(), "feature branch", options).await;
+        let result =
+            create_worktree(RealCommandExecutor, repo.path(), "feature branch", options).await;
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::Validation(msg) => assert!(msg.contains("can only contain")),
+            PhantomError::InvalidWorktreeName { name, reason } => {
+                assert_eq!(name, "feature branch");
+                assert!(reason.contains("can only contain"));
+            }
             _ => panic!("Expected ValidationError"),
         }
     }
@@ -233,7 +259,7 @@ mod tests {
 
         let backend = create_backend_for_dir(repo.path());
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree_with_backend(backend, repo.path(), "feature", options).await;
+        let result = create_worktree_with_backend(&backend, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -248,11 +274,12 @@ mod tests {
         repo.create_file_and_commit("config.json", "{}", "Add config").await.unwrap();
         repo.create_file_and_commit(".env", "KEY=value", "Add env").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions {
             copy_files: Some(vec!["config.json".to_string(), ".env".to_string()]),
             ..Default::default()
         };
-        let result = create_worktree(repo.path(), "feature", options).await;
+        let result = create_worktree(RealCommandExecutor, repo.path(), "feature", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -274,11 +301,13 @@ mod tests {
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
         repo.create_file_and_commit("config.json", "{}", "Add config").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions {
             copy_files: Some(vec!["config.json".to_string(), "missing.txt".to_string()]),
             ..Default::default()
         };
-        let result = create_worktree(repo.path(), "feature-missing", options).await;
+        let result =
+            create_worktree(RealCommandExecutor, repo.path(), "feature-missing", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -294,8 +323,10 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions { copy_files: Some(vec![]), ..Default::default() };
-        let result = create_worktree(repo.path(), "feature-empty", options).await;
+        let result =
+            create_worktree(RealCommandExecutor, repo.path(), "feature-empty", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();
@@ -309,8 +340,11 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let options = CreateWorktreeOptions::default();
-        let result = create_worktree(repo.path(), "verify-fields", options).await.unwrap();
+        let result = create_worktree(RealCommandExecutor, repo.path(), "verify-fields", options)
+            .await
+            .unwrap();
 
         assert!(result.message.contains("Created worktree 'verify-fields'"));
         assert!(result.path.ends_with("verify-fields"));
@@ -331,7 +365,7 @@ mod tests {
             ..Default::default()
         };
         let result =
-            create_worktree_with_backend(backend, repo.path(), "backend-copy", options).await;
+            create_worktree_with_backend(&backend, repo.path(), "backend-copy", options).await;
 
         assert!(result.is_ok());
         let success = result.unwrap();

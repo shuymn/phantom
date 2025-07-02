@@ -1,32 +1,35 @@
 use crate::core::command_executor::CommandExecutor;
+use crate::git::const_utils::{commands, flags};
 use crate::git::git_executor_adapter::GitExecutor;
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use tracing::info;
 
 /// Add a new git worktree with executor
-pub async fn add_worktree_with_executor(
-    executor: Arc<dyn CommandExecutor>,
+pub async fn add_worktree<E>(
+    executor: E,
     repo_path: &Path,
     worktree_path: &Path,
     branch: Option<&str>,
     new_branch: bool,
     commitish: Option<&str>,
-) -> Result<()> {
+) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let git_executor = GitExecutor::new(executor).with_cwd(repo_path);
 
-    let mut args = vec!["worktree", "add"];
+    let mut args = vec![commands::WORKTREE, commands::ADD];
 
     // If creating a new branch
     if new_branch {
         if let Some(branch_name) = branch {
-            args.push("-b");
+            args.push(flags::BRANCH_FLAG);
             args.push(branch_name);
         } else {
-            return Err(PhantomError::InvalidWorktreeName(
-                "Branch name required when creating new branch".to_string(),
-            ));
+            return Err(PhantomError::ValidationFailed {
+                reason: "Branch name required when creating new branch".to_string(),
+            });
         }
     }
 
@@ -55,36 +58,20 @@ pub async fn add_worktree_with_executor(
     Ok(())
 }
 
-/// Add a new git worktree using the default executor
-pub async fn add_worktree(
-    repo_path: &Path,
-    worktree_path: &Path,
-    branch: Option<&str>,
-    new_branch: bool,
-    commitish: Option<&str>,
-) -> Result<()> {
-    use crate::core::executors::RealCommandExecutor;
-    add_worktree_with_executor(
-        Arc::new(RealCommandExecutor),
-        repo_path,
-        worktree_path,
-        branch,
-        new_branch,
-        commitish,
-    )
-    .await
-}
-
 /// Add a new worktree with automatic branch name
-pub async fn add_worktree_auto(repo_path: &Path, worktree_name: &str) -> Result<()> {
+pub async fn add_worktree_auto<E>(executor: E, repo_path: &Path, worktree_name: &str) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+{
     let worktree_path = repo_path
         .parent()
-        .ok_or_else(|| {
-            PhantomError::InvalidWorktreeName("Cannot determine parent directory".to_string())
+        .ok_or_else(|| PhantomError::InvalidPath {
+            path: repo_path.to_string_lossy().to_string(),
+            reason: "Cannot determine parent directory".to_string(),
         })?
         .join(worktree_name);
 
-    add_worktree(repo_path, &worktree_path, Some(worktree_name), true, None).await
+    add_worktree(executor, repo_path, &worktree_path, Some(worktree_name), true, None).await
 }
 
 #[cfg(test)]
@@ -101,9 +88,17 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("feature-branch");
 
-        add_worktree(repo.path(), &worktree_path, Some("feature-branch"), true, None)
-            .await
-            .unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        add_worktree(
+            RealCommandExecutor,
+            repo.path(),
+            &worktree_path,
+            Some("feature-branch"),
+            true,
+            None,
+        )
+        .await
+        .unwrap();
 
         assert!(worktree_path.exists());
         assert!(worktree_path.join(".git").exists());
@@ -118,15 +113,22 @@ mod tests {
 
         // Switch back to main branch to allow worktree creation
         use crate::core::executors::RealCommandExecutor;
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor).with_cwd(repo.path());
         executor.run(&["checkout", "main"]).await.ok();
 
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("existing-worktree");
 
-        add_worktree(repo.path(), &worktree_path, Some("existing-branch"), false, None)
-            .await
-            .unwrap();
+        add_worktree(
+            RealCommandExecutor,
+            repo.path(),
+            &worktree_path,
+            Some("existing-branch"),
+            false,
+            None,
+        )
+        .await
+        .unwrap();
 
         assert!(worktree_path.exists());
     }
@@ -138,7 +140,8 @@ mod tests {
 
         // Use a unique name to avoid conflicts in parallel tests
         let unique_name = format!("auto-branch-{}", std::process::id());
-        add_worktree_auto(repo.path(), &unique_name).await.unwrap();
+        use crate::core::executors::RealCommandExecutor;
+        add_worktree_auto(RealCommandExecutor, repo.path(), &unique_name).await.unwrap();
 
         let expected_path = repo.path().parent().unwrap().join(&unique_name);
         assert!(expected_path.exists());
@@ -150,12 +153,14 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let worktree_path = temp_dir.path().join("test");
 
-        let result = add_worktree(repo.path(), &worktree_path, None, true, None).await;
+        use crate::core::executors::RealCommandExecutor;
+        let result =
+            add_worktree(RealCommandExecutor, repo.path(), &worktree_path, None, true, None).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
-            PhantomError::InvalidWorktreeName(msg) => {
-                assert!(msg.contains("Branch name required"));
+            PhantomError::ValidationFailed { reason } => {
+                assert!(reason.contains("Branch name required"));
             }
             _ => panic!("Expected InvalidWorktreeName error"),
         }
@@ -170,7 +175,7 @@ mod tests {
 
         // Get first commit hash
         use crate::core::executors::RealCommandExecutor;
-        let executor = GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(repo.path());
+        let executor = GitExecutor::new(RealCommandExecutor).with_cwd(repo.path());
         let first_commit = executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         let first_commit = first_commit.trim();
 
@@ -182,6 +187,7 @@ mod tests {
         let worktree_path = temp_dir.path().join("based-on-first");
 
         add_worktree(
+            RealCommandExecutor,
             repo.path(),
             &worktree_path,
             Some("feature-from-first"),
@@ -199,8 +205,7 @@ mod tests {
         assert!(!worktree_path.join("file2.txt").exists());
 
         // Verify the commit hash
-        let worktree_executor =
-            GitExecutor::new(Arc::new(RealCommandExecutor)).with_cwd(&worktree_path);
+        let worktree_executor = GitExecutor::new(RealCommandExecutor).with_cwd(&worktree_path);
         let worktree_commit = worktree_executor.run(&["rev-parse", "HEAD"]).await.unwrap();
         assert_eq!(worktree_commit.trim(), first_commit);
     }

@@ -8,6 +8,7 @@ use tokio::fs::DirEntry;
 use crate::core::error::PhantomError;
 use crate::core::filesystem::FileSystem;
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
 #[derive(Debug, Clone)]
 pub enum FileSystemOperation {
@@ -67,6 +68,9 @@ pub struct MockFileSystem {
     expectations: Arc<Mutex<HashMap<String, Vec<FileSystemExpectation>>>>,
     current_dir: Arc<Mutex<PathBuf>>,
 }
+
+// Implement the sealed trait
+impl Sealed for MockFileSystem {}
 
 impl MockFileSystem {
     pub fn new() -> Self {
@@ -129,10 +133,11 @@ impl MockFileSystem {
             }
         }
 
-        Err(PhantomError::FileOperation(format!(
-            "No expectation found for {:?} with path {:?}",
-            expectation.operation, path
-        )))
+        Err(PhantomError::FileOperationFailed {
+            operation: format!("{:?}", expectation.operation),
+            path: path.unwrap_or(Path::new("")).to_path_buf(),
+            reason: "No expectation found".to_string(),
+        })
     }
 }
 
@@ -143,7 +148,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::Exists, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::Bool(b) => Ok(b),
-            _ => Err(PhantomError::FileOperation("Unexpected result type for exists".to_string())),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "exists".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -154,7 +163,11 @@ impl FileSystem for MockFileSystem {
             Ok(_) => {
                 // We can't create real Metadata, so we'll return an error for now
                 // In real usage, we might need to refactor to return our own metadata type
-                Err(PhantomError::FileOperation("Mock metadata not fully implemented".to_string()))
+                Err(PhantomError::FileOperationFailed {
+                    operation: "metadata".to_string(),
+                    path: path.to_path_buf(),
+                    reason: "Mock metadata not fully implemented".to_string(),
+                })
             }
             Err(e) => Err(e),
         }
@@ -165,7 +178,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::IsFile, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::Bool(b) => Ok(b),
-            _ => Err(PhantomError::FileOperation("Unexpected result type for is_file".to_string())),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "is_file".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -174,7 +191,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::IsDir, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::Bool(b) => Ok(b),
-            _ => Err(PhantomError::FileOperation("Unexpected result type for is_dir".to_string())),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "is_dir".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -183,9 +204,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::CreateDir, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::Unit => Ok(()),
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for create_dir".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "create_dir".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -194,9 +217,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::CreateDirAll, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::Unit => Ok(()),
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for create_dir_all".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "create_dir_all".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -205,9 +230,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::RemoveDirAll, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::Unit => Ok(()),
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for remove_dir_all".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "remove_dir_all".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -218,7 +245,11 @@ impl FileSystem for MockFileSystem {
             Ok(_) => {
                 // We can't create real DirEntry objects, so we'll return an error for now
                 // In real usage, we might need to refactor to return our own directory entry type
-                Err(PhantomError::FileOperation("Mock read_dir not fully implemented".to_string()))
+                Err(PhantomError::FileOperationFailed {
+                    operation: "read_dir".to_string(),
+                    path: path.to_path_buf(),
+                    reason: "Mock read_dir not fully implemented".to_string(),
+                })
             }
             Err(e) => Err(e),
         }
@@ -229,9 +260,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::ReadToString, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::String(s) => Ok(s),
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for read_to_string".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "read_to_string".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -245,7 +278,11 @@ impl FileSystem for MockFileSystem {
         )?;
         match expectation.result? {
             MockResult::Unit => Ok(()),
-            _ => Err(PhantomError::FileOperation("Unexpected result type for write".to_string())),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "write".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -254,7 +291,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::Copy, None, Some(from), Some(to), None)?;
         match expectation.result? {
             MockResult::U64(n) => Ok(n),
-            _ => Err(PhantomError::FileOperation("Unexpected result type for copy".to_string())),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "copy".to_string(),
+                path: from.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -268,9 +309,11 @@ impl FileSystem for MockFileSystem {
         )?;
         match expectation.result? {
             MockResult::Unit => Ok(()),
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for set_permissions".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "set_permissions".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -279,9 +322,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::CurrentDir, None, None, None, None)?;
         match expectation.result? {
             MockResult::PathBuf(p) => Ok(p),
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for current_dir".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "current_dir".to_string(),
+                path: PathBuf::from("."),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -298,9 +343,11 @@ impl FileSystem for MockFileSystem {
                 *self.current_dir.lock().unwrap() = path.to_path_buf();
                 Ok(())
             }
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for set_current_dir".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "set_current_dir".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 
@@ -319,9 +366,11 @@ impl FileSystem for MockFileSystem {
             self.find_expectation(FileSystemOperation::Canonicalize, Some(path), None, None, None)?;
         match expectation.result? {
             MockResult::PathBuf(p) => Ok(p),
-            _ => Err(PhantomError::FileOperation(
-                "Unexpected result type for canonicalize".to_string(),
-            )),
+            _ => Err(PhantomError::FileOperationFailed {
+                operation: "canonicalize".to_string(),
+                path: path.to_path_buf(),
+                reason: "Unexpected result type".to_string(),
+            }),
         }
     }
 }

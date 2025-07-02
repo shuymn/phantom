@@ -1,8 +1,9 @@
+use crate::worktree::const_validate::DEFAULT_PHANTOM_DIR;
 use std::path::{Path, PathBuf};
 
 /// Get the phantom directory path within the git repository
 pub fn get_phantom_directory(git_root: &Path) -> PathBuf {
-    git_root.join(".git").join("phantom").join("worktrees")
+    git_root.join(DEFAULT_PHANTOM_DIR)
 }
 
 /// Get the path for a specific worktree

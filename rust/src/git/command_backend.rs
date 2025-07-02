@@ -1,3 +1,5 @@
+use crate::core::command_executor::CommandExecutor;
+use crate::core::sealed::Sealed;
 use crate::core::types::Worktree;
 use crate::git::backend::{GitBackend, GitConfig};
 use crate::git::libs::{
@@ -12,52 +14,65 @@ use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 
 /// Git backend implementation using command-line git
-pub struct CommandBackend {
+pub struct CommandBackend<E> {
     config: GitConfig,
+    executor: E,
 }
 
-impl CommandBackend {
-    /// Create a new CommandBackend with the given configuration
-    pub fn new(config: GitConfig) -> Self {
-        Self { config }
+impl<E> CommandBackend<E>
+where
+    E: CommandExecutor + Clone + 'static,
+{
+    /// Create a new CommandBackend with the given configuration and executor
+    pub fn new(config: GitConfig, executor: E) -> Self {
+        Self { config, executor }
     }
 }
 
-impl Default for CommandBackend {
+impl<E> Default for CommandBackend<E>
+where
+    E: CommandExecutor + Clone + Default + 'static,
+{
     fn default() -> Self {
-        Self::new(GitConfig::default())
+        Self::new(GitConfig::default(), E::default())
     }
 }
+
+// Implement the sealed trait to allow CommandBackend to implement GitBackend
+impl<E> Sealed for CommandBackend<E> where E: CommandExecutor + Clone + 'static {}
 
 #[async_trait]
-impl GitBackend for CommandBackend {
+impl<E> GitBackend for CommandBackend<E>
+where
+    E: CommandExecutor + Clone + Send + Sync + 'static,
+{
     async fn current_branch(&self) -> Result<String> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        get_current_branch(cwd).await
+        get_current_branch(self.executor.clone(), cwd).await
     }
 
     async fn list_branches(&self) -> Result<Vec<String>> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        list_branches(cwd).await
+        list_branches(self.executor.clone(), cwd).await
     }
 
     async fn create_branch(&self, name: &str) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        create_branch(cwd, name).await
+        create_branch(self.executor.clone(), cwd, name).await
     }
 
     async fn branch_exists(&self, name: &str) -> Result<bool> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        branch_exists(cwd, name).await
+        branch_exists(self.executor.clone(), cwd, name).await
     }
 
     async fn get_root(&self) -> Result<PathBuf> {
-        get_git_root().await
+        get_git_root(self.executor.clone()).await
     }
 
     async fn list_worktrees(&self) -> Result<Vec<Worktree>> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        list_worktrees(cwd).await
+        list_worktrees(self.executor.clone(), cwd).await
     }
 
     async fn add_worktree(
@@ -68,31 +83,31 @@ impl GitBackend for CommandBackend {
         commitish: Option<&str>,
     ) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        add_worktree(cwd, path, branch, new_branch, commitish).await
+        add_worktree(self.executor.clone(), cwd, path, branch, new_branch, commitish).await
     }
 
     async fn attach_worktree(&self, path: &Path, branch: &str) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        attach_worktree(cwd, path, branch).await
+        attach_worktree(self.executor.clone(), cwd, path, branch).await
     }
 
     async fn remove_worktree(&self, path: &Path) -> Result<()> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        remove_worktree(cwd, path).await
+        remove_worktree(self.executor.clone(), cwd, path).await
     }
 
     async fn current_commit(&self) -> Result<String> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        current_commit(cwd).await
+        current_commit(self.executor.clone(), cwd).await
     }
 
     async fn is_inside_work_tree(&self) -> Result<bool> {
-        is_inside_work_tree(self.config.cwd.as_deref()).await
+        is_inside_work_tree(self.executor.clone(), self.config.cwd.as_deref()).await
     }
 
     async fn current_worktree(&self) -> Result<Option<String>> {
         let cwd = self.config.cwd.as_deref().unwrap_or(Path::new("."));
-        get_current_worktree(cwd).await
+        get_current_worktree(self.executor.clone(), cwd).await
     }
 }
 
@@ -106,8 +121,9 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let config = GitConfig::with_cwd(repo.path());
-        let backend = CommandBackend::new(config);
+        let backend = CommandBackend::new(config, RealCommandExecutor);
 
         // Test current_branch
         let branch = backend.current_branch().await.unwrap();
@@ -130,8 +146,9 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let config = GitConfig::with_cwd(repo.path());
-        let backend = CommandBackend::new(config);
+        let backend = CommandBackend::new(config, RealCommandExecutor);
 
         // Test list_worktrees
         let worktrees = backend.list_worktrees().await.unwrap();
@@ -141,7 +158,7 @@ mod tests {
         let timestamp =
             std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
         let worktree_path =
-            repo.path().parent().unwrap().join(format!("test-worktree-{}", timestamp));
+            repo.path().parent().unwrap().join(format!("test-worktree-{timestamp}"));
         backend.add_worktree(&worktree_path, Some("feature"), true, None).await.unwrap();
 
         let worktrees = backend.list_worktrees().await.unwrap();
@@ -162,8 +179,9 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
         repo.create_file_and_commit("test.txt", "content", "Initial commit").await.unwrap();
 
+        use crate::core::executors::RealCommandExecutor;
         let config = GitConfig::with_cwd(repo.path());
-        let backend = CommandBackend::new(config);
+        let backend = CommandBackend::new(config, RealCommandExecutor);
 
         // Test current_commit
         let commit = backend.current_commit().await.unwrap();

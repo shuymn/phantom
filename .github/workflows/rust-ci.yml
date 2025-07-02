@@ -133,13 +133,6 @@ jobs:
             artifact_name: phantom-linux-aarch64
             use_cross: true
           
-          # macOS builds
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: phantom-macos-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: phantom-macos-aarch64
 
     steps:
       - name: Checkout repository
@@ -187,9 +180,6 @@ jobs:
             strip target/${{ matrix.target }}/release/phantom
           fi
 
-      - name: Strip binary (macOS)
-        if: runner.os == 'macOS'
-        run: strip target/${{ matrix.target }}/release/phantom
 
       - name: Create tarball
         run: |

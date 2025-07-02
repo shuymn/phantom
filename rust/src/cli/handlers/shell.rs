@@ -1,31 +1,34 @@
 use crate::cli::commands::shell::ShellArgs;
 use crate::cli::context::HandlerContext;
 use crate::cli::output::output;
-use crate::git::libs::get_git_root::get_git_root_with_executor;
-use crate::process::exec::{spawn_shell_in_worktree, spawn_shell_in_worktree_with_executor};
+use crate::core::command_executor::CommandExecutor;
+use crate::core::exit_handler::ExitHandler;
+use crate::core::filesystem::FileSystem;
+use crate::git::libs::get_git_root::get_git_root;
+use crate::process::exec::spawn_shell_in_worktree;
 use crate::process::kitty::{
-    execute_kitty_command, execute_kitty_command_with_executor, is_inside_kitty, KittyOptions,
-    KittySplitDirection,
+    execute_kitty_command, is_inside_kitty, KittyOptions, KittySplitDirection,
 };
 use crate::process::shell::{detect_shell, get_phantom_env};
 use crate::process::tmux::{execute_tmux_command, is_inside_tmux, TmuxOptions, TmuxSplitDirection};
-use crate::worktree::select::{select_worktree_with_fzf, select_worktree_with_fzf_with_executor};
+use crate::worktree::select::select_worktree_with_fzf;
 use crate::worktree::validate::validate_worktree_exists;
-use crate::{PhantomError, Result};
+use anyhow::{anyhow, bail, Context, Result};
 
 /// Handle the shell command
-pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
+pub async fn handle<E, F, H>(args: ShellArgs, context: HandlerContext<E, F, H>) -> Result<()>
+where
+    E: CommandExecutor + Clone + 'static,
+    F: FileSystem + Clone + 'static,
+    H: ExitHandler + Clone + 'static,
+{
     // Validate args
     if args.name.is_none() && !args.fzf {
-        return Err(PhantomError::Validation(
-            "Usage: phantom shell <worktree-name> or phantom shell --fzf".to_string(),
-        ));
+        bail!("Usage: phantom shell <worktree-name> or phantom shell --fzf");
     }
 
     if args.name.is_some() && args.fzf {
-        return Err(PhantomError::Validation(
-            "Cannot specify both a worktree name and --fzf option".to_string(),
-        ));
+        bail!("Cannot specify both a worktree name and --fzf option");
     }
 
     // Determine tmux direction
@@ -52,27 +55,23 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
 
     // Validate multiplexer options
     if tmux_direction.is_some() && !is_inside_tmux().await {
-        return Err(PhantomError::Validation(
-            "The --tmux option can only be used inside a tmux session".to_string(),
-        ));
+        bail!("The --tmux option can only be used inside a tmux session");
     }
 
     if kitty_direction.is_some() && !is_inside_kitty().await {
-        return Err(PhantomError::Validation(
-            "The --kitty option can only be used inside a kitty terminal".to_string(),
-        ));
+        bail!("The --kitty option can only be used inside a kitty terminal");
     }
 
     // Get git root
-    let git_root = get_git_root_with_executor(context.executor.clone()).await?;
+    let git_root = get_git_root(context.executor.clone())
+        .await
+        .with_context(|| "Failed to determine git repository root")?;
 
     // Get worktree name
     let worktree_name = if args.fzf {
-        let result = if cfg!(test) {
-            select_worktree_with_fzf_with_executor(context.executor.clone(), &git_root).await?
-        } else {
-            select_worktree_with_fzf(&git_root).await?
-        };
+        let result = select_worktree_with_fzf(context.executor.clone(), &git_root)
+            .await
+            .with_context(|| "Failed to select worktree with fzf")?;
 
         match result {
             Some(worktree) => worktree.name,
@@ -86,12 +85,13 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
     };
 
     // Validate worktree exists
-    let validation =
-        validate_worktree_exists(&git_root, &worktree_name, context.filesystem.as_ref()).await?;
+    let validation = validate_worktree_exists(&git_root, &worktree_name, &context.filesystem)
+        .await
+        .with_context(|| format!("Failed to validate worktree '{worktree_name}' exists"))?;
     let worktree_path = validation.path;
 
     // Get shell info
-    let shell_info = detect_shell()?;
+    let shell_info = detect_shell().with_context(|| "Failed to detect shell")?;
     let shell_command = shell_info.path;
 
     // Handle tmux execution
@@ -109,13 +109,16 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
             cwd: Some(worktree_path.to_string_lossy().to_string()),
             env: Some(get_phantom_env(&worktree_name, &worktree_path.to_string_lossy())),
             window_name: if direction == TmuxSplitDirection::New {
-                Some(worktree_name)
+                Some(worktree_name.clone())
             } else {
                 None
             },
         };
 
-        execute_tmux_command(options).await?;
+        execute_tmux_command(&context.executor, options)
+            .await
+            .map_err(|e| anyhow!(e))
+            .with_context(|| format!("Failed to open worktree '{worktree_name}' in tmux"))?;
         return Ok(());
     }
 
@@ -134,17 +137,16 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
             cwd: Some(worktree_path.to_string_lossy().to_string()),
             env: Some(get_phantom_env(&worktree_name, &worktree_path.to_string_lossy())),
             window_title: if direction == KittySplitDirection::New {
-                Some(worktree_name)
+                Some(worktree_name.clone())
             } else {
                 None
             },
         };
 
-        if cfg!(test) {
-            execute_kitty_command_with_executor(context.executor.clone(), options).await?;
-        } else {
-            execute_kitty_command(options).await?;
-        }
+        execute_kitty_command(&context.executor, options)
+            .await
+            .map_err(|e| anyhow!(e))
+            .with_context(|| format!("Failed to open worktree '{worktree_name}' in kitty"))?;
         return Ok(());
     }
 
@@ -152,18 +154,21 @@ pub async fn handle(args: ShellArgs, context: HandlerContext) -> Result<()> {
     output().log(&format!("Entering worktree '{}' at {}", worktree_name, worktree_path.display()));
     output().log("Type 'exit' to return to your original directory\n");
 
-    let result = if cfg!(test) {
-        // In test mode, use the executor from context
-        spawn_shell_in_worktree_with_executor(
-            &git_root,
-            &worktree_name,
-            context.filesystem.as_ref(),
-            Some(context.executor.clone()),
+    let result = spawn_shell_in_worktree(
+        &git_root,
+        &worktree_name,
+        &context.filesystem,
+        Some(context.executor.clone()),
+    )
+    .await
+    .map_err(|e| anyhow!(e))
+    .with_context(|| {
+        format!(
+            "Failed to spawn shell in worktree '{}' at path: {}",
+            worktree_name,
+            worktree_path.display()
         )
-        .await?
-    } else {
-        spawn_shell_in_worktree(&git_root, &worktree_name, context.filesystem.as_ref()).await?
-    };
+    })?;
 
     // Exit with the same code as the shell
     context.exit_handler.exit(result.exit_code);
@@ -176,7 +181,6 @@ mod tests {
     use crate::core::filesystems::mock_filesystem::{FileSystemOperation, MockResult};
     use crate::core::filesystems::{FileSystemExpectation, MockFileSystem};
     use std::path::PathBuf;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn test_shell_not_in_git_repo() {
@@ -190,9 +194,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -216,9 +220,9 @@ mod tests {
     #[tokio::test]
     async fn test_shell_invalid_usage_no_name_no_fzf() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ShellArgs {
             name: None,
@@ -243,9 +247,9 @@ mod tests {
     #[tokio::test]
     async fn test_shell_both_name_and_fzf() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -270,9 +274,9 @@ mod tests {
     #[tokio::test]
     async fn test_shell_tmux_outside_tmux_session() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -301,9 +305,9 @@ mod tests {
     #[tokio::test]
     async fn test_shell_kitty_outside_kitty_terminal() {
         let context = HandlerContext::new(
-            Arc::new(MockCommandExecutor::new()),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            MockCommandExecutor::new(),
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),
@@ -369,11 +373,8 @@ mod tests {
             .in_dir(std::path::PathBuf::from("/repo/.git/phantom/worktrees/test"))
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -399,7 +400,8 @@ mod tests {
         let mock_fs = MockFileSystem::new();
 
         // Set TMUX env var to simulate being inside tmux
-        std::env::set_var("TMUX", "/tmp/tmux-1000/default,12345,0");
+        use crate::test_utils::EnvGuard;
+        let _guard = EnvGuard::set("TMUX", "/tmp/tmux-1000/default,12345,0");
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -437,11 +439,8 @@ mod tests {
             ])
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -460,8 +459,7 @@ mod tests {
         let result = handle(args, context).await;
         assert!(result.is_ok());
 
-        // Clean up env var
-        std::env::remove_var("TMUX");
+        // Guard will automatically restore env var when dropped
     }
 
     #[tokio::test]
@@ -470,7 +468,8 @@ mod tests {
         let mock_fs = MockFileSystem::new();
 
         // Set KITTY_WINDOW_ID env var to simulate being inside kitty
-        std::env::set_var("KITTY_WINDOW_ID", "1");
+        use crate::test_utils::EnvGuard;
+        let _guard = EnvGuard::set("KITTY_WINDOW_ID", "1");
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -505,11 +504,8 @@ mod tests {
             ])
             .returns_output("", "", 0);
 
-        let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(mock_fs),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
-        );
+        let context =
+            HandlerContext::new(mock, mock_fs, crate::core::exit_handler::MockExitHandler::new());
         let args = ShellArgs {
             name: Some("test".to_string()),
             fzf: false,
@@ -528,8 +524,7 @@ mod tests {
         let result = handle(args, context).await;
         assert!(result.is_ok());
 
-        // Clean up env var
-        std::env::remove_var("KITTY_WINDOW_ID");
+        // Guard will automatically restore env var when dropped
     }
 
     #[tokio::test]
@@ -544,9 +539,9 @@ mod tests {
         );
 
         let context = HandlerContext::new(
-            Arc::new(mock),
-            Arc::new(crate::core::filesystems::MockFileSystem::new()),
-            Arc::new(crate::core::exit_handler::MockExitHandler::new()),
+            mock,
+            crate::core::filesystems::MockFileSystem::new(),
+            crate::core::exit_handler::MockExitHandler::new(),
         );
         let args = ShellArgs {
             name: Some("test".to_string()),

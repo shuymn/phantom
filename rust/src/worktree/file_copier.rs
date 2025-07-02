@@ -32,11 +32,9 @@ pub async fn copy_files(
                 skipped_files.push(file.clone());
             }
             Err(e) => {
-                return Err(WorktreeError::FileOperation(format!(
-                    "Failed to copy {}: {}",
-                    file, e
-                ))
-                .into());
+                return Err(
+                    WorktreeError::FileOperation(format!("Failed to copy {file}: {e}")).into()
+                );
             }
         }
     }
@@ -52,18 +50,17 @@ async fn copy_single_file(source: &Path, target: &Path, file_name: &str) -> Resu
     match fs::metadata(source).await {
         Ok(metadata) => {
             if !metadata.is_file() {
-                debug!("Skipping '{}': not a file", file_name);
+                debug!("Skipping '{file_name}': not a file");
                 return Ok(false);
             }
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            debug!("Skipping '{}': file not found", file_name);
+            debug!("Skipping '{file_name}': file not found");
             return Ok(false);
         }
         Err(e) => {
             return Err(WorktreeError::FileOperation(format!(
-                "Failed to check metadata for '{}': {}",
-                file_name, e
+                "Failed to check metadata for '{file_name}': {e}"
             ))
             .into());
         }
@@ -73,19 +70,71 @@ async fn copy_single_file(source: &Path, target: &Path, file_name: &str) -> Resu
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent).await.map_err(|e| {
             WorktreeError::FileOperation(format!(
-                "Failed to create directory for '{}': {}",
-                file_name, e
+                "Failed to create directory for '{file_name}': {e}"
             ))
         })?;
     }
 
     // Copy the file
-    fs::copy(source, target).await.map_err(|e| {
-        WorktreeError::FileOperation(format!("Failed to copy '{}': {}", file_name, e))
-    })?;
+    fs::copy(source, target)
+        .await
+        .map_err(|e| WorktreeError::FileOperation(format!("Failed to copy '{file_name}': {e}")))?;
 
-    debug!("Copied file: {}", file_name);
+    debug!("Copied file: {file_name}");
     Ok(true)
+}
+
+/// Copy multiple files from source directory to target directory concurrently
+pub async fn copy_files_concurrent(
+    source_dir: &Path,
+    target_dir: &Path,
+    files: &[String],
+) -> Result<CopyFileResult> {
+    use futures::stream::{FuturesUnordered, StreamExt};
+
+    // Create futures for concurrent file copies
+    let copy_futures: FuturesUnordered<_> = files
+        .iter()
+        .map(|file| {
+            let source_path = source_dir.join(file);
+            let target_path = target_dir.join(file);
+            let file = file.clone();
+
+            async move {
+                match copy_single_file(&source_path, &target_path, &file).await {
+                    Ok(true) => (file, true, None),
+                    Ok(false) => (file, false, None),
+                    Err(e) => (file, false, Some(e)),
+                }
+            }
+        })
+        .collect();
+
+    // Execute all copies concurrently and collect results
+    let results: Vec<_> = copy_futures.collect().await;
+
+    let mut copied_files = Vec::new();
+    let mut skipped_files = Vec::new();
+
+    for (file, success, error) in results {
+        if let Some(e) = error {
+            return Err(WorktreeError::FileOperation(format!("Failed to copy {file}: {e}")).into());
+        }
+
+        if success {
+            copied_files.push(file);
+        } else {
+            skipped_files.push(file);
+        }
+    }
+
+    debug!(
+        "Concurrently copied {} files, skipped {} files",
+        copied_files.len(),
+        skipped_files.len()
+    );
+
+    Ok(CopyFileResult { copied_files, skipped_files })
 }
 
 #[cfg(test)]
@@ -242,7 +291,7 @@ mod tests {
             skipped_files: vec!["skip.txt".to_string()],
         };
 
-        let debug_str = format!("{:?}", result);
+        let debug_str = format!("{result:?}");
         assert!(debug_str.contains("CopyFileResult"));
         assert!(debug_str.contains("copied_files"));
         assert!(debug_str.contains("file1.txt"));
@@ -305,5 +354,64 @@ mod tests {
         let target_file = target_dir.path().join("executable.sh");
         let target_perms = fs::metadata(&target_file).await.unwrap().permissions();
         assert_eq!(target_perms.mode() & 0o777, 0o755);
+    }
+
+    #[tokio::test]
+    async fn test_copy_files_concurrent_basic() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        // Create multiple test files
+        let mut files = Vec::new();
+        for i in 0..10 {
+            let filename = format!("file{i}.txt");
+            let file_path = source_dir.path().join(&filename);
+            fs::write(&file_path, format!("content{i}")).await.unwrap();
+            files.push(filename);
+        }
+
+        let result =
+            copy_files_concurrent(source_dir.path(), target_dir.path(), &files).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 10);
+        assert_eq!(result.skipped_files.len(), 0);
+
+        // Verify all files were copied
+        for i in 0..10 {
+            let target_file = target_dir.path().join(format!("file{i}.txt"));
+            assert!(target_file.exists());
+            assert_eq!(fs::read_to_string(target_file).await.unwrap(), format!("content{i}"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_copy_files_concurrent_mixed_results() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+
+        // Create some files, leave others missing
+        fs::write(source_dir.path().join("exists1.txt"), "content1").await.unwrap();
+        fs::write(source_dir.path().join("exists2.txt"), "content2").await.unwrap();
+        fs::create_dir(source_dir.path().join("dir")).await.unwrap();
+
+        let files = vec![
+            "exists1.txt".to_string(),
+            "missing1.txt".to_string(),
+            "exists2.txt".to_string(),
+            "missing2.txt".to_string(),
+            "dir".to_string(),
+        ];
+
+        let result =
+            copy_files_concurrent(source_dir.path(), target_dir.path(), &files).await.unwrap();
+
+        assert_eq!(result.copied_files.len(), 2);
+        assert!(result.copied_files.contains(&"exists1.txt".to_string()));
+        assert!(result.copied_files.contains(&"exists2.txt".to_string()));
+
+        assert_eq!(result.skipped_files.len(), 3);
+        assert!(result.skipped_files.contains(&"missing1.txt".to_string()));
+        assert!(result.skipped_files.contains(&"missing2.txt".to_string()));
+        assert!(result.skipped_files.contains(&"dir".to_string()));
     }
 }

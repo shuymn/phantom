@@ -7,7 +7,6 @@ use crate::{PhantomError, Result};
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
-use std::sync::Arc;
 use tracing::{debug, error, info};
 
 /// Execute a command in a specific directory
@@ -26,14 +25,17 @@ pub async fn exec_in_dir(dir: &Path, command: &str, args: &[String]) -> Result<S
 }
 
 /// Execute a command in a worktree with optional CommandExecutor
-pub async fn exec_in_worktree_with_executor(
+pub async fn exec_in_worktree<E>(
     git_root: &Path,
     worktree_name: &str,
     command: &str,
     args: &[String],
     filesystem: &dyn FileSystem,
-    executor: Option<Arc<dyn CommandExecutor>>,
-) -> Result<SpawnSuccess> {
+    executor: Option<E>,
+) -> Result<SpawnSuccess>
+where
+    E: CommandExecutor,
+{
     // Validate worktree exists
     let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
     let worktree_path = validation.path;
@@ -69,17 +71,6 @@ pub async fn exec_in_worktree_with_executor(
     }
 }
 
-/// Execute a command in a worktree (backward compatible)
-pub async fn exec_in_worktree(
-    git_root: &Path,
-    worktree_name: &str,
-    command: &str,
-    args: &[String],
-    filesystem: &dyn FileSystem,
-) -> Result<SpawnSuccess> {
-    exec_in_worktree_with_executor(git_root, worktree_name, command, args, filesystem, None).await
-}
-
 /// Spawn a shell in a specific directory
 pub async fn spawn_shell_in_dir(dir: &Path) -> Result<SpawnSuccess> {
     let shell_info = detect_shell()?;
@@ -97,12 +88,15 @@ pub async fn spawn_shell_in_dir(dir: &Path) -> Result<SpawnSuccess> {
 }
 
 /// Spawn a shell in a worktree with optional CommandExecutor
-pub async fn spawn_shell_in_worktree_with_executor(
+pub async fn spawn_shell_in_worktree<E>(
     git_root: &Path,
     worktree_name: &str,
     filesystem: &dyn FileSystem,
-    executor: Option<Arc<dyn CommandExecutor>>,
-) -> Result<SpawnSuccess> {
+    executor: Option<E>,
+) -> Result<SpawnSuccess>
+where
+    E: CommandExecutor,
+{
     // Validate worktree exists
     let validation = validate_worktree_exists(git_root, worktree_name, filesystem).await?;
     let worktree_path = validation.path;
@@ -156,15 +150,6 @@ pub async fn spawn_shell_in_worktree_with_executor(
     }
 }
 
-/// Spawn a shell in a worktree (backward compatible)
-pub async fn spawn_shell_in_worktree(
-    git_root: &Path,
-    worktree_name: &str,
-    filesystem: &dyn FileSystem,
-) -> Result<SpawnSuccess> {
-    spawn_shell_in_worktree_with_executor(git_root, worktree_name, filesystem, None).await
-}
-
 /// Execute multiple commands in sequence
 pub async fn exec_commands_in_dir(dir: &Path, commands: &[String]) -> Result<Vec<SpawnSuccess>> {
     let mut results = Vec::new();
@@ -185,10 +170,10 @@ pub async fn exec_commands_in_dir(dir: &Path, commands: &[String]) -> Result<Vec
             Ok(result) => {
                 if result.exit_code != 0 {
                     error!("Command '{}' failed with exit code {}", command, result.exit_code);
-                    return Err(PhantomError::ProcessExecution(format!(
-                        "Command '{}' failed with exit code {}",
-                        command, result.exit_code
-                    )));
+                    return Err(PhantomError::ProcessFailed {
+                        command: command.clone(),
+                        code: result.exit_code,
+                    });
                 }
                 results.push(result);
             }
@@ -205,6 +190,7 @@ pub async fn exec_commands_in_dir(dir: &Path, commands: &[String]) -> Result<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::RealCommandExecutor;
     use crate::core::filesystems::RealFileSystem;
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
@@ -271,16 +257,17 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-worktree", options).await.unwrap();
+        create_worktree(RealCommandExecutor, repo.path(), "test-worktree", options).await.unwrap();
 
         // Execute command in worktree
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "test-worktree",
             "echo",
             &["hello".to_string()],
             &filesystem,
+            None,
         )
         .await;
 
@@ -293,12 +280,13 @@ mod tests {
         let repo = TestRepo::new().await.unwrap();
 
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "nonexistent",
             "echo",
             &["hello".to_string()],
             &filesystem,
+            None,
         )
         .await;
 
@@ -323,10 +311,13 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-shell", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-shell", options)
+            .await
+            .unwrap();
 
         // We can't easily test shell spawning, but we can verify the function compiles
-        let _ = spawn_shell_in_worktree; // Just ensure it exists
+        let _ = spawn_shell_in_worktree::<crate::core::executors::RealCommandExecutor>;
+        // Just ensure it exists
     }
 
     #[tokio::test]
@@ -351,17 +342,20 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-env", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-env", options)
+            .await
+            .unwrap();
 
         // Execute a safe command that verifies env vars are set without exposing them
         // Use printenv to check specific PHANTOM vars only
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "test-env",
             "printenv",
             &["PHANTOM_WORKTREE".to_string()],
             &filesystem,
+            None,
         )
         .await;
         assert!(result.is_ok());
@@ -403,10 +397,10 @@ mod tests {
 
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::ProcessExecution(msg) => {
-                assert!(msg.contains("Failed to spawn process"));
+            PhantomError::CommandNotFound { command } => {
+                assert_eq!(command, "nonexistent-command-xyz123");
             }
-            _ => panic!("Expected ProcessExecution error"),
+            _ => panic!("Expected CommandNotFound error"),
         }
     }
 
@@ -429,12 +423,13 @@ mod tests {
 
         // Try to execute in a worktree that doesn't exist
         let filesystem = RealFileSystem::new();
-        let result = exec_in_worktree(
+        let result = exec_in_worktree::<crate::core::executors::RealCommandExecutor>(
             repo.path(),
             "does-not-exist",
             "echo",
             &["test".to_string()],
             &filesystem,
+            None,
         )
         .await;
 
@@ -443,11 +438,11 @@ mod tests {
             PhantomError::WorktreeNotFound { name } => {
                 assert_eq!(name, "does-not-exist");
             }
-            PhantomError::Worktree(msg) => {
-                // Also accept general worktree error
-                assert!(msg.contains("does-not-exist") || msg.contains("not found"));
+            PhantomError::WorktreeDirectoryCreationFailed { path } => {
+                // Also accept directory creation error
+                assert!(path.to_string_lossy().contains("does-not-exist"));
             }
-            e => panic!("Expected WorktreeNotFound or Worktree error, got: {:?}", e),
+            e => panic!("Expected WorktreeNotFound or Worktree error, got: {e:?}"),
         }
     }
 }

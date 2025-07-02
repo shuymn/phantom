@@ -1,15 +1,26 @@
-use phantom::cli::context::HandlerContext;
-use phantom::core::command_executor::CommandConfig;
+use phantom::cli::context::{HandlerContext, ProductionContext};
+use phantom::core::command_executor::{CommandConfig, CommandExecutor};
 use phantom::core::executors::MockCommandExecutor;
-use std::sync::Arc;
+use phantom::core::exit_handler::ExitHandler;
+use phantom::core::filesystem::FileSystem;
 
 // Example: A handler that needs to execute git commands
-struct StatusHandler {
-    context: HandlerContext,
+struct StatusHandler<E, F, H>
+where
+    E: CommandExecutor,
+    F: FileSystem,
+    H: ExitHandler,
+{
+    context: HandlerContext<E, F, H>,
 }
 
-impl StatusHandler {
-    fn new(context: HandlerContext) -> Self {
+impl<E, F, H> StatusHandler<E, F, H>
+where
+    E: CommandExecutor,
+    F: FileSystem,
+    H: ExitHandler,
+{
+    fn new(context: HandlerContext<E, F, H>) -> Self {
         Self { context }
     }
 
@@ -21,7 +32,7 @@ impl StatusHandler {
         let output = self.context.executor.execute(config).await?;
 
         if output.success() {
-            Ok(output.stdout)
+            Ok(output.stdout.into_owned())
         } else {
             Err(format!("Git status failed: {}", output.stderr).into())
         }
@@ -34,12 +45,12 @@ async fn main() {
 
     // Production usage
     println!("1. Production with RealCommandExecutor:");
-    let prod_context = HandlerContext::default(); // Uses RealCommandExecutor
+    let prod_context = ProductionContext::default();
     let prod_handler = StatusHandler::new(prod_context);
 
     match prod_handler.handle().await {
-        Ok(status) => println!("Status output:\n{}", status),
-        Err(e) => println!("Error: {}", e),
+        Ok(status) => println!("Status output:\n{status}"),
+        Err(e) => println!("Error: {e}"),
     }
 
     // Test usage
@@ -51,24 +62,17 @@ async fn main() {
         0,
     );
 
-    // Create a simple mock exit handler for the example
-    struct SimpleExitHandler;
-    impl phantom::core::exit_handler::ExitHandler for SimpleExitHandler {
-        fn exit(&self, code: i32) -> ! {
-            std::process::exit(code)
-        }
-    }
-
+    // Use RealExitHandler for the example (MockExitHandler is only available in tests)
     let test_context = HandlerContext::new(
-        Arc::new(mock),
-        Arc::new(phantom::core::filesystems::MockFileSystem::new()),
-        Arc::new(SimpleExitHandler),
+        mock,
+        phantom::core::filesystems::MockFileSystem::new(),
+        phantom::core::exit_handler::RealExitHandler::new(),
     );
-    let test_handler = StatusHandler::new(test_context.clone());
+    let test_handler = StatusHandler::new(test_context);
 
     match test_handler.handle().await {
-        Ok(status) => println!("Mock status output:\n{}", status),
-        Err(e) => println!("Error: {}", e),
+        Ok(status) => println!("Mock status output:\n{status}"),
+        Err(e) => println!("Error: {e}"),
     }
 
     println!("\n=== Example Complete ===");

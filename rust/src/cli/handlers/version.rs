@@ -27,11 +27,11 @@ pub fn handle(args: VersionArgs) {
 
         match serde_json::to_string_pretty(&json_output) {
             Ok(json) => output().log(&json),
-            Err(e) => output().error(&format!("Failed to serialize JSON: {}", e)),
+            Err(e) => output().error(&format!("Failed to serialize JSON: {e}")),
         }
     } else {
-        output().log(&format!("{} {}", name, version));
+        output().log(&format!("{name} {version}"));
         output().log(description);
-        output().log(&format!("by {}", authors));
+        output().log(&format!("by {authors}"));
     }
 }

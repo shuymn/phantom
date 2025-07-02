@@ -6,7 +6,9 @@ use tracing::{debug, error, info};
 use crate::core::command_executor::{CommandConfig, CommandExecutor, CommandOutput};
 use crate::core::error::PhantomError;
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
+#[derive(Clone)]
 pub struct RealCommandExecutor;
 
 impl RealCommandExecutor {
@@ -20,6 +22,12 @@ impl Default for RealCommandExecutor {
         Self::new()
     }
 }
+
+// Implement the sealed trait
+impl Sealed for RealCommandExecutor {}
+
+// Implement Sealed for &RealCommandExecutor
+impl Sealed for &RealCommandExecutor {}
 
 #[async_trait]
 impl CommandExecutor for RealCommandExecutor {
@@ -54,26 +62,25 @@ impl CommandExecutor for RealCommandExecutor {
 
             // Spawn the process to get access to stdin
             let mut child = command.spawn().map_err(|e| {
-                PhantomError::ProcessExecution(format!(
-                    "Failed to spawn command '{}': {}",
-                    config.program, e
-                ))
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    PhantomError::CommandNotFound { command: config.program.clone() }
+                } else {
+                    PhantomError::ProcessExecutionError {
+                        reason: format!("Failed to spawn command '{}': {}", config.program, e),
+                    }
+                }
             })?;
 
             // Write stdin data
             if let Some(mut stdin) = child.stdin.take() {
                 use tokio::io::AsyncWriteExt;
                 stdin.write_all(stdin_data.as_bytes()).await.map_err(|e| {
-                    PhantomError::ProcessExecution(format!(
-                        "Failed to write stdin to '{}': {}",
-                        config.program, e
-                    ))
+                    PhantomError::ProcessExecutionError {
+                        reason: format!("Failed to write stdin to '{}': {}", config.program, e),
+                    }
                 })?;
-                stdin.shutdown().await.map_err(|e| {
-                    PhantomError::ProcessExecution(format!(
-                        "Failed to close stdin for '{}': {}",
-                        config.program, e
-                    ))
+                stdin.shutdown().await.map_err(|e| PhantomError::ProcessExecutionError {
+                    reason: format!("Failed to close stdin for '{}': {}", config.program, e),
                 })?;
             }
 
@@ -82,27 +89,28 @@ impl CommandExecutor for RealCommandExecutor {
                 match tokio::time::timeout(timeout, child.wait_with_output()).await {
                     Ok(Ok(output)) => output,
                     Ok(Err(e)) => {
-                        return Err(PhantomError::ProcessExecution(format!(
-                            "Failed to wait for command '{}': {}",
-                            config.program, e
-                        )));
+                        return Err(PhantomError::ProcessExecutionError {
+                            reason: format!(
+                                "Failed to wait for command '{}': {}",
+                                config.program, e
+                            ),
+                        });
                     }
                     Err(_) => {
                         error!("Command timeout after {:?}", timeout);
                         // The child process is consumed by wait_with_output, so we can't kill it
                         // The timeout itself should cause the process to be terminated
-                        return Err(PhantomError::ProcessExecution(format!(
-                            "Command '{}' timed out after {:?}",
-                            config.program, timeout
-                        )));
+                        return Err(PhantomError::ProcessExecutionError {
+                            reason: format!(
+                                "Command '{}' timed out after {:?}",
+                                config.program, timeout
+                            ),
+                        });
                     }
                 }
             } else {
-                child.wait_with_output().await.map_err(|e| {
-                    PhantomError::ProcessExecution(format!(
-                        "Failed to wait for command '{}': {}",
-                        config.program, e
-                    ))
+                child.wait_with_output().await.map_err(|e| PhantomError::ProcessExecutionError {
+                    reason: format!("Failed to wait for command '{}': {}", config.program, e),
                 })?
             }
         } else {
@@ -111,25 +119,39 @@ impl CommandExecutor for RealCommandExecutor {
                 match tokio::time::timeout(timeout, command.output()).await {
                     Ok(Ok(output)) => output,
                     Ok(Err(e)) => {
-                        return Err(PhantomError::ProcessExecution(format!(
-                            "Failed to execute command '{}': {}",
-                            config.program, e
-                        )));
+                        return Err(if e.kind() == std::io::ErrorKind::NotFound {
+                            PhantomError::CommandNotFound { command: config.program.clone() }
+                        } else {
+                            PhantomError::ProcessExecutionError {
+                                reason: format!(
+                                    "Failed to execute command '{}': {}",
+                                    config.program, e
+                                ),
+                            }
+                        });
                     }
                     Err(_) => {
                         error!("Command timeout after {:?}, killing process", timeout);
-                        return Err(PhantomError::ProcessExecution(format!(
-                            "Command '{}' timed out after {:?}",
-                            config.program, timeout
-                        )));
+                        return Err(PhantomError::ProcessExecutionError {
+                            reason: format!(
+                                "Command '{}' timed out after {:?}",
+                                config.program, timeout
+                            ),
+                        });
                     }
                 }
             } else {
                 command.output().await.map_err(|e| {
-                    PhantomError::ProcessExecution(format!(
-                        "Failed to execute command '{}': {}",
-                        config.program, e
-                    ))
+                    if e.kind() == std::io::ErrorKind::NotFound {
+                        PhantomError::CommandNotFound { command: config.program.clone() }
+                    } else {
+                        PhantomError::ProcessExecutionError {
+                            reason: format!(
+                                "Failed to execute command '{}': {}",
+                                config.program, e
+                            ),
+                        }
+                    }
                 })?
             }
         };
@@ -146,7 +168,15 @@ impl CommandExecutor for RealCommandExecutor {
             stderr.len()
         );
 
-        Ok(CommandOutput { stdout, stderr, exit_code })
+        Ok(CommandOutput::new(stdout, stderr, exit_code))
+    }
+}
+
+// Implement CommandExecutor for &RealCommandExecutor
+#[async_trait]
+impl CommandExecutor for &RealCommandExecutor {
+    async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
+        (*self).execute(config).await
     }
 }
 
@@ -214,7 +244,12 @@ mod tests {
 
         let result = executor.execute(config).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to execute command"));
+        match result.unwrap_err() {
+            PhantomError::CommandNotFound { command } => {
+                assert_eq!(command, "nonexistent-command-xyz123");
+            }
+            _ => panic!("Expected CommandNotFound error"),
+        }
     }
 
     #[tokio::test]
@@ -244,7 +279,7 @@ mod tests {
     #[tokio::test]
     async fn test_default_impl() {
         let executor1 = RealCommandExecutor::new();
-        let executor2 = RealCommandExecutor::default();
+        let executor2 = RealCommandExecutor;
 
         let config = CommandConfig::new("echo").with_args(vec!["test".to_string()]);
 

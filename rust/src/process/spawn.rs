@@ -72,10 +72,13 @@ pub async fn spawn_process(config: SpawnConfig) -> Result<SpawnSuccess> {
 
     // Spawn the process
     let mut child = command.spawn().map_err(|e| {
-        PhantomError::ProcessExecution(format!(
-            "Failed to spawn process '{}': {}",
-            config.command, e
-        ))
+        if e.kind() == std::io::ErrorKind::NotFound {
+            PhantomError::CommandNotFound { command: config.command.clone() }
+        } else {
+            PhantomError::ProcessExecutionError {
+                reason: format!("Failed to spawn process '{}': {}", config.command, e),
+            }
+        }
     })?;
 
     debug!("Process spawned with PID: {:?}", child.id());
@@ -87,24 +90,25 @@ pub async fn spawn_process(config: SpawnConfig) -> Result<SpawnSuccess> {
         {
             Ok(Ok(status)) => status,
             Ok(Err(e)) => {
-                return Err(PhantomError::ProcessExecution(format!(
-                    "Failed to wait for process: {}",
-                    e
-                )));
+                return Err(PhantomError::ProcessExecutionError {
+                    reason: format!("Failed to wait for process: {e}"),
+                });
             }
             Err(_) => {
                 // Timeout occurred, kill the process
                 error!("Process timeout after {}ms, killing process", timeout_ms);
                 child.kill().await.ok();
-                return Err(PhantomError::ProcessExecution(format!(
-                    "Process '{}' timed out after {}ms",
-                    config.command, timeout_ms
-                )));
+                return Err(PhantomError::ProcessExecutionError {
+                    reason: format!(
+                        "Process '{}' timed out after {}ms",
+                        config.command, timeout_ms
+                    ),
+                });
             }
         }
     } else {
-        child.wait().await.map_err(|e| {
-            PhantomError::ProcessExecution(format!("Failed to wait for process: {}", e))
+        child.wait().await.map_err(|e| PhantomError::ProcessExecutionError {
+            reason: format!("Failed to wait for process: {e}"),
         })?
     };
 
@@ -138,10 +142,13 @@ pub async fn spawn_detached(config: SpawnConfig) -> Result<Child> {
 
     // Spawn the process
     let child = command.spawn().map_err(|e| {
-        PhantomError::ProcessExecution(format!(
-            "Failed to spawn detached process '{}': {}",
-            config.command, e
-        ))
+        if e.kind() == std::io::ErrorKind::NotFound {
+            PhantomError::CommandNotFound { command: config.command.clone() }
+        } else {
+            PhantomError::ProcessExecutionError {
+                reason: format!("Failed to spawn detached process '{}': {}", config.command, e),
+            }
+        }
     })?;
 
     debug!("Detached process spawned with PID: {:?}", child.id());
@@ -161,18 +168,19 @@ where
         cmd.current_dir(cwd);
     }
 
-    let output = cmd
-        .output()
-        .await
-        .map_err(|e| PhantomError::ProcessExecution(format!("Failed to execute command: {}", e)))?;
+    let output = cmd.output().await.map_err(|e| PhantomError::ProcessExecutionError {
+        reason: format!("Failed to execute command: {e}"),
+    })?;
 
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
-        Err(PhantomError::ProcessExecution(format!(
-            "Command failed with exit code: {}",
-            output.status.code().unwrap_or(-1)
-        )))
+        Err(PhantomError::ProcessExecutionError {
+            reason: format!(
+                "Command failed with exit code: {}",
+                output.status.code().unwrap_or(-1)
+            ),
+        })
     }
 }
 
@@ -181,13 +189,15 @@ where
 pub async fn setup_signal_handlers() -> Result<()> {
     use tokio::signal::unix::{signal, SignalKind};
 
-    let mut sigint = signal(SignalKind::interrupt()).map_err(|e| {
-        PhantomError::ProcessExecution(format!("Failed to setup SIGINT handler: {}", e))
-    })?;
+    let mut sigint =
+        signal(SignalKind::interrupt()).map_err(|e| PhantomError::ProcessExecutionError {
+            reason: format!("Failed to setup SIGINT handler: {e}"),
+        })?;
 
-    let mut sigterm = signal(SignalKind::terminate()).map_err(|e| {
-        PhantomError::ProcessExecution(format!("Failed to setup SIGTERM handler: {}", e))
-    })?;
+    let mut sigterm =
+        signal(SignalKind::terminate()).map_err(|e| PhantomError::ProcessExecutionError {
+            reason: format!("Failed to setup SIGTERM handler: {e}"),
+        })?;
 
     tokio::spawn(async move {
         tokio::select! {
@@ -348,7 +358,7 @@ mod tests {
             timeout_ms: Some(5000),
         };
 
-        let debug_str = format!("{:?}", config);
+        let debug_str = format!("{config:?}");
         assert!(debug_str.contains("SpawnConfig"));
         assert!(debug_str.contains("command"));
         assert!(debug_str.contains("test"));
@@ -379,7 +389,7 @@ mod tests {
     #[tokio::test]
     async fn test_spawn_success_debug() {
         let success = SpawnSuccess { exit_code: 0 };
-        let debug_str = format!("{:?}", success);
+        let debug_str = format!("{success:?}");
         assert!(debug_str.contains("SpawnSuccess"));
         assert!(debug_str.contains("exit_code"));
         assert!(debug_str.contains("0"));
@@ -409,7 +419,7 @@ mod tests {
             execute_command("ls", vec!["/nonexistent/path/that/should/not/exist"], None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::ProcessExecution(msg) => assert!(msg.contains("exit code")),
+            PhantomError::ProcessExecutionError { reason } => assert!(reason.contains("exit code")),
             _ => panic!("Expected ProcessExecution error"),
         }
     }
@@ -419,8 +429,8 @@ mod tests {
         let result = execute_command("nonexistent-command-xyz123", vec![], None).await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::ProcessExecution(msg) => {
-                assert!(msg.contains("Failed to execute command"))
+            PhantomError::ProcessExecutionError { reason } => {
+                assert!(reason.contains("Failed to execute command"))
             }
             _ => panic!("Expected ProcessExecution error"),
         }
@@ -493,10 +503,10 @@ mod tests {
         let result = spawn_detached(config).await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            PhantomError::ProcessExecution(msg) => {
-                assert!(msg.contains("Failed to spawn detached process"));
+            PhantomError::CommandNotFound { command } => {
+                assert_eq!(command, "command-that-does-not-exist-xyz");
             }
-            _ => panic!("Expected ProcessExecution error"),
+            _ => panic!("Expected CommandNotFound error"),
         }
     }
 

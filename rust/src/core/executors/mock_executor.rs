@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use crate::core::command_executor::{CommandConfig, CommandExecutor, CommandOutput};
 use crate::core::error::PhantomError;
 use crate::core::result::Result;
+use crate::core::sealed::Sealed;
 
 #[derive(Debug, Clone)]
 pub struct CommandExpectation {
@@ -55,10 +56,12 @@ impl MockCommandExecutor {
                     calls.iter().filter(|call| self.matches_expectation(call, expectation)).count();
 
                 if actual_calls != expected_times {
-                    return Err(PhantomError::ProcessExecution(format!(
-                        "Expected command '{}' to be called {} times, but was called {} times",
-                        expectation.program, expected_times, actual_calls
-                    )));
+                    return Err(PhantomError::ProcessExecutionError {
+                        reason: format!(
+                            "Expected command '{}' to be called {} times, but was called {} times",
+                            expectation.program, expected_times, actual_calls
+                        ),
+                    });
                 }
             }
         }
@@ -109,12 +112,18 @@ impl Default for MockCommandExecutor {
     }
 }
 
+// Implement the sealed trait
+impl Sealed for MockCommandExecutor {}
+
+// Implement Sealed for &MockCommandExecutor
+impl Sealed for &MockCommandExecutor {}
+
 #[async_trait]
 impl CommandExecutor for MockCommandExecutor {
     async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
         let call = CommandCall {
             program: config.program.clone(),
-            args: config.args.clone(),
+            args: config.args.to_vec(),
             cwd: config.cwd.clone(),
             env: config.env.clone(),
             stdin_data: config.stdin_data.clone(),
@@ -129,10 +138,17 @@ impl CommandExecutor for MockCommandExecutor {
             }
         }
 
-        Err(PhantomError::ProcessExecution(format!(
-            "Unexpected command execution: {} {:?}",
-            config.program, config.args
-        )))
+        Err(PhantomError::ProcessExecutionError {
+            reason: format!("Unexpected command execution: {} {:?}", config.program, config.args),
+        })
+    }
+}
+
+// Implement CommandExecutor for &MockCommandExecutor
+#[async_trait]
+impl CommandExecutor for &MockCommandExecutor {
+    async fn execute(&self, config: CommandConfig) -> Result<CommandOutput> {
+        (*self).execute(config).await
     }
 }
 

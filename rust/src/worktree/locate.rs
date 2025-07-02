@@ -22,6 +22,7 @@ pub async fn where_worktree(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::executors::RealCommandExecutor;
     use crate::core::filesystems::RealFileSystem;
     use crate::test_utils::TestRepo;
     use crate::worktree::create::create_worktree;
@@ -34,7 +35,9 @@ mod tests {
 
         // Create a worktree
         let options = CreateWorktreeOptions::default();
-        create_worktree(repo.path(), "test-worktree", options).await.unwrap();
+        create_worktree(RealCommandExecutor::new(), repo.path(), "test-worktree", options)
+            .await
+            .unwrap();
 
         // Get the path
         let filesystem = RealFileSystem::new();

@@ -32,18 +32,17 @@ tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 thiserror = "1"
 async-trait = "0.1"
+futures = "0.3"
 
 # Unix-specific
-nix = "0.27"
-termion = "2"
 terminal_size = "0.3"
 
 # Utilities
-directories = "5"
 which = "6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 regex = "1"
+smallvec = "1.13"
 
 # Optional
 git2 = { version = "0.18", optional = true }
@@ -55,7 +54,16 @@ serial_test = "3"
 proptest = "1"
 mockall = "0.12"
 tempfile = "3"
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [features]
 default = []
 libgit2 = ["git2"]
+
+[[bench]]
+name = "phantom_benchmarks"
+harness = false
+
+[[bench]]
+name = "optimization_benchmarks"
+harness = false

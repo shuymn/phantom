@@ -6,6 +6,35 @@ This guide consolidates all testing-related documentation for the Phantom Rust i
 
 The Phantom project uses a mock-based testing strategy to ensure reliable, deterministic tests that are independent of the execution environment. This approach was developed to solve persistent issues with tests failing in CI due to environment differences, missing commands, and race conditions.
 
+## Test Organization
+
+Tests in Phantom should be organized as follows:
+
+### Unit Tests
+- **Location**: Within the same source file in a `mod tests` block at the bottom
+- **Convention**: Do NOT create separate `*_test.rs` files for unit tests
+- **Rationale**: Keeps tests close to the code they test, improving maintainability
+
+```rust
+// src/worktree/create.rs
+pub fn create_worktree() { /* implementation */ }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_create_worktree() {
+        // test implementation
+    }
+}
+```
+
+### Integration Tests
+- **Location**: In the `tests/` directory at the project root
+- **Purpose**: Test interactions between modules and full workflows
+- **Examples**: `e2e_scenarios.rs`, `cli_snapshots.rs`
+
 ## The Problem We Solved
 
 Tests were frequently failing in CI due to:
@@ -175,5 +204,6 @@ While the current testing infrastructure is complete and functional, potential i
 ## References
 
 - Example implementation: `examples/mock_testing_example.rs`
-- Handler tests: `src/cli/handlers/*_test.rs`
-- Integration tests: `src/worktree/*_test.rs`
+- Handler tests: See `mod tests` blocks in `src/cli/handlers/*.rs`
+- Unit tests: See `mod tests` blocks in source files
+- Integration tests: `tests/` directory

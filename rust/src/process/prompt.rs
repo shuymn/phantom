@@ -10,7 +10,7 @@ pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
         None => " [y/n] ",
     };
 
-    print!("{}{}", message, suffix);
+    print!("{message}{suffix}");
     io::stdout().flush().map_err(PhantomError::Io)?;
 
     let mut input = String::new();
@@ -40,9 +40,9 @@ pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
 /// Prompt the user for text input
 pub fn prompt(message: &str, default: Option<&str>) -> Result<String> {
     if let Some(default_value) = default {
-        print!("{} [{}] ", message, default_value);
+        print!("{message} [{default_value}] ");
     } else {
-        print!("{} ", message);
+        print!("{message} ");
     }
     io::stdout().flush().map_err(PhantomError::Io)?;
 
@@ -69,7 +69,7 @@ pub fn select<T: AsRef<str>>(
     options: &[T],
     default: Option<usize>,
 ) -> Result<usize> {
-    println!("{}", message);
+    println!("{message}");
 
     for (i, option) in options.iter().enumerate() {
         let marker = if Some(i) == default { ">" } else { " " };
@@ -144,7 +144,7 @@ mod tests {
             let trimmed = input.to_lowercase();
             match trimmed.as_str() {
                 "y" | "yes" => {}
-                _ => panic!("Should match yes for input: {}", input),
+                _ => panic!("Should match yes for input: {input}"),
             }
         }
 
@@ -154,7 +154,7 @@ mod tests {
             let trimmed = input.to_lowercase();
             match trimmed.as_str() {
                 "n" | "no" => {}
-                _ => panic!("Should match no for input: {}", input),
+                _ => panic!("Should match no for input: {input}"),
             }
         }
     }
@@ -168,13 +168,13 @@ mod tests {
         assert_eq!(formatted, "Enter value [default-value] ");
 
         // Test without default
-        let formatted_no_default = format!("{} ", message);
+        let formatted_no_default = format!("{message} ");
         assert_eq!(formatted_no_default, "Enter value ");
     }
 
     #[test]
     fn test_select_display_formatting() {
-        let options = vec!["Option 1", "Option 2", "Option 3"];
+        let options = ["Option 1", "Option 2", "Option 3"];
         let default = Some(1);
 
         // Test marker for default option
@@ -196,7 +196,7 @@ mod tests {
         let options_len = 5;
 
         // Valid inputs
-        let valid_inputs = vec![1, 2, 3, 4, 5];
+        let valid_inputs = [1, 2, 3, 4, 5];
         for n in valid_inputs {
             assert!(n > 0 && n <= options_len);
             let index = n - 1;
@@ -204,7 +204,7 @@ mod tests {
         }
 
         // Invalid inputs
-        let invalid_inputs = vec![0, 6, 100];
+        let invalid_inputs = [0, 6, 100];
         for n in invalid_inputs {
             assert!(!(n > 0 && n <= options_len));
         }
@@ -259,7 +259,7 @@ mod tests {
             let _: &str = item.as_ref();
         }
         for item in &str_vec {
-            let _: &str = item.as_ref();
+            let _: &str = item;
         }
     }
 
@@ -301,10 +301,10 @@ mod tests {
     #[test]
     fn test_message_formatting() {
         let message = "Please confirm";
-        let options = vec!["Yes", "No", "Cancel"];
+        let options = ["Yes", "No", "Cancel"];
 
         // Test select message display
-        let select_msg = format!("{}", message);
+        let select_msg = message.to_string();
         assert_eq!(select_msg, "Please confirm");
 
         // Test option formatting

@@ -1,0 +1,11 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: rust/lint
+      run: make -C rust lint
+
+    - name: rust/check
+      run: make -C rust check
+
+    - name: rust/format
+      run: make -C rust check-format

@@ -30,7 +30,7 @@ impl GitOperations {
         let output = self.executor.execute(config).await?;
 
         if output.success() {
-            Ok(output.stdout)
+            Ok(output.stdout.into_owned())
         } else {
             Err(format!("Git status failed: {}", output.stderr).into())
         }
@@ -111,13 +111,13 @@ async fn main() {
     // Test status
     match git.status().await {
         Ok(status) => println!("  Status: {}", status.trim()),
-        Err(e) => println!("  Status error: {}", e),
+        Err(e) => println!("  Status error: {e}"),
     }
 
     // Test add worktree
     match git.add_worktree("phantoms/feature-test", "feature/test").await {
         Ok(()) => println!("  ✓ Worktree added successfully"),
-        Err(e) => println!("  ✗ Add worktree error: {}", e),
+        Err(e) => println!("  ✗ Add worktree error: {e}"),
     }
 
     // Test list worktrees
@@ -125,10 +125,10 @@ async fn main() {
         Ok(worktrees) => {
             println!("  Worktrees:");
             for wt in worktrees {
-                println!("    - {}", wt);
+                println!("    - {wt}");
             }
         }
-        Err(e) => println!("  List error: {}", e),
+        Err(e) => println!("  List error: {e}"),
     }
 
     // Production scenario (commented out to avoid actual git commands)

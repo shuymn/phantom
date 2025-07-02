@@ -1,3 +1,4 @@
+use crate::core::executors::RealCommandExecutor;
 use crate::git::backend::{GitBackend, GitConfig};
 use crate::git::command_backend::CommandBackend;
 use std::sync::Arc;
@@ -16,7 +17,7 @@ pub enum BackendType {
 /// Create a Git backend of the specified type
 pub fn create_backend(backend_type: BackendType, config: GitConfig) -> Arc<dyn GitBackend> {
     match backend_type {
-        BackendType::Command => Arc::new(CommandBackend::new(config)),
+        BackendType::Command => Arc::new(CommandBackend::new(config, RealCommandExecutor)),
         #[cfg(feature = "libgit2")]
         BackendType::LibGit2 => {
             // TODO: Implement LibGit2Backend when needed

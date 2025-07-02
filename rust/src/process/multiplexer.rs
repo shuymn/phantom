@@ -47,7 +47,13 @@ pub async fn detect_multiplexer() -> Multiplexer {
 }
 
 /// Execute a command in the detected multiplexer
-pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<SpawnSuccess> {
+pub async fn execute_in_multiplexer<E>(
+    executor: E,
+    options: MultiplexerOptions,
+) -> Result<SpawnSuccess>
+where
+    E: crate::core::command_executor::CommandExecutor + Clone + 'static,
+{
     let multiplexer = detect_multiplexer().await;
 
     match multiplexer {
@@ -67,7 +73,8 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 window_name: options.window_name,
             };
 
-            execute_tmux_command(tmux_options).await
+            execute_tmux_command(&executor, tmux_options).await?;
+            Ok(SpawnSuccess { exit_code: 0 })
         }
         Multiplexer::Kitty => {
             let kitty_direction = match options.direction {
@@ -85,7 +92,8 @@ pub async fn execute_in_multiplexer(options: MultiplexerOptions) -> Result<Spawn
                 window_title: options.window_name,
             };
 
-            execute_kitty_command(kitty_options).await
+            execute_kitty_command(&executor, kitty_options).await?;
+            Ok(SpawnSuccess { exit_code: 0 })
         }
         Multiplexer::None => {
             // Fallback: just spawn the process normally
@@ -227,30 +235,30 @@ mod tests {
     #[test]
     fn test_multiplexer_debug() {
         let tmux = Multiplexer::Tmux;
-        let debug_str = format!("{:?}", tmux);
+        let debug_str = format!("{tmux:?}");
         assert!(debug_str.contains("Tmux"));
 
         let kitty = Multiplexer::Kitty;
-        let debug_str = format!("{:?}", kitty);
+        let debug_str = format!("{kitty:?}");
         assert!(debug_str.contains("Kitty"));
 
         let none = Multiplexer::None;
-        let debug_str = format!("{:?}", none);
+        let debug_str = format!("{none:?}");
         assert!(debug_str.contains("None"));
     }
 
     #[test]
     fn test_split_direction_debug() {
         let new = SplitDirection::New;
-        let debug_str = format!("{:?}", new);
+        let debug_str = format!("{new:?}");
         assert!(debug_str.contains("New"));
 
         let vertical = SplitDirection::Vertical;
-        let debug_str = format!("{:?}", vertical);
+        let debug_str = format!("{vertical:?}");
         assert!(debug_str.contains("Vertical"));
 
         let horizontal = SplitDirection::Horizontal;
-        let debug_str = format!("{:?}", horizontal);
+        let debug_str = format!("{horizontal:?}");
         assert!(debug_str.contains("Horizontal"));
     }
 
@@ -265,7 +273,7 @@ mod tests {
             window_name: None,
         };
 
-        let debug_str = format!("{:?}", options);
+        let debug_str = format!("{options:?}");
         assert!(debug_str.contains("MultiplexerOptions"));
         assert!(debug_str.contains("direction"));
         assert!(debug_str.contains("command"));
@@ -275,7 +283,7 @@ mod tests {
     fn test_multiplexer_copy_clone() {
         let original = Multiplexer::Tmux;
         let copied = original;
-        let cloned = original.clone();
+        let cloned = original;
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
@@ -285,7 +293,7 @@ mod tests {
     fn test_split_direction_copy_clone() {
         let original = SplitDirection::Vertical;
         let copied = original;
-        let cloned = original.clone();
+        let cloned = original;
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
@@ -317,7 +325,7 @@ mod tests {
         // This will depend on the test environment
         let available = is_multiplexer_available().await;
         // We can't assert a specific value, but we can ensure it returns a boolean
-        assert!(available == true || available == false);
+        assert!(available || !available);
     }
 
     #[tokio::test]
@@ -337,7 +345,8 @@ mod tests {
         // the function doesn't panic
         let multiplexer = detect_multiplexer().await;
         if multiplexer == Multiplexer::None {
-            let result = execute_in_multiplexer(options).await;
+            use crate::core::executors::RealCommandExecutor;
+            let result = execute_in_multiplexer(RealCommandExecutor, options).await;
             // If no multiplexer, it should execute the command directly
             assert!(result.is_ok() || result.is_err());
         }
@@ -375,18 +384,18 @@ mod tests {
 
         // These conversions happen in execute_in_multiplexer
         match new_dir {
-            SplitDirection::New => assert!(true),
-            _ => assert!(false),
+            SplitDirection::New => {}
+            _ => panic!("Expected SplitDirection::New"),
         }
 
         match vert_dir {
-            SplitDirection::Vertical => assert!(true),
-            _ => assert!(false),
+            SplitDirection::Vertical => {}
+            _ => panic!("Expected SplitDirection::Vertical"),
         }
 
         match horiz_dir {
-            SplitDirection::Horizontal => assert!(true),
-            _ => assert!(false),
+            SplitDirection::Horizontal => {}
+            _ => panic!("Expected SplitDirection::Horizontal"),
         }
     }
 
@@ -396,9 +405,9 @@ mod tests {
 
         for m in multiplexers {
             match m {
-                Multiplexer::Tmux => assert_eq!(format!("{:?}", m), "Tmux"),
-                Multiplexer::Kitty => assert_eq!(format!("{:?}", m), "Kitty"),
-                Multiplexer::None => assert_eq!(format!("{:?}", m), "None"),
+                Multiplexer::Tmux => assert_eq!(format!("{m:?}"), "Tmux"),
+                Multiplexer::Kitty => assert_eq!(format!("{m:?}"), "Kitty"),
+                Multiplexer::None => assert_eq!(format!("{m:?}"), "None"),
             }
         }
     }

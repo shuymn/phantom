@@ -1,25 +1,29 @@
 use crate::core::command_executor::{CommandConfig, CommandExecutor};
+use crate::git::const_utils::commands;
+use crate::worktree::const_validate::timeouts::GIT_OPERATION_TIMEOUT;
 use crate::{PhantomError, Result};
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, trace};
 
-/// Default timeout for git operations (30 seconds)
-const DEFAULT_GIT_TIMEOUT: Duration = Duration::from_secs(30);
-
 /// Git command executor that uses CommandExecutor internally
 #[derive(Clone)]
-pub struct GitExecutor {
-    executor: Arc<dyn CommandExecutor>,
+pub struct GitExecutor<E>
+where
+    E: CommandExecutor + Clone,
+{
+    executor: E,
     cwd: Option<String>,
     timeout_duration: Duration,
 }
 
-impl GitExecutor {
+impl<E> GitExecutor<E>
+where
+    E: CommandExecutor + Clone,
+{
     /// Create a new GitExecutor with a CommandExecutor
-    pub fn new(executor: Arc<dyn CommandExecutor>) -> Self {
-        Self { executor, cwd: None, timeout_duration: DEFAULT_GIT_TIMEOUT }
+    pub fn new(executor: E) -> Self {
+        Self { executor, cwd: None, timeout_duration: GIT_OPERATION_TIMEOUT }
     }
 
     /// Create a GitExecutor with a specific working directory
@@ -38,7 +42,7 @@ impl GitExecutor {
     pub async fn run(&self, args: &[&str]) -> Result<String> {
         debug!("Running git command: git {:?}", args);
 
-        let mut config = CommandConfig::new("git")
+        let mut config = CommandConfig::new(commands::GIT)
             .with_args(args.iter().map(|s| s.to_string()).collect())
             .with_timeout(self.timeout_duration);
 
@@ -57,12 +61,10 @@ impl GitExecutor {
             let exit_code = output.exit_code;
 
             Err(PhantomError::Git {
-                message: if output.stderr.is_empty() {
-                    format!("git {} failed with exit code {}", args.join(" "), exit_code)
-                } else {
-                    output.stderr.trim().to_string()
-                },
+                command: commands::GIT.to_string(),
+                args: args.iter().map(|s| s.to_string()).collect(),
                 exit_code,
+                stderr: output.stderr.trim().to_string(),
             })
         }
     }
@@ -93,7 +95,7 @@ mod tests {
             0,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         let result = executor.run(&["status", "--short"]).await.unwrap();
         assert_eq!(result, "M file.txt");
     }
@@ -103,7 +105,7 @@ mod tests {
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("git").with_args(&["status"]).in_dir("/test/repo").returns_success();
 
-        let executor = GitExecutor::new(Arc::new(mock)).with_cwd("/test/repo");
+        let executor = GitExecutor::new(mock).with_cwd("/test/repo");
         let result = executor.run(&["status"]).await.unwrap();
         assert_eq!(result, "");
     }
@@ -117,14 +119,16 @@ mod tests {
             1,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         let result = executor.run(&["invalid"]).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
-            PhantomError::Git { message, exit_code } => {
-                assert_eq!(message, "git: 'invalid' is not a git command");
+            PhantomError::Git { command, args, exit_code, stderr } => {
+                assert_eq!(command, "git");
+                assert_eq!(args, vec!["invalid"]);
                 assert_eq!(exit_code, 1);
+                assert_eq!(stderr, "git: 'invalid' is not a git command");
             }
             _ => panic!("Expected Git error"),
         }
@@ -139,7 +143,7 @@ mod tests {
             0,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         let lines = executor.run_lines(&["branch", "-a"]).await.unwrap();
         assert_eq!(lines, vec!["main", "  feature/test", "  feature/another"]);
     }
@@ -151,7 +155,7 @@ mod tests {
             .with_args(&["rev-parse", "--git-dir"])
             .returns_output(".git", "", 0);
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         assert!(executor.is_in_git_repo().await);
     }
 
@@ -164,7 +168,7 @@ mod tests {
             128,
         );
 
-        let executor = GitExecutor::new(Arc::new(mock));
+        let executor = GitExecutor::new(mock);
         assert!(!executor.is_in_git_repo().await);
     }
 }
