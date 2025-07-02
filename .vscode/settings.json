@@ -1,3 +1,4 @@
 {
-  "typescript.experimental.useTsgo": true
+  "typescript.experimental.useTsgo": true,
+  "bacon-ls.runBaconInBackgroundCommandArguments": "--headless -j bacon-ls rust"
 }

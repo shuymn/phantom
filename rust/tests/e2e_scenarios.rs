@@ -10,21 +10,21 @@ fn setup_test_project() -> TempDir {
 
     // Initialize git repo
     std::process::Command::new("git")
-        .args(&["init"])
-        .current_dir(&repo_path)
+        .args(["init"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to init git repo");
 
     // Configure git user
     std::process::Command::new("git")
-        .args(&["config", "user.email", "test@example.com"])
-        .current_dir(&repo_path)
+        .args(["config", "user.email", "test@example.com"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to set git email");
 
     std::process::Command::new("git")
-        .args(&["config", "user.name", "Test User"])
-        .current_dir(&repo_path)
+        .args(["config", "user.name", "Test User"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to set git name");
 
@@ -38,13 +38,13 @@ fn setup_test_project() -> TempDir {
 
     // Create initial commit
     std::process::Command::new("git")
-        .args(&["add", "."])
-        .current_dir(&repo_path)
+        .args(["add", "."])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to add files");
     std::process::Command::new("git")
-        .args(&["commit", "-m", "Initial commit"])
-        .current_dir(&repo_path)
+        .args(["commit", "-m", "Initial commit"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to commit");
 
@@ -60,7 +60,7 @@ fn test_e2e_basic_workflow() {
     Command::cargo_bin("phantom")
         .unwrap()
         .arg("list")
-        .current_dir(&repo_path)
+        .current_dir(repo_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("No worktrees found"));
@@ -68,8 +68,8 @@ fn test_e2e_basic_workflow() {
     // 2. Create a feature worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "feature-auth"])
-        .current_dir(&repo_path)
+        .args(["create", "feature-auth"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -77,7 +77,7 @@ fn test_e2e_basic_workflow() {
     Command::cargo_bin("phantom")
         .unwrap()
         .arg("list")
-        .current_dir(&repo_path)
+        .current_dir(repo_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("feature-auth"));
@@ -85,8 +85,8 @@ fn test_e2e_basic_workflow() {
     // 4. Get the path of the worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["where", "feature-auth"])
-        .current_dir(&repo_path)
+        .args(["where", "feature-auth"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("phantom/worktrees/feature-auth"));
@@ -94,8 +94,8 @@ fn test_e2e_basic_workflow() {
     // 5. Create another worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "feature-ui", "--branch", "ui-improvements"])
-        .current_dir(&repo_path)
+        .args(["create", "feature-ui", "--branch", "ui-improvements"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -103,7 +103,7 @@ fn test_e2e_basic_workflow() {
     let list_output = Command::cargo_bin("phantom")
         .unwrap()
         .arg("list")
-        .current_dir(&repo_path)
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -116,8 +116,8 @@ fn test_e2e_basic_workflow() {
     // 7. Delete the first worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["delete", "feature-auth"])
-        .current_dir(&repo_path)
+        .args(["delete", "feature-auth"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -125,7 +125,7 @@ fn test_e2e_basic_workflow() {
     let final_list = Command::cargo_bin("phantom")
         .unwrap()
         .arg("list")
-        .current_dir(&repo_path)
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -143,24 +143,24 @@ fn test_e2e_branch_attachment_workflow() {
 
     // 1. Create a branch without worktree
     std::process::Command::new("git")
-        .args(&["branch", "hotfix-123"])
-        .current_dir(&repo_path)
+        .args(["branch", "hotfix-123"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to create branch");
 
     // 2. Attach to the branch
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["attach", "hotfix-123"])
-        .current_dir(&repo_path)
+        .args(["attach", "hotfix-123"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     // 3. Verify the worktree exists
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["where", "hotfix-123"])
-        .current_dir(&repo_path)
+        .args(["where", "hotfix-123"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("phantom/worktrees/hotfix-123"));
@@ -168,8 +168,8 @@ fn test_e2e_branch_attachment_workflow() {
     // 4. Try to attach again (should fail)
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["attach", "hotfix-123"])
-        .current_dir(&repo_path)
+        .args(["attach", "hotfix-123"])
+        .current_dir(repo_path)
         .assert()
         .failure()
         .stderr(predicate::str::contains("already exists"));
@@ -183,8 +183,8 @@ fn test_e2e_json_workflow() {
     // 1. Create a worktree with JSON output
     let create_output = Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "json-test", "--json"])
-        .current_dir(&repo_path)
+        .args(["create", "json-test", "--json"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -202,8 +202,8 @@ fn test_e2e_json_workflow() {
     // 2. List with JSON output
     let list_output = Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["list", "--json"])
-        .current_dir(&repo_path)
+        .args(["list", "--json"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -219,8 +219,8 @@ fn test_e2e_json_workflow() {
     // 3. Where with JSON output
     let where_output = Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["where", "json-test", "--json"])
-        .current_dir(&repo_path)
+        .args(["where", "json-test", "--json"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -242,8 +242,8 @@ fn test_e2e_error_handling_workflow() {
     // 1. Try to create worktree with invalid name
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "invalid name!"])
-        .current_dir(&repo_path)
+        .args(["create", "invalid name!"])
+        .current_dir(repo_path)
         .assert()
         .failure()
         .code(2) // VALIDATION_ERROR
@@ -252,8 +252,8 @@ fn test_e2e_error_handling_workflow() {
     // 2. Try to delete non-existent worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["delete", "non-existent"])
-        .current_dir(&repo_path)
+        .args(["delete", "non-existent"])
+        .current_dir(repo_path)
         .assert()
         .failure()
         .stderr(predicate::str::contains("not found"));
@@ -261,8 +261,8 @@ fn test_e2e_error_handling_workflow() {
     // 3. Try to attach to non-existent branch
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["attach", "no-such-branch"])
-        .current_dir(&repo_path)
+        .args(["attach", "no-such-branch"])
+        .current_dir(repo_path)
         .assert()
         .failure()
         .code(6) // BRANCH_NOT_FOUND
@@ -271,16 +271,16 @@ fn test_e2e_error_handling_workflow() {
     // 4. Create a worktree successfully
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "test-worktree"])
-        .current_dir(&repo_path)
+        .args(["create", "test-worktree"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     // 5. Try to create another with same name
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "test-worktree"])
-        .current_dir(&repo_path)
+        .args(["create", "test-worktree"])
+        .current_dir(repo_path)
         .assert()
         .failure()
         .stderr(predicate::str::contains("already exists"));
@@ -294,30 +294,30 @@ fn test_e2e_names_only_workflow() {
     // Create multiple worktrees
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "feature-1"])
-        .current_dir(&repo_path)
+        .args(["create", "feature-1"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "feature-2"])
-        .current_dir(&repo_path)
+        .args(["create", "feature-2"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "bugfix-1"])
-        .current_dir(&repo_path)
+        .args(["create", "bugfix-1"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     // List names only
     let output = Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["list", "--names"])
-        .current_dir(&repo_path)
+        .args(["list", "--names"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -345,7 +345,7 @@ fn test_e2e_completion_generation() {
     // Test bash completion
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["completion", "bash"])
+        .args(["completion", "bash"])
         .assert()
         .success()
         .stdout(predicate::str::contains("_phantom_completions"))
@@ -354,7 +354,7 @@ fn test_e2e_completion_generation() {
     // Test zsh completion
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["completion", "zsh"])
+        .args(["completion", "zsh"])
         .assert()
         .success()
         .stdout(predicate::str::contains("#compdef phantom"));
@@ -362,7 +362,7 @@ fn test_e2e_completion_generation() {
     // Test fish completion
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["completion", "fish"])
+        .args(["completion", "fish"])
         .assert()
         .success()
         .stdout(predicate::str::contains("complete -c phantom"));
@@ -384,8 +384,8 @@ fn test_e2e_copy_files_workflow() {
     // Create a worktree (should copy files)
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "with-files"])
-        .current_dir(&repo_path)
+        .args(["create", "with-files"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -403,8 +403,8 @@ fn test_e2e_verbose_mode() {
     // Run with verbose flag
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["-v", "list"])
-        .current_dir(&repo_path)
+        .args(["-v", "list"])
+        .current_dir(repo_path)
         .env("RUST_LOG", "") // Clear any existing
         .assert()
         .success();
@@ -412,8 +412,8 @@ fn test_e2e_verbose_mode() {
     // Run with quiet flag
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["-q", "list"])
-        .current_dir(&repo_path)
+        .args(["-q", "list"])
+        .current_dir(repo_path)
         .assert()
         .success();
 }

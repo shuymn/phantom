@@ -10,47 +10,47 @@ fn setup_repo_with_worktrees() -> TempDir {
 
     // Initialize git repo
     std::process::Command::new("git")
-        .args(&["init"])
-        .current_dir(&repo_path)
+        .args(["init"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to init git repo");
 
     // Configure git user
     std::process::Command::new("git")
-        .args(&["config", "user.email", "test@example.com"])
-        .current_dir(&repo_path)
+        .args(["config", "user.email", "test@example.com"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to set git email");
 
     std::process::Command::new("git")
-        .args(&["config", "user.name", "Test User"])
-        .current_dir(&repo_path)
+        .args(["config", "user.name", "Test User"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to set git name");
 
     // Create initial commit
     fs::write(repo_path.join("README.md"), "# Test").unwrap();
     std::process::Command::new("git")
-        .args(&["add", "."])
-        .current_dir(&repo_path)
+        .args(["add", "."])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to add files");
     std::process::Command::new("git")
-        .args(&["commit", "-m", "Initial commit"])
-        .current_dir(&repo_path)
+        .args(["commit", "-m", "Initial commit"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to commit");
 
     // Create some branches
     std::process::Command::new("git")
-        .args(&["branch", "feature-a"])
-        .current_dir(&repo_path)
+        .args(["branch", "feature-a"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to create branch");
 
     std::process::Command::new("git")
-        .args(&["branch", "feature-b"])
-        .current_dir(&repo_path)
+        .args(["branch", "feature-b"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to create branch");
 
@@ -62,7 +62,7 @@ fn test_create_output_format() {
     let temp_dir = setup_repo_with_worktrees();
 
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["create", "test-worktree"]);
+    cmd.args(["create", "test-worktree"]);
     cmd.current_dir(temp_dir.path());
 
     // Just verify it succeeds, output format varies with environment
@@ -74,7 +74,7 @@ fn test_create_json_output_format() {
     let temp_dir = setup_repo_with_worktrees();
 
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["create", "test-json", "--json"]);
+    cmd.args(["create", "test-json", "--json"]);
     cmd.current_dir(temp_dir.path());
 
     // Just verify JSON command succeeds
@@ -87,7 +87,7 @@ fn test_list_output_format_with_worktrees() {
 
     // Create a worktree first
     let mut create_cmd = Command::cargo_bin("phantom").unwrap();
-    create_cmd.args(&["create", "feature-work"]);
+    create_cmd.args(["create", "feature-work"]);
     create_cmd.current_dir(temp_dir.path());
     create_cmd.assert().success();
 
@@ -105,21 +105,21 @@ fn test_list_names_only_format() {
     // Create worktrees
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "worktree-1"])
+        .args(["create", "worktree-1"])
         .current_dir(temp_dir.path())
         .assert()
         .success();
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "worktree-2"])
+        .args(["create", "worktree-2"])
         .current_dir(temp_dir.path())
         .assert()
         .success();
 
     // List names only
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["list", "--names"]);
+    cmd.args(["list", "--names"]);
     cmd.current_dir(temp_dir.path());
 
     let output = cmd.output().unwrap();
@@ -139,14 +139,14 @@ fn test_list_json_format_with_worktrees() {
     // Create a worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "json-test"])
+        .args(["create", "json-test"])
         .current_dir(temp_dir.path())
         .assert()
         .success();
 
     // List with JSON
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["list", "--json"]);
+    cmd.args(["list", "--json"]);
     cmd.current_dir(temp_dir.path());
 
     cmd.assert()
@@ -165,14 +165,14 @@ fn test_where_output_format() {
     // Create a worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "where-test"])
+        .args(["create", "where-test"])
         .current_dir(temp_dir.path())
         .assert()
         .success();
 
     // Get its path
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["where", "where-test"]);
+    cmd.args(["where", "where-test"]);
     cmd.current_dir(temp_dir.path());
 
     let output = cmd.output().unwrap();
@@ -191,14 +191,14 @@ fn test_where_json_output() {
     // Create a worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "where-json"])
+        .args(["create", "where-json"])
         .current_dir(temp_dir.path())
         .assert()
         .success();
 
     // Get its path in JSON
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["where", "where-json", "--json"]);
+    cmd.args(["where", "where-json", "--json"]);
     cmd.current_dir(temp_dir.path());
     cmd.assert().success();
 }
@@ -210,14 +210,14 @@ fn test_delete_output_format() {
     // Create a worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "delete-test"])
+        .args(["create", "delete-test"])
         .current_dir(temp_dir.path())
         .assert()
         .success();
 
     // Delete it
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["delete", "delete-test"]);
+    cmd.args(["delete", "delete-test"]);
     cmd.current_dir(temp_dir.path());
 
     let output = cmd.output().unwrap();
@@ -235,14 +235,14 @@ fn test_delete_json_output() {
     // Create a worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "delete-json"])
+        .args(["create", "delete-json"])
         .current_dir(temp_dir.path())
         .assert()
         .success();
 
     // Delete it with JSON output
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["delete", "delete-json", "--json"]);
+    cmd.args(["delete", "delete-json", "--json"]);
     cmd.current_dir(temp_dir.path());
     cmd.assert().success();
 }
@@ -253,7 +253,7 @@ fn test_attach_output_format() {
 
     // Attach to existing branch
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["attach", "feature-a"]);
+    cmd.args(["attach", "feature-a"]);
     cmd.current_dir(temp_dir.path());
     cmd.assert().success();
 }
@@ -264,7 +264,7 @@ fn test_attach_json_output() {
 
     // Attach with JSON output
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["attach", "feature-b", "--json"]);
+    cmd.args(["attach", "feature-b", "--json"]);
     cmd.current_dir(temp_dir.path());
 
     cmd.assert()
@@ -281,7 +281,7 @@ fn test_error_message_format() {
 
     // Try to create a worktree with invalid name
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["create", "invalid name with spaces"]);
+    cmd.args(["create", "invalid name with spaces"]);
     cmd.current_dir(temp_dir.path());
 
     cmd.assert()
@@ -296,7 +296,7 @@ fn test_verbose_output_includes_debug_info() {
 
     // Run with verbose flag
     let mut cmd = Command::cargo_bin("phantom").unwrap();
-    cmd.args(&["-v", "list"]);
+    cmd.args(["-v", "list"]);
     cmd.current_dir(temp_dir.path());
     cmd.env("RUST_LOG", ""); // Clear any existing RUST_LOG
 

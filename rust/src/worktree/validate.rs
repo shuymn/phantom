@@ -57,8 +57,7 @@ pub fn validate_worktree_name(name: &str) -> Result<()> {
 
         if name.len() > MAX_WORKTREE_NAME_LENGTH {
             return Err(WorktreeError::InvalidName(format!(
-                "Phantom name cannot exceed {} characters",
-                MAX_WORKTREE_NAME_LENGTH
+                "Phantom name cannot exceed {MAX_WORKTREE_NAME_LENGTH} characters"
             ))
             .into());
         }

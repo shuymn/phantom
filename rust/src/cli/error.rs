@@ -107,10 +107,7 @@ mod tests {
 
         // Test general error fallback
         assert_eq!(
-            error_to_exit_code(&PhantomError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "test"
-            ))),
+            error_to_exit_code(&PhantomError::Io(std::io::Error::other("test"))),
             ExitCode::GENERAL_ERROR
         );
     }

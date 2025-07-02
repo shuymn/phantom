@@ -189,6 +189,7 @@ where
 mod tests {
     use super::*;
     use crate::core::executors::MockCommandExecutor;
+    use crate::test_utils::EnvGuard;
 
     #[test]
     fn test_analyze_shell_path() {
@@ -321,7 +322,7 @@ mod tests {
     #[test]
     fn test_get_phantom_env_with_ps1() {
         // Temporarily set PS1
-        env::set_var("PS1", "$ ");
+        let _guard = EnvGuard::set("PS1", "$ ");
 
         let env = get_phantom_env("test-wt", "/path/to/test-wt");
 
@@ -331,29 +332,28 @@ mod tests {
             assert!(ps1.contains("$ "));
         }
 
-        // Clean up
-        env::remove_var("PS1");
+        // Guard will automatically restore env var when dropped
     }
 
     #[test]
     fn test_is_phantom_session_with_env() {
         // Set the environment variable
-        env::set_var("PHANTOM_ACTIVE", "1");
+        let _guard = EnvGuard::set("PHANTOM_ACTIVE", "1");
         assert!(is_phantom_session());
+        drop(_guard);
 
-        // Clean up
-        env::remove_var("PHANTOM_ACTIVE");
+        // After guard is dropped, env var should be restored
         assert!(!is_phantom_session());
     }
 
     #[test]
     fn test_current_phantom_worktree_with_env() {
         // Set the environment variable
-        env::set_var("PHANTOM_WORKTREE", "my-feature");
+        let _guard = EnvGuard::set("PHANTOM_WORKTREE", "my-feature");
         assert_eq!(current_phantom_worktree(), Some("my-feature".to_string()));
+        drop(_guard);
 
-        // Clean up
-        env::remove_var("PHANTOM_WORKTREE");
+        // After guard is dropped, env var should be restored
         assert!(current_phantom_worktree().is_none());
     }
 
@@ -393,7 +393,7 @@ mod tests {
     #[serial_test::serial]
     async fn test_shell_in_dir_with_executor_bash() {
         // Mock SHELL environment variable for consistent testing
-        env::set_var("SHELL", "/bin/bash");
+        let _guard = EnvGuard::set("SHELL", "/bin/bash");
 
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("/bin/bash").with_args(&["-i"]).returns_output("", "", 0);
@@ -405,15 +405,14 @@ mod tests {
         }
         assert!(result.is_ok());
 
-        // Clean up
-        env::remove_var("SHELL");
+        // Guard will automatically restore env var when dropped
     }
 
     #[tokio::test]
     #[serial_test::serial]
     async fn test_shell_in_dir_with_executor_zsh() {
         // Mock SHELL environment variable
-        env::set_var("SHELL", "/usr/bin/zsh");
+        let _guard = EnvGuard::set("SHELL", "/usr/bin/zsh");
 
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("/usr/bin/zsh").with_args(&["-i"]).returns_output("", "", 0);
@@ -425,15 +424,14 @@ mod tests {
         }
         assert!(result.is_ok());
 
-        // Clean up
-        env::remove_var("SHELL");
+        // Guard will automatically restore env var when dropped
     }
 
     #[tokio::test]
     #[serial_test::serial]
     async fn test_shell_in_dir_with_executor_fallback() {
         // Remove SHELL to force fallback
-        env::remove_var("SHELL");
+        let _guard = EnvGuard::remove("SHELL");
 
         let mut mock = MockCommandExecutor::new();
         mock.expect_command("/bin/sh")

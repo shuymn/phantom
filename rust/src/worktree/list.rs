@@ -92,7 +92,7 @@ where
             // Extract the name from the canonical path
             let canonical_path_str = worktree_path_canonical.to_string_lossy();
             let name = if let Some(stripped) =
-                canonical_path_str.strip_prefix(&format!("{}/", phantom_dir_str))
+                canonical_path_str.strip_prefix(&format!("{phantom_dir_str}/"))
             {
                 stripped.to_string()
             } else {
@@ -222,7 +222,7 @@ mod tests {
 
         // Get the current commit hash using Command directly
         let output = tokio::process::Command::new("git")
-            .args(&["rev-parse", "HEAD"])
+            .args(["rev-parse", "HEAD"])
             .current_dir(repo.path())
             .output()
             .await
@@ -232,7 +232,7 @@ mod tests {
         // Create a worktree at a specific commit (detached HEAD)
         let worktree_path = get_phantom_directory(repo.path()).join("detached");
         tokio::process::Command::new("git")
-            .args(&["worktree", "add", "-d", worktree_path.to_str().unwrap(), &commit_hash])
+            .args(["worktree", "add", "-d", worktree_path.to_str().unwrap(), &commit_hash])
             .current_dir(repo.path())
             .output()
             .await

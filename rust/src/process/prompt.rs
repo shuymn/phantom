@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_select_display_formatting() {
-        let options = vec!["Option 1", "Option 2", "Option 3"];
+        let options = ["Option 1", "Option 2", "Option 3"];
         let default = Some(1);
 
         // Test marker for default option
@@ -196,7 +196,7 @@ mod tests {
         let options_len = 5;
 
         // Valid inputs
-        let valid_inputs = vec![1, 2, 3, 4, 5];
+        let valid_inputs = [1, 2, 3, 4, 5];
         for n in valid_inputs {
             assert!(n > 0 && n <= options_len);
             let index = n - 1;
@@ -204,7 +204,7 @@ mod tests {
         }
 
         // Invalid inputs
-        let invalid_inputs = vec![0, 6, 100];
+        let invalid_inputs = [0, 6, 100];
         for n in invalid_inputs {
             assert!(!(n > 0 && n <= options_len));
         }
@@ -259,7 +259,7 @@ mod tests {
             let _: &str = item.as_ref();
         }
         for item in &str_vec {
-            let _: &str = item.as_ref();
+            let _: &str = item;
         }
     }
 
@@ -301,10 +301,10 @@ mod tests {
     #[test]
     fn test_message_formatting() {
         let message = "Please confirm";
-        let options = vec!["Yes", "No", "Cancel"];
+        let options = ["Yes", "No", "Cancel"];
 
         // Test select message display
-        let select_msg = format!("{}", message);
+        let select_msg = message.to_string();
         assert_eq!(select_msg, "Please confirm");
 
         // Test option formatting

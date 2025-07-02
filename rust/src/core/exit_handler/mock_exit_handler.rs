@@ -8,6 +8,12 @@ pub struct MockExitHandler {
     exits: Arc<Mutex<Vec<i32>>>,
 }
 
+impl Default for MockExitHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MockExitHandler {
     pub fn new() -> Self {
         Self { exits: Arc::new(Mutex::new(Vec::new())) }

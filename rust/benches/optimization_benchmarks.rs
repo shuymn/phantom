@@ -123,7 +123,7 @@ fn bench_smallvec_optimization(c: &mut Criterion) {
     let mut group = c.benchmark_group("smallvec_optimization");
 
     // Small argument list (typical case)
-    let small_args = vec!["status", "--porcelain"];
+    let small_args = ["status", "--porcelain"];
 
     group.bench_function("vec_small", |b| {
         b.iter(|| {

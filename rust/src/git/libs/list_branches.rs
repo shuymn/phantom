@@ -37,7 +37,7 @@ mod tests {
 
         use crate::core::executors::RealCommandExecutor;
         let branches = list_branches(RealCommandExecutor, repo.path()).await.unwrap();
-        assert_eq!(branches, vec!["main"]);
+        assert_eq!(branches, ["main"]);
     }
 
     #[tokio::test]
@@ -54,7 +54,7 @@ mod tests {
         let mut branches = list_branches(RealCommandExecutor, repo.path()).await.unwrap();
         branches.sort(); // Sort for consistent comparison
 
-        assert_eq!(branches, vec!["bugfix/issue-123", "feature-a", "feature-b", "main"]);
+        assert_eq!(branches, ["bugfix/issue-123", "feature-a", "feature-b", "main"]);
     }
 
     #[tokio::test]
@@ -67,7 +67,7 @@ mod tests {
 
         let branches = list_branches(mock, Path::new("/test/repo")).await.unwrap();
 
-        assert_eq!(branches, vec!["main", "feature/awesome", "bugfix/critical"]);
+        assert_eq!(branches, ["main", "feature/awesome", "bugfix/critical"]);
     }
 
     #[tokio::test]
@@ -93,6 +93,6 @@ mod tests {
 
         let branches = list_branches(mock, Path::new("/test/repo")).await.unwrap();
 
-        assert_eq!(branches, vec!["main", "develop", "feature"]);
+        assert_eq!(branches, ["main", "develop", "feature"]);
     }
 }

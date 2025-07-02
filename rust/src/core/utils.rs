@@ -113,7 +113,7 @@ mod tests {
         };
         assert_eq!(error_to_exit_code(&error), ExitCode::from(9));
 
-        let error = PhantomError::Io(std::io::Error::new(std::io::ErrorKind::Other, "test"));
+        let error = PhantomError::Io(std::io::Error::other("test"));
         assert_eq!(error_to_exit_code(&error), ExitCode::from(10));
 
         let error = PhantomError::Json(serde_json::from_str::<String>("invalid").unwrap_err());

@@ -91,7 +91,7 @@ where
     match git_executor.run(&["branch", "-D", branch_name]).await {
         Ok(_) => Ok(true),
         Err(e) => {
-            debug!("Failed to delete branch '{}': {}", branch_name, e);
+            debug!("Failed to delete branch '{branch_name}': {e}");
             Ok(false)
         }
     }
@@ -129,15 +129,15 @@ where
 
     // Build the success message
     let mut message = if branch_deleted {
-        format!("Deleted worktree '{}' and its branch '{}'", name, name)
+        format!("Deleted worktree '{name}' and its branch '{name}'")
     } else {
-        format!("Deleted worktree '{}'", name)
+        format!("Deleted worktree '{name}'")
     };
 
     if status.has_uncommitted_changes {
         message = format!(
-            "Warning: Worktree '{}' had uncommitted changes ({} files)\n{}",
-            name, status.changed_files, message
+            "Warning: Worktree '{name}' had uncommitted changes ({} files)\n{message}",
+            status.changed_files
         );
     }
 

@@ -10,34 +10,34 @@ fn setup_git_repo() -> TempDir {
 
     // Initialize git repo
     std::process::Command::new("git")
-        .args(&["init"])
-        .current_dir(&repo_path)
+        .args(["init"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to init git repo");
 
     // Configure git user
     std::process::Command::new("git")
-        .args(&["config", "user.email", "test@example.com"])
-        .current_dir(&repo_path)
+        .args(["config", "user.email", "test@example.com"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to set git email");
 
     std::process::Command::new("git")
-        .args(&["config", "user.name", "Test User"])
-        .current_dir(&repo_path)
+        .args(["config", "user.name", "Test User"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to set git name");
 
     // Create initial commit
     fs::write(repo_path.join("README.md"), "# Test").unwrap();
     std::process::Command::new("git")
-        .args(&["add", "."])
-        .current_dir(&repo_path)
+        .args(["add", "."])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to add files");
     std::process::Command::new("git")
-        .args(&["commit", "-m", "Initial commit"])
-        .current_dir(&repo_path)
+        .args(["commit", "-m", "Initial commit"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to commit");
 
@@ -52,8 +52,8 @@ fn test_typescript_compat_phantom_directory_structure() {
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "test-structure"])
-        .current_dir(&repo_path)
+        .args(["create", "test-structure"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -71,15 +71,15 @@ fn test_typescript_compat_branch_naming() {
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "feature-xyz"])
-        .current_dir(&repo_path)
+        .args(["create", "feature-xyz"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     // Check branch was created with same name
     let output = std::process::Command::new("git")
-        .args(&["branch", "--list"])
-        .current_dir(&repo_path)
+        .args(["branch", "--list"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to list branches");
 
@@ -95,15 +95,15 @@ fn test_typescript_compat_custom_branch_name() {
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "my-worktree", "--branch", "custom-branch"])
-        .current_dir(&repo_path)
+        .args(["create", "my-worktree", "--branch", "custom-branch"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     // Check branch was created with custom name
     let output = std::process::Command::new("git")
-        .args(&["branch", "--list"])
-        .current_dir(&repo_path)
+        .args(["branch", "--list"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to list branches");
 
@@ -133,8 +133,8 @@ fn test_typescript_compat_validation_rules() {
     for name in &valid_names {
         Command::cargo_bin("phantom")
             .unwrap()
-            .args(&["create", name])
-            .current_dir(&repo_path)
+            .args(["create", name])
+            .current_dir(repo_path)
             .assert()
             .success();
     }
@@ -170,8 +170,8 @@ fn test_typescript_compat_validation_rules() {
     for name in &invalid_names {
         Command::cargo_bin("phantom")
             .unwrap()
-            .args(&["create", name])
-            .current_dir(&repo_path)
+            .args(["create", name])
+            .current_dir(repo_path)
             .assert()
             .failure()
             .code(2); // VALIDATION_ERROR
@@ -187,7 +187,7 @@ fn test_typescript_compat_list_output_empty() {
     Command::cargo_bin("phantom")
         .unwrap()
         .arg("list")
-        .current_dir(&repo_path)
+        .current_dir(repo_path)
         .assert()
         .success()
         .stdout(predicate::str::contains("No worktrees found"));
@@ -201,8 +201,8 @@ fn test_typescript_compat_json_empty_array() {
 
     let output = Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["list", "--json"])
-        .current_dir(&repo_path)
+        .args(["list", "--json"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -224,8 +224,8 @@ fn test_typescript_compat_delete_force_flag() {
     // Create a worktree
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "to-delete"])
-        .current_dir(&repo_path)
+        .args(["create", "to-delete"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -236,8 +236,8 @@ fn test_typescript_compat_delete_force_flag() {
     // Delete with force flag
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["delete", "to-delete", "--force"])
-        .current_dir(&repo_path)
+        .args(["delete", "to-delete", "--force"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -256,20 +256,20 @@ fn test_typescript_compat_create_base_option() {
     // Create a second commit
     fs::write(repo_path.join("file2.txt"), "content").unwrap();
     std::process::Command::new("git")
-        .args(&["add", "."])
-        .current_dir(&repo_path)
+        .args(["add", "."])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to add files");
     std::process::Command::new("git")
-        .args(&["commit", "-m", "Second commit"])
-        .current_dir(&repo_path)
+        .args(["commit", "-m", "Second commit"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to commit");
 
     // Get the first commit hash
     let output = std::process::Command::new("git")
-        .args(&["log", "--format=%H", "-n", "2"])
-        .current_dir(&repo_path)
+        .args(["log", "--format=%H", "-n", "2"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to get commits");
 
@@ -279,8 +279,8 @@ fn test_typescript_compat_create_base_option() {
     // Create worktree based on first commit
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "based-on-first", "--base", first_commit])
-        .current_dir(&repo_path)
+        .args(["create", "based-on-first", "--base", first_commit])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -290,8 +290,8 @@ fn test_typescript_compat_create_base_option() {
 
     // Verify the worktree is at the correct commit
     let output = std::process::Command::new("git")
-        .args(&["rev-parse", "HEAD"])
-        .current_dir(&worktree_path)
+        .args(["rev-parse", "HEAD"])
+        .current_dir(worktree_path)
         .output()
         .expect("Failed to get worktree commit");
 
@@ -315,8 +315,8 @@ fn test_typescript_compat_config_file_formats() {
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "with-json-config"])
-        .current_dir(&repo_path)
+        .args(["create", "with-json-config"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -334,8 +334,8 @@ copyFiles = ["README.md"]
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "with-toml-config"])
-        .current_dir(&repo_path)
+        .args(["create", "with-toml-config"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
@@ -353,8 +353,8 @@ fn test_typescript_compat_attach_error_messages() {
     // Try to attach to non-existent branch
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["attach", "no-such-branch"])
-        .current_dir(&repo_path)
+        .args(["attach", "no-such-branch"])
+        .current_dir(repo_path)
         .assert()
         .failure()
         .stderr(predicate::str::contains("Branch"))
@@ -362,23 +362,23 @@ fn test_typescript_compat_attach_error_messages() {
 
     // Create a branch and attach
     std::process::Command::new("git")
-        .args(&["branch", "existing-branch"])
-        .current_dir(&repo_path)
+        .args(["branch", "existing-branch"])
+        .current_dir(repo_path)
         .output()
         .expect("Failed to create branch");
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["attach", "existing-branch"])
-        .current_dir(&repo_path)
+        .args(["attach", "existing-branch"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     // Try to attach again
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["attach", "existing-branch"])
-        .current_dir(&repo_path)
+        .args(["attach", "existing-branch"])
+        .current_dir(repo_path)
         .assert()
         .failure()
         .stderr(predicate::str::contains("already exists"));
@@ -392,15 +392,15 @@ fn test_typescript_compat_where_command() {
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "test-where"])
-        .current_dir(&repo_path)
+        .args(["create", "test-where"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     let output = Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["where", "test-where"])
-        .current_dir(&repo_path)
+        .args(["where", "test-where"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()
@@ -422,22 +422,22 @@ fn test_typescript_compat_list_names_flag() {
     // Create some worktrees
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "wt1"])
-        .current_dir(&repo_path)
+        .args(["create", "wt1"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["create", "wt2"])
-        .current_dir(&repo_path)
+        .args(["create", "wt2"])
+        .current_dir(repo_path)
         .assert()
         .success();
 
     let output = Command::cargo_bin("phantom")
         .unwrap()
-        .args(&["list", "--names"])
-        .current_dir(&repo_path)
+        .args(["list", "--names"])
+        .current_dir(repo_path)
         .assert()
         .success()
         .get_output()

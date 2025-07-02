@@ -2,7 +2,10 @@ use crate::Result;
 use std::path::{Path, PathBuf};
 use tempfile::{tempdir, TempDir};
 
+pub mod env_guard;
 pub mod safe_git;
+
+pub use env_guard::EnvGuard;
 
 use safe_git::SafeGitCommand;
 

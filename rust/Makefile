@@ -4,7 +4,7 @@ test:
 	cargo test --all-features
 
 lint:
-	cargo clippy -- -D warnings
+	cargo clippy --all-features -- -D warnings
 
 format:
 	cargo fmt --all

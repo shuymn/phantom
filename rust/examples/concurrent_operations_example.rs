@@ -72,15 +72,10 @@ async fn main() {
 
     // Example 2: Get info for multiple worktrees concurrently
     println!("2. Getting info for multiple worktrees concurrently:");
-    let names = vec!["feature-a", "feature-b", "feature-c"];
+    let names = ["feature-a", "feature-b", "feature-c"];
     let start = Instant::now();
-    let infos = get_worktrees_info_concurrent(
-        executor.clone(),
-        &git_root,
-        &names.iter().map(|s| *s).collect::<Vec<_>>(),
-    )
-    .await
-    .unwrap();
+    let infos =
+        get_worktrees_info_concurrent(executor.clone(), &git_root, &names.to_vec()).await.unwrap();
     let duration = start.elapsed();
 
     for info in infos {
@@ -90,7 +85,7 @@ async fn main() {
 
     // Example 3: Batch status checks
     println!("3. Batch checking status of worktrees:");
-    let paths = vec![
+    let paths = [
         PathBuf::from("/repo/.git/phantom/worktrees/feature-a"),
         PathBuf::from("/repo/.git/phantom/worktrees/feature-b"),
         PathBuf::from("/repo/.git/phantom/worktrees/feature-c"),

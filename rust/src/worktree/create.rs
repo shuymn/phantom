@@ -38,8 +38,7 @@ where
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
             PhantomError::Io(std::io::Error::other(format!(
-                "Failed to create phantom directory: {}",
-                e
+                "Failed to create phantom directory: {e}"
             )))
         })?;
     }
@@ -58,11 +57,7 @@ where
         |e| match e {
             PhantomError::Git { command: _, args, exit_code, stderr } => {
                 WorktreeError::GitOperation {
-                    operation: format!(
-                        "git {} failed with exit code {}",
-                        args.join(" "),
-                        exit_code
-                    ),
+                    operation: format!("git {} failed with exit code {exit_code}", args.join(" ")),
                     details: stderr,
                 }
                 .into()
@@ -72,7 +67,7 @@ where
     )?;
 
     let mut result = CreateWorktreeSuccess {
-        message: format!("Created worktree '{}' at {}", name, worktree_path.display()),
+        message: format!("Created worktree '{name}' at {}", worktree_path.display()),
         path: worktree_path.to_string_lossy().to_string(),
         copied_files: None,
         skipped_files: None,
@@ -125,8 +120,7 @@ where
         debug!("Creating phantom directory at {:?}", worktrees_path);
         fs::create_dir_all(&worktrees_path).await.map_err(|e| {
             PhantomError::Io(std::io::Error::other(format!(
-                "Failed to create phantom directory: {}",
-                e
+                "Failed to create phantom directory: {e}"
             )))
         })?;
     }
@@ -142,11 +136,7 @@ where
         |e| match e {
             PhantomError::Git { command: _, args, exit_code, stderr } => {
                 WorktreeError::GitOperation {
-                    operation: format!(
-                        "git {} failed with exit code {}",
-                        args.join(" "),
-                        exit_code
-                    ),
+                    operation: format!("git {} failed with exit code {exit_code}", args.join(" ")),
                     details: stderr,
                 }
                 .into()
@@ -156,7 +146,7 @@ where
     )?;
 
     let mut result = CreateWorktreeSuccess {
-        message: format!("Created worktree '{}' at {}", name, worktree_path.display()),
+        message: format!("Created worktree '{name}' at {}", worktree_path.display()),
         path: worktree_path.to_string_lossy().to_string(),
         copied_files: None,
         skipped_files: None,

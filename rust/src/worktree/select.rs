@@ -58,9 +58,9 @@ where
     let formatted_worktrees: Vec<String> = worktrees
         .iter()
         .map(|wt| {
-            let branch_info = wt.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default();
+            let branch_info = wt.branch.as_ref().map(|b| format!(" ({b})")).unwrap_or_default();
             let status = if !wt.is_clean { " [dirty]" } else { "" };
-            format!("{}{}{}", wt.name, branch_info, status)
+            format!("{}{branch_info}{status}", wt.name)
         })
         .collect();
 
@@ -212,7 +212,7 @@ mod tests {
         let formatted = format!(
             "{}{}{}",
             worktree.name,
-            worktree.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default(),
+            worktree.branch.as_ref().map(|b| format!(" ({b})")).unwrap_or_default(),
             if !is_clean { " [dirty]" } else { "" }
         );
 
@@ -236,7 +236,7 @@ mod tests {
         let formatted = format!(
             "{}{}{}",
             worktree.name,
-            worktree.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default(),
+            worktree.branch.as_ref().map(|b| format!(" ({b})")).unwrap_or_default(),
             if !is_clean { " [dirty]" } else { "" }
         );
 
@@ -275,7 +275,7 @@ mod tests {
         let result =
             SelectWorktreeResult { name: "test".to_string(), branch: None, is_clean: true };
 
-        let debug_str = format!("{:?}", result);
+        let debug_str = format!("{result:?}");
         assert!(debug_str.contains("SelectWorktreeResult"));
         assert!(debug_str.contains("name"));
     }
@@ -318,7 +318,7 @@ mod tests {
         let formatted = format!(
             "{}{}{}",
             worktree.name,
-            worktree.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default(),
+            worktree.branch.as_ref().map(|b| format!(" ({b})")).unwrap_or_default(),
             if !is_clean { " [dirty]" } else { "" }
         );
 
@@ -333,7 +333,7 @@ mod tests {
             preview_command: Some("preview".to_string()),
         };
 
-        let debug_str = format!("{:?}", options);
+        let debug_str = format!("{options:?}");
         assert!(debug_str.contains("FzfOptions"));
         assert!(debug_str.contains("prompt: Some"));
         assert!(debug_str.contains("header: None"));
@@ -390,11 +390,11 @@ mod tests {
             let formatted = format!(
                 "{}{}{}",
                 worktree.name,
-                worktree.branch.as_ref().map(|b| format!(" ({})", b)).unwrap_or_default(),
+                worktree.branch.as_ref().map(|b| format!(" ({b})")).unwrap_or_default(),
                 if !is_clean { " [dirty]" } else { "" }
             );
 
-            assert_eq!(formatted, expected, "Failed for case: {}", name);
+            assert_eq!(formatted, expected, "Failed for case: {name}");
         }
     }
 
@@ -516,7 +516,7 @@ mod tests {
         match result {
             Ok(None) => {} // Expected - no worktrees to select
             Ok(Some(_)) => panic!("Should not select a worktree when none exist"),
-            Err(e) => panic!("Unexpected error: {:?}", e),
+            Err(e) => panic!("Unexpected error: {e:?}"),
         }
     }
 
@@ -598,7 +598,7 @@ mod tests {
     #[test]
     fn test_fzf_stdin_write() {
         // Test formatting items for fzf input
-        let items = vec![
+        let items = [
             "worktree1 (main)".to_string(),
             "worktree2 (feature) [dirty]".to_string(),
             "worktree3".to_string(),
@@ -606,7 +606,7 @@ mod tests {
 
         let input = items.join("\n");
         assert_eq!(input, "worktree1 (main)\nworktree2 (feature) [dirty]\nworktree3");
-        assert_eq!(input.as_bytes().len(), input.len());
+        assert_eq!(input.len(), input.len());
     }
 
     #[test]
@@ -619,7 +619,7 @@ mod tests {
         // Test with invalid UTF-8 (will be replaced with replacement character)
         let invalid_utf8 = &[0xFF, 0xFE, 0xFD];
         let result = String::from_utf8_lossy(invalid_utf8);
-        assert!(result.len() > 0); // Will contain replacement characters
+        assert!(!result.is_empty()); // Will contain replacement characters
     }
 
     #[test]

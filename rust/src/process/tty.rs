@@ -63,6 +63,7 @@ pub fn terminal_size() -> Option<(usize, usize)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::EnvGuard;
 
     #[test]
     fn test_tty_detection() {
@@ -86,30 +87,15 @@ mod tests {
 
     #[test]
     fn test_should_use_color() {
-        // Save original env vars
-        let force_color = env::var("FORCE_COLOR").ok();
-        let no_color = env::var("NO_COLOR").ok();
-
         // Test FORCE_COLOR
-        env::set_var("FORCE_COLOR", "1");
+        let _guard1 = EnvGuard::set("FORCE_COLOR", "1");
         assert!(should_use_color());
 
         // Test NO_COLOR (should override FORCE_COLOR)
-        env::set_var("NO_COLOR", "1");
+        let _guard2 = EnvGuard::set("NO_COLOR", "1");
         assert!(!should_use_color());
 
-        // Restore original env vars
-        if let Some(val) = force_color {
-            env::set_var("FORCE_COLOR", val);
-        } else {
-            env::remove_var("FORCE_COLOR");
-        }
-
-        if let Some(val) = no_color {
-            env::set_var("NO_COLOR", val);
-        } else {
-            env::remove_var("NO_COLOR");
-        }
+        // Guards will automatically restore env vars when dropped
     }
 
     #[test]
@@ -144,37 +130,21 @@ mod tests {
 
     #[test]
     fn test_should_use_color_with_term() {
-        // Save original env vars
-        let orig_term = env::var("TERM").ok();
-        let orig_no_color = env::var("NO_COLOR").ok();
-        let orig_force_color = env::var("FORCE_COLOR").ok();
-
         // Clean environment
-        env::remove_var("NO_COLOR");
-        env::remove_var("FORCE_COLOR");
+        let _guard1 = EnvGuard::remove("NO_COLOR");
+        let _guard2 = EnvGuard::remove("FORCE_COLOR");
 
         // Test with dumb terminal
-        env::set_var("TERM", "dumb");
+        let _guard3 = EnvGuard::set("TERM", "dumb");
         assert!(!should_use_color());
+        drop(_guard3);
 
         // Test with normal terminal
-        env::set_var("TERM", "xterm-256color");
+        let _guard4 = EnvGuard::set("TERM", "xterm-256color");
         // Result depends on if stdout is a TTY
         let _ = should_use_color();
 
-        // Restore original env vars
-        match orig_term {
-            Some(val) => env::set_var("TERM", val),
-            None => env::remove_var("TERM"),
-        }
-        match orig_no_color {
-            Some(val) => env::set_var("NO_COLOR", val),
-            None => env::remove_var("NO_COLOR"),
-        }
-        match orig_force_color {
-            Some(val) => env::set_var("FORCE_COLOR", val),
-            None => env::remove_var("FORCE_COLOR"),
-        }
+        // Guards will automatically restore env vars when dropped
     }
 
     #[test]

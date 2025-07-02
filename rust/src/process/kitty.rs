@@ -166,7 +166,7 @@ mod tests {
     fn test_kitty_split_direction_copy_clone() {
         let original = KittySplitDirection::Vertical;
         let copied = original;
-        let cloned = original.clone();
+        let cloned = original;
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);

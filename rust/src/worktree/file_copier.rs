@@ -32,11 +32,9 @@ pub async fn copy_files(
                 skipped_files.push(file.clone());
             }
             Err(e) => {
-                return Err(WorktreeError::FileOperation(format!(
-                    "Failed to copy {}: {}",
-                    file, e
-                ))
-                .into());
+                return Err(
+                    WorktreeError::FileOperation(format!("Failed to copy {file}: {e}")).into()
+                );
             }
         }
     }
@@ -52,18 +50,17 @@ async fn copy_single_file(source: &Path, target: &Path, file_name: &str) -> Resu
     match fs::metadata(source).await {
         Ok(metadata) => {
             if !metadata.is_file() {
-                debug!("Skipping '{}': not a file", file_name);
+                debug!("Skipping '{file_name}': not a file");
                 return Ok(false);
             }
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            debug!("Skipping '{}': file not found", file_name);
+            debug!("Skipping '{file_name}': file not found");
             return Ok(false);
         }
         Err(e) => {
             return Err(WorktreeError::FileOperation(format!(
-                "Failed to check metadata for '{}': {}",
-                file_name, e
+                "Failed to check metadata for '{file_name}': {e}"
             ))
             .into());
         }
@@ -73,18 +70,17 @@ async fn copy_single_file(source: &Path, target: &Path, file_name: &str) -> Resu
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent).await.map_err(|e| {
             WorktreeError::FileOperation(format!(
-                "Failed to create directory for '{}': {}",
-                file_name, e
+                "Failed to create directory for '{file_name}': {e}"
             ))
         })?;
     }
 
     // Copy the file
-    fs::copy(source, target).await.map_err(|e| {
-        WorktreeError::FileOperation(format!("Failed to copy '{}': {}", file_name, e))
-    })?;
+    fs::copy(source, target)
+        .await
+        .map_err(|e| WorktreeError::FileOperation(format!("Failed to copy '{file_name}': {e}")))?;
 
-    debug!("Copied file: {}", file_name);
+    debug!("Copied file: {file_name}");
     Ok(true)
 }
 
@@ -122,9 +118,7 @@ pub async fn copy_files_concurrent(
 
     for (file, success, error) in results {
         if let Some(e) = error {
-            return Err(
-                WorktreeError::FileOperation(format!("Failed to copy {}: {}", file, e)).into()
-            );
+            return Err(WorktreeError::FileOperation(format!("Failed to copy {file}: {e}")).into());
         }
 
         if success {
@@ -297,7 +291,7 @@ mod tests {
             skipped_files: vec!["skip.txt".to_string()],
         };
 
-        let debug_str = format!("{:?}", result);
+        let debug_str = format!("{result:?}");
         assert!(debug_str.contains("CopyFileResult"));
         assert!(debug_str.contains("copied_files"));
         assert!(debug_str.contains("file1.txt"));
@@ -370,9 +364,9 @@ mod tests {
         // Create multiple test files
         let mut files = Vec::new();
         for i in 0..10 {
-            let filename = format!("file{}.txt", i);
+            let filename = format!("file{i}.txt");
             let file_path = source_dir.path().join(&filename);
-            fs::write(&file_path, format!("content{}", i)).await.unwrap();
+            fs::write(&file_path, format!("content{i}")).await.unwrap();
             files.push(filename);
         }
 
@@ -384,9 +378,9 @@ mod tests {
 
         // Verify all files were copied
         for i in 0..10 {
-            let target_file = target_dir.path().join(format!("file{}.txt", i));
+            let target_file = target_dir.path().join(format!("file{i}.txt"));
             assert!(target_file.exists());
-            assert_eq!(fs::read_to_string(target_file).await.unwrap(), format!("content{}", i));
+            assert_eq!(fs::read_to_string(target_file).await.unwrap(), format!("content{i}"));
         }
     }
 

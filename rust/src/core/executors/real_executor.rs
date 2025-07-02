@@ -279,7 +279,7 @@ mod tests {
     #[tokio::test]
     async fn test_default_impl() {
         let executor1 = RealCommandExecutor::new();
-        let executor2 = RealCommandExecutor::default();
+        let executor2 = RealCommandExecutor;
 
         let config = CommandConfig::new("echo").with_args(vec!["test".to_string()]);
 

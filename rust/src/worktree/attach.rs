@@ -31,8 +31,7 @@ where
     if fs::metadata(&phantom_dir).await.is_err() {
         fs::create_dir_all(&phantom_dir).await.map_err(|e| {
             PhantomError::Io(std::io::Error::other(format!(
-                "Failed to create phantom directory: {}",
-                e
+                "Failed to create phantom directory: {e}"
             )))
         })?;
     }
@@ -107,7 +106,7 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             PhantomError::InvalidWorktreeName { .. } | PhantomError::ValidationFailed { .. } => {}
-            e => panic!("Expected InvalidWorktreeName or Validation error, got: {:?}", e),
+            e => panic!("Expected InvalidWorktreeName or Validation error, got: {e:?}"),
         }
     }
 }

@@ -283,7 +283,7 @@ mod tests {
     fn test_multiplexer_copy_clone() {
         let original = Multiplexer::Tmux;
         let copied = original;
-        let cloned = original.clone();
+        let cloned = original;
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
@@ -293,7 +293,7 @@ mod tests {
     fn test_split_direction_copy_clone() {
         let original = SplitDirection::Vertical;
         let copied = original;
-        let cloned = original.clone();
+        let cloned = original;
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
@@ -325,7 +325,7 @@ mod tests {
         // This will depend on the test environment
         let available = is_multiplexer_available().await;
         // We can't assert a specific value, but we can ensure it returns a boolean
-        assert!(available == true || available == false);
+        assert!(available || !available);
     }
 
     #[tokio::test]
@@ -384,18 +384,18 @@ mod tests {
 
         // These conversions happen in execute_in_multiplexer
         match new_dir {
-            SplitDirection::New => assert!(true),
-            _ => assert!(false),
+            SplitDirection::New => {}
+            _ => panic!("Expected SplitDirection::New"),
         }
 
         match vert_dir {
-            SplitDirection::Vertical => assert!(true),
-            _ => assert!(false),
+            SplitDirection::Vertical => {}
+            _ => panic!("Expected SplitDirection::Vertical"),
         }
 
         match horiz_dir {
-            SplitDirection::Horizontal => assert!(true),
-            _ => assert!(false),
+            SplitDirection::Horizontal => {}
+            _ => panic!("Expected SplitDirection::Horizontal"),
         }
     }
 

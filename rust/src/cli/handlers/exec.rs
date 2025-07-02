@@ -405,7 +405,8 @@ mod tests {
         let mock_fs = MockFileSystem::new();
 
         // Set TMUX env var to simulate being inside tmux
-        std::env::set_var("TMUX", "/tmp/tmux-1000/default,12345,0");
+        use crate::test_utils::EnvGuard;
+        let _guard = EnvGuard::set("TMUX", "/tmp/tmux-1000/default,12345,0");
 
         // Mock git root check
         mock.expect_command("git").with_args(&["rev-parse", "--git-common-dir"]).returns_output(
@@ -464,8 +465,7 @@ mod tests {
         let result = handle(args, context).await;
         assert!(result.is_ok());
 
-        // Clean up env var
-        std::env::remove_var("TMUX");
+        // Guard will automatically restore env var when dropped
     }
 
     #[tokio::test]

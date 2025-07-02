@@ -301,10 +301,10 @@ mod tests {
 
     #[test]
     fn test_string_formatting() {
-        let items = vec!["first".to_string(), "second".to_string(), "third".to_string()];
+        let items = ["first".to_string(), "second".to_string(), "third".to_string()];
         let joined = items.join("\n");
         assert_eq!(joined, "first\nsecond\nthird");
-        assert_eq!(joined.as_bytes().len(), 18); // 5 + 1 + 6 + 1 + 5
+        assert_eq!(joined.len(), 18); // 5 + 1 + 6 + 1 + 5
 
         // Test trimming
         let with_whitespace = "  selected item  \n";

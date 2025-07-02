@@ -34,7 +34,7 @@ where
             if worktree_path_canonical.starts_with(&phantom_dir_canonical) {
                 let canonical_path_str = worktree_path_canonical.to_string_lossy();
                 let name = if let Some(stripped) =
-                    canonical_path_str.strip_prefix(&format!("{}/", phantom_dir_str))
+                    canonical_path_str.strip_prefix(&format!("{phantom_dir_str}/"))
                 {
                     stripped.to_string()
                 } else {
@@ -164,7 +164,7 @@ mod tests {
             .in_dir("/repo/worktree3")
             .returns_output("", "", 0); // Clean
 
-        let paths = vec![
+        let paths = [
             Path::new("/repo/worktree1"),
             Path::new("/repo/worktree2"),
             Path::new("/repo/worktree3"),

@@ -75,7 +75,7 @@ where
         for key in sorted_keys {
             if let Some(value) = env_vars.get(key) {
                 tmux_args.push("-e".to_string());
-                tmux_args.push(format!("{}={}", key, value));
+                tmux_args.push(format!("{key}={value}"));
             }
         }
     }
@@ -237,7 +237,7 @@ mod tests {
     fn test_tmux_split_direction_copy_clone() {
         let original = TmuxSplitDirection::Horizontal;
         let copied = original;
-        let cloned = original.clone();
+        let cloned = original;
 
         assert_eq!(original, copied);
         assert_eq!(original, cloned);
@@ -246,15 +246,15 @@ mod tests {
     #[test]
     fn test_tmux_split_direction_debug() {
         let new = TmuxSplitDirection::New;
-        let debug_str = format!("{:?}", new);
+        let debug_str = format!("{new:?}");
         assert!(debug_str.contains("New"));
 
         let vertical = TmuxSplitDirection::Vertical;
-        let debug_str = format!("{:?}", vertical);
+        let debug_str = format!("{vertical:?}");
         assert!(debug_str.contains("Vertical"));
 
         let horizontal = TmuxSplitDirection::Horizontal;
-        let debug_str = format!("{:?}", horizontal);
+        let debug_str = format!("{horizontal:?}");
         assert!(debug_str.contains("Horizontal"));
     }
 
@@ -269,7 +269,7 @@ mod tests {
             window_name: Some("TestWindow".to_string()),
         };
 
-        let debug_str = format!("{:?}", options);
+        let debug_str = format!("{options:?}");
         assert!(debug_str.contains("TmuxOptions"));
         assert!(debug_str.contains("direction"));
         assert!(debug_str.contains("command"));
@@ -468,8 +468,7 @@ mod tests {
         // Generate a unique session name that's very unlikely to exist
         use std::time::{SystemTime, UNIX_EPOCH};
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-        let unique_session =
-            format!("phantom-test-nonexistent-{}-{}", std::process::id(), timestamp);
+        let unique_session = format!("phantom-test-nonexistent-{}-{timestamp}", std::process::id());
 
         // Test with a session that should not exist
         use crate::core::executors::RealCommandExecutor;
@@ -479,11 +478,11 @@ mod tests {
         let exists = match result {
             Ok(exists) => exists,
             Err(e) => {
-                eprintln!("Error checking session: {:?}", e);
+                eprintln!("Error checking session: {e:?}");
                 return; // Skip test if tmux is not available
             }
         };
-        assert!(!exists, "Nonexistent session '{}' should not exist", unique_session);
+        assert!(!exists, "Nonexistent session '{unique_session}' should not exist");
     }
 
     #[test]
@@ -540,7 +539,7 @@ mod tests {
 
         for name in session_names {
             assert!(!name.is_empty());
-            assert!(name.chars().all(|c| c.is_ascii()));
+            assert!(name.is_ascii());
         }
     }
 
@@ -601,7 +600,7 @@ mod tests {
         ]);
 
         for (key, value) in env_vars {
-            let formatted = format!("{}={}", key, value);
+            let formatted = format!("{key}={value}");
             assert!(formatted.contains('='));
             assert!(formatted.contains(&key));
             assert!(formatted.contains(&value));
