@@ -1,7 +1,4 @@
 {
   "typescript.experimental.useTsgo": true,
-  "rust-analyzer.check.extraArgs": [
-    "--target-dir",
-    "rust"
-  ]
+  "rust-analyzer.check.extraArgs": ["--target-dir", "rust"]
 }
