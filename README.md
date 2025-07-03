@@ -195,10 +195,26 @@ Contributions are welcome! See our [Contributing Guide](./CONTRIBUTING.md) for:
 - Testing requirements
 - Pull request process
 
+## ⚠️ Disclaimer
+
+phantom-rs is an **unofficial** Rust port created as a personal learning project. 
+While it aims to provide similar functionality to the original phantom:
+
+- **No guarantee of feature parity** with the original TypeScript version
+- **No promise of identical behavior** for equivalent features
+- **Breaking changes may occur** as the project evolves
+- **Use at your own risk** in production environments
+
+This project serves as both a functional tool and a Rust learning exercise.
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE)
 
 ## 🙏 Acknowledgments
 
-Built with 👻 by [@aku11i](https://github.com/aku11i) and [Claude](https://claude.ai)
+phantom-rs is a Rust port of the original [phantom](https://github.com/aku11i/phantom) by @aku11i.
+The demonstration GIFs and core functionality remain faithful to the original implementation.
+
+- Original TypeScript implementation: [@aku11i](https://github.com/aku11i)
+- Rust port and enhancements: [@shuymn](https://github.com/shuymn)
