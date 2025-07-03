@@ -2,6 +2,19 @@ use crate::{PhantomError, Result};
 use std::io::{self, Write};
 use tracing::debug;
 
+/// Common function to read user input
+fn read_input() -> Result<String> {
+    io::stdout().flush().map_err(PhantomError::Io)?;
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).map_err(PhantomError::Io)?;
+    Ok(input.trim().to_string())
+}
+
+/// Common function to display a prompt
+fn display_prompt(message: &str, suffix: &str) {
+    print!("{message}{suffix}");
+}
+
 /// Prompt the user for a yes/no confirmation
 pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
     let suffix = match default {
@@ -10,13 +23,8 @@ pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
         None => " [y/n] ",
     };
 
-    print!("{message}{suffix}");
-    io::stdout().flush().map_err(PhantomError::Io)?;
-
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).map_err(PhantomError::Io)?;
-
-    let input = input.trim().to_lowercase();
+    display_prompt(message, suffix);
+    let input = read_input()?.to_lowercase();
 
     if input.is_empty() {
         if let Some(default_value) = default {
@@ -39,17 +47,14 @@ pub fn confirm(message: &str, default: Option<bool>) -> Result<bool> {
 
 /// Prompt the user for text input
 pub fn prompt(message: &str, default: Option<&str>) -> Result<String> {
-    if let Some(default_value) = default {
-        print!("{message} [{default_value}] ");
+    let suffix = if let Some(default_value) = default {
+        format!(" [{default_value}] ")
     } else {
-        print!("{message} ");
-    }
-    io::stdout().flush().map_err(PhantomError::Io)?;
+        " ".to_string()
+    };
 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).map_err(PhantomError::Io)?;
-
-    let input = input.trim();
+    display_prompt(message, &suffix);
+    let input = read_input()?;
 
     if input.is_empty() {
         if let Some(default_value) = default {
@@ -59,7 +64,7 @@ pub fn prompt(message: &str, default: Option<&str>) -> Result<String> {
             Ok(String::new())
         }
     } else {
-        Ok(input.to_string())
+        Ok(input)
     }
 }
 
