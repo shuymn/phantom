@@ -1,13 +1,11 @@
-# 👻 Phantom
+# 👻 phantom-rs
 
 <div align="center">
 
 **A powerful CLI tool for seamless parallel development with Git worktrees**
 
-[![npm version](https://img.shields.io/npm/v/@aku11i/phantom.svg)](https://www.npmjs.com/package/@aku11i/phantom)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/node/v/@aku11i/phantom.svg)](https://nodejs.org)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/aku11i/phantom)
+[![Rust Version](https://img.shields.io/badge/rust-1.75.0+-orange.svg)](https://www.rust-lang.org)
 
 [日本語](./README.ja.md) • [Installation](#-installation) • [Why Phantom?](#-why-phantom) • [Basic Usage](#-basic-usage) • [Documentation](#-documentation)
 
@@ -15,7 +13,6 @@
 
 </div>
 
-> **🦀 Rust Version Available**: A Rust implementation of Phantom is now available in the [`rust/`](./rust/) directory. See [Migration Guide](./MIGRATION.md) for details.
 
 ## ✨ What is Phantom?
 
@@ -28,22 +25,30 @@ Phantom is a powerful CLI tool that dramatically boosts your development product
 - 🎯 **Execute commands from anywhere** - Run commands in any worktree with `phantom exec <worktree> <command>`
 - 🪟 **Terminal multiplexer integration** - Built-in support for tmux and kitty terminal
 - 🔍 **Interactive selection with fzf** - Use built-in fzf option for worktree selection
-- 🎮 **Shell completion** - Full autocomplete support for Fish and Zsh
-- ⚡ **Zero dependencies** - Fast and lightweight
+- 🎮 **Shell completion** - Full autocomplete support for Fish, Zsh, and Bash
+- ⚡ **Zero runtime dependencies** - Single static binary
+- 🦀 **Memory safe** - Written in Rust for reliability and performance
 
 ## 🚀 Installation
 
-### Using Homebrew (recommended)
+### From Source (Clone and Build)
 
 ```bash
-brew install aku11i/tap/phantom
+git clone https://github.com/shuymn/phantom-rs.git
+cd phantom-rs
+cargo build --release
+sudo cp target/release/phantom /usr/local/bin/
 ```
 
-#### Using npm
+### Using Cargo
 
 ```bash
-npm install -g @aku11i/phantom
+cargo install --git https://github.com/shuymn/phantom-rs
 ```
+
+### Pre-built Binaries
+
+Download pre-built binaries from the [Releases](https://github.com/shuymn/phantom-rs/releases) page.
 
 ## 🤔 Why Phantom?
 
@@ -182,9 +187,10 @@ phantom delete feature-awesome
 
 ## 📚 Documentation
 
-- **[Getting Started](./docs/getting-started.md)** - Common workflows and tips
-- **[Commands Reference](./docs/commands.md)** - All commands and options
-- **[Configuration](./docs/configuration.md)** - Set up automatic file copying and post-create commands
+- **[Architecture](./docs/architecture.md)** - System design and architecture
+- **[Testing Guide](./docs/testing-guide.md)** - Testing strategies and guidelines
+- **[Error Handling](./docs/error-handling-guide.md)** - Error handling patterns
+- **[Troubleshooting](./docs/troubleshooting.md)** - Common issues and solutions
 
 
 ## 🤝 Contributing
@@ -195,10 +201,26 @@ Contributions are welcome! See our [Contributing Guide](./CONTRIBUTING.md) for:
 - Testing requirements
 - Pull request process
 
+## ⚠️ Disclaimer
+
+phantom-rs is an **unofficial** Rust port created as a personal learning project. 
+While it aims to provide similar functionality to the original phantom:
+
+- **No guarantee of feature parity** with the original TypeScript version
+- **No promise of identical behavior** for equivalent features
+- **Breaking changes may occur** as the project evolves
+- **Use at your own risk** in production environments
+
+This project serves as both a functional tool and a Rust learning exercise.
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE)
 
 ## 🙏 Acknowledgments
 
-Built with 👻 by [@aku11i](https://github.com/aku11i) and [Claude](https://claude.ai)
+phantom-rs is a Rust port of the original [phantom](https://github.com/aku11i/phantom) by @aku11i.
+The demonstration GIFs and core functionality remain faithful to the original implementation.
+
+- Original TypeScript implementation: [@aku11i](https://github.com/aku11i)
+- Rust port and enhancements: [@shuymn](https://github.com/shuymn)

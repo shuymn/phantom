@@ -1,6 +1,6 @@
 coverage:
   paths:
-    - ./rust/lcov.info
+    - ./lcov.info
   target: 55%
 comment:
   if: is_pull_request
