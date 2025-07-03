@@ -2,15 +2,19 @@
 .DS_Store
 Thumbs.db
 
-# Dependencies
-node_modules
-
-# Build output
-dist
-
 # Rust
 target/
 **/*.rs.bk
 *.pdb
 .bacon-locations
 bacon-ls.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Debug
+*.pdb
+**/*.dSYM/
