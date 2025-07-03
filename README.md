@@ -1,4 +1,4 @@
-# 👻 Phantom (Rust)
+# 👻 phantom-rs
 
 <div align="center">
 
@@ -7,15 +7,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust Version](https://img.shields.io/badge/rust-1.75.0+-orange.svg)](https://www.rust-lang.org)
 
-[Installation](#-installation) • [Why Phantom?](#-why-phantom) • [Basic Usage](#-basic-usage) • [Documentation](#-documentation)
+[日本語](./README.ja.md) • [Installation](#-installation) • [Why Phantom?](#-why-phantom) • [Basic Usage](#-basic-usage) • [Documentation](#-documentation)
+
+![Phantom demo](./docs/assets/phantom.gif)
 
 </div>
 
-> **Note**: This is the Rust implementation of Phantom. For the original TypeScript version, see the [parent directory](../README.md).
 
 ## ✨ What is Phantom?
 
-Phantom is a powerful CLI tool that dramatically boosts your development productivity by making Git worktrees simple and intuitive. Run multiple tasks in isolated environments simultaneously and achieve true multitask development.
+Phantom is a powerful CLI tool that dramatically boosts your development productivity by making Git worktrees simple and intuitive. Run multiple tasks in isolated environments simultaneously and achieve true multitask development. Built for the next generation of parallel development workflows, including AI-powered coding with multiple agents.
 
 ### Key Features
 
@@ -33,42 +34,25 @@ Phantom is a powerful CLI tool that dramatically boosts your development product
 ### From Source (Clone and Build)
 
 ```bash
-git clone https://github.com/aku11i/phantom.git
-cd phantom/rust
+git clone https://github.com/shuymn/phantom-rs.git
+cd phantom-rs
 cargo build --release
 sudo cp target/release/phantom /usr/local/bin/
 ```
 
-### Using Cargo Install
+### Using Cargo
 
 ```bash
-cargo install --git https://github.com/aku11i/phantom --path rust
+cargo install --git https://github.com/shuymn/phantom-rs
 ```
 
-## Building
+### Pre-built Binaries
 
-```bash
-# Build in debug mode
-cargo build
-
-# Build in release mode (optimized)
-cargo build --release
-```
-
-## Running
-
-```bash
-# Run directly with cargo
-cargo run -- <command>
-
-# Or build and run the binary
-./target/debug/phantom <command>
-./target/release/phantom <command>  # for release build
-```
+Download pre-built binaries from the [Releases](https://github.com/shuymn/phantom-rs/releases) page.
 
 ## 🤔 Why Phantom?
 
-Git worktrees are powerful but require manual management of paths and branches. Phantom eliminates these problems:
+Git worktrees are powerful but require manual management of paths and branches. Also, navigating between multiple worktrees is cumbersome. Phantom eliminates these problems:
 
 ```bash
 # Without Phantom
@@ -79,6 +63,93 @@ cd ../project-feature-awesome
 phantom create feature-awesome --shell
 ```
 
+### How Phantom Works
+
+When you run `phantom create feature-awesome`, a new Git worktree named `feature-awesome` is created in `.git/phantom/worktrees/`.
+All worktrees created with phantom are centrally managed in this location.
+
+```
+your-project/    # Git repository
+├── .git/
+│   └── phantom/
+│       └── worktrees/        # Phantom-managed directory
+│           ├── feature-awesome/  # branch name = worktree name
+│           ├── bugfix-login/     # another worktree
+│           └── hotfix-critical/  # yet another worktree
+└── ...
+```
+
+This convention means you never need to remember worktree paths - just use the branch name for easy worktree operations.
+
+### ✈️ Features for a Comfortable Development Experience
+
+Phantom provides perfect functionality as a command-line tool. Developers feel the trust and comfort of flying first class.
+
+#### Shell Completion
+
+Phantom supports full shell completion for fish and zsh. Use tab key to complete commands and worktree names.
+
+#### Terminal Multiplexer Integration
+
+Phantom supports both tmux and kitty terminal for advanced window management. This allows you to manage multiple work environments simultaneously.
+
+**tmux Integration:**
+```bash
+# Create and open worktree in new window
+phantom create feature-x --tmux
+# Create with split panes
+phantom create feature-y --tmux-vertical
+phantom create feature-z --tmux-horizontal
+
+# Open existing worktrees in tmux
+phantom shell feature-x --tmux
+phantom shell feature-y --tmux-v
+```
+
+![Phantom tmux integration](./docs/assets/phantom-tmux.gif)
+
+**Kitty Integration:**
+```bash
+# Open in new tab
+phantom shell feature-xyz --kitty
+
+# Split vertically
+phantom shell feature-xyz --kitty-vertical
+
+# Execute command in horizontal split
+phantom exec feature-xyz --kitty-horizontal npm run dev
+```
+
+#### Editor Integration
+
+Phantom works seamlessly with editors like VS Code and Cursor. You can specify an editor to open worktrees.
+
+```bash
+# Open with VS Code
+phantom create feature --exec "code ."
+
+# Or open existing worktree
+phantom exec feature code .
+
+# Open with Cursor
+phantom create feature --exec "cursor ."
+phantom exec feature cursor .
+```
+
+![Phantom VS Code integration](./docs/assets/phantom-vscode.gif)
+
+#### fzf Integration
+
+Interactive search with fzf allows quick worktree selection.
+
+```bash
+# Open shell with fzf selection
+phantom shell --fzf
+
+# Delete with fzf selection
+phantom delete --fzf
+```
+
 ## 🔍 Basic Usage
 
 ### Create a new worktree
@@ -86,249 +157,70 @@ phantom create feature-awesome --shell
 ```bash
 phantom create feature-awesome
 
-# Create and open a shell
-phantom create feature-awesome --shell
-
-# Create from specific branch/commit
-phantom create hotfix --from main
-```
-
-### List worktrees
-
-```bash
 phantom list
-
-# JSON output for scripting
-phantom list --json
 ```
 
-### Open a shell in a worktree
+### Start a new shell in the worktree
 
 ```bash
 phantom shell feature-awesome
 
-# With tmux integration
-phantom shell feature-awesome --tmux
+# Start development work
+
+# Exit the shell when done
+exit
 ```
 
-### Execute commands in a worktree
+### Run commands in any worktree
 
 ```bash
-phantom exec feature-awesome cargo build
-phantom exec feature-awesome --json cargo test
+phantom exec feature-awesome {command to run}
+# Example: phantom exec feature-awesome npm run build
 ```
 
-### Delete a worktree
+### Clean up when done
 
 ```bash
 phantom delete feature-awesome
-
-# Force delete (removes uncommitted changes)
-phantom delete feature-awesome --force
-
-# Interactive selection with fzf
-phantom delete --fzf
 ```
 
-### Find worktree path
-
-```bash
-phantom where feature-awesome
-# Output: /path/to/repo/.git/phantom/worktrees/feature-awesome
-```
-
-## 📦 Shell Completion
-
-Generate shell completions for your shell:
-
-```bash
-# Fish
-phantom completion fish > ~/.config/fish/completions/phantom.fish
-
-# Zsh
-phantom completion zsh > ~/.zfunc/_phantom
-echo "fpath=(~/.zfunc $fpath)" >> ~/.zshrc
-
-# Bash
-phantom completion bash > /etc/bash_completion.d/phantom
-```
-
-## Testing
-
-```bash
-# Run all tests
-cargo test
-
-# Run tests with output
-cargo test -- --nocapture
-
-# Run a specific test
-cargo test test_name
-
-# Run tests in a specific module
-cargo test module_name::
-
-# Run with coverage (requires cargo-tarpaulin)
-cargo install cargo-tarpaulin
-cargo tarpaulin --out Html
-```
-
-## Development
-
-### Code Structure
-- `src/bin/` - Binary entry point
-- `src/cli/` - CLI layer (commands, handlers, output)
-- `src/core/` - Core business logic
-  - `git/` - Git operations
-  - `worktree/` - Worktree management
-  - `process/` - Process execution
-  - `config/` - Configuration
-
-### Running Tests During Development
-```bash
-# Watch for changes and run tests
-cargo install cargo-watch
-cargo watch -x test
-
-# Check code without building
-cargo check
-
-# Format code
-cargo fmt
-
-# Run linter
-cargo clippy
-```
-
-## Verifying the Implementation
-
-### Basic Workflow Test
-```bash
-# Initialize a git repository
-git init test-repo
-cd test-repo
-git commit --allow-empty -m "Initial commit"
-
-# Create a worktree
-cargo run -- create feature-branch
-
-# List worktrees
-cargo run -- list
-
-# Get worktree path
-cargo run -- where feature-branch
-
-# Execute command in worktree
-cargo run -- exec feature-branch -- pwd
-
-# Open shell in worktree
-cargo run -- shell feature-branch
-
-# Delete worktree
-cargo run -- delete feature-branch
-```
-
-### Testing with FZF
-```bash
-# Requires fzf to be installed
-cargo run -- list --fzf
-cargo run -- delete --fzf
-cargo run -- shell --fzf
-```
-
-### Testing JSON Output
-```bash
-cargo run -- list --json
-cargo run -- where feature-branch --json
-```
-
-## Debugging
-
-### Enable Debug Logs
-```bash
-# Set log level
-RUST_LOG=debug cargo run -- <command>
-RUST_LOG=phantom=debug cargo run -- <command>
-
-# Trace level for maximum verbosity
-RUST_LOG=trace cargo run -- <command>
-```
-
-### Common Issues
-
-1. **Permission Denied**
-   - Ensure the binary has execute permissions: `chmod +x target/debug/phantom`
-
-2. **Git Not Found**
-   - Ensure git is in your PATH: `which git`
-
-3. **Worktree Already Exists**
-   - Check existing worktrees: `git worktree list`
-
-4. **Tests Failing on macOS**
-   - Some tests assume Linux `/proc` filesystem
-   - Platform-specific tests handle this appropriately
-
-## Performance Testing
-
-```bash
-# Build with optimizations
-cargo build --release
-
-# Time command execution
-time ./target/release/phantom list
-
-# Profile with flamegraph (Linux)
-cargo install flamegraph
-cargo flamegraph -- list
-```
-
-
-## 🔄 Migration from TypeScript Version
-
-If you're migrating from the TypeScript version of Phantom:
-
-1. The command-line interface remains the same
-2. Configuration files (`.phantom.json`) are compatible
-3. All existing worktrees continue to work
-4. Shell completions need to be regenerated
-
-See [MIGRATION.md](../MIGRATION.md) for detailed migration instructions.
 
 ## 📚 Documentation
 
-### User Documentation
-- **[Commands Reference](../docs/commands.md)** - All commands and options
-- **[Configuration](../docs/configuration.md)** - Set up automatic file copying and post-create commands
-- **[Getting Started](../docs/getting-started.md)** - Quick start guide
-- **[Migration Guide](../MIGRATION.md)** - Migrating from TypeScript version
+- **[Architecture](./docs/architecture.md)** - System design and architecture
+- **[Testing Guide](./docs/testing-guide.md)** - Testing strategies and guidelines
+- **[Error Handling](./docs/error-handling-guide.md)** - Error handling patterns
+- **[Troubleshooting](./docs/troubleshooting.md)** - Common issues and solutions
 
-### Developer Documentation
-- **[Architecture](docs/architecture.md)** - System design and structure
-- **[Testing Guide](docs/testing-guide.md)** - Comprehensive testing strategy and patterns
-- **[CommandExecutor Guide](docs/command-executor-guide.md)** - Mock infrastructure patterns
-- **[Test Strategy](docs/test-strategy.md)** - High-level testing philosophy
-- **[Test Rationale](docs/test-rationale.md)** - Why we test this way
-- **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 
 ## 🤝 Contributing
 
-Contributions are welcome! See our [Contributing Guide](../CONTRIBUTING.md) for:
+Contributions are welcome! See our [Contributing Guide](./CONTRIBUTING.md) for:
 - Development setup
 - Code style guidelines  
 - Testing requirements
 - Pull request process
 
-When making changes:
-1. Run `cargo fmt` to format code
-2. Run `cargo clippy` to check for issues
-3. Run `cargo test` to ensure tests pass
-4. Update tests for new functionality
+## ⚠️ Disclaimer
+
+phantom-rs is an **unofficial** Rust port created as a personal learning project. 
+While it aims to provide similar functionality to the original phantom:
+
+- **No guarantee of feature parity** with the original TypeScript version
+- **No promise of identical behavior** for equivalent features
+- **Breaking changes may occur** as the project evolves
+- **Use at your own risk** in production environments
+
+This project serves as both a functional tool and a Rust learning exercise.
 
 ## 📄 License
 
-MIT License - see [LICENSE](../LICENSE)
+MIT License - see [LICENSE](LICENSE)
 
 ## 🙏 Acknowledgments
 
-Built with 👻 by [@aku11i](https://github.com/aku11i) and [Claude](https://claude.ai)
+phantom-rs is a Rust port of the original [phantom](https://github.com/aku11i/phantom) by @aku11i.
+The demonstration GIFs and core functionality remain faithful to the original implementation.
+
+- Original TypeScript implementation: [@aku11i](https://github.com/aku11i)
+- Rust port and enhancements: [@shuymn](https://github.com/shuymn)
