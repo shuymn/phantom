@@ -49,7 +49,7 @@ This document outlines the plan to transition from a dual TypeScript/Rust implem
 
 ### Phase 2: Repository Restructure (Week 2)
 
-1. **Move Rust to Root**
+1. -[-] **Move Rust to Root**
    ```bash
    # Move Rust implementation to root
    mv rust/* .
