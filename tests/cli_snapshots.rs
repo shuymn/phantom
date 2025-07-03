@@ -59,7 +59,7 @@ fn test_phantom_version_json_output() {
     cmd.args(["version", "--json"]);
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("\"name\": \"phantom\""))
+        .stdout(predicate::str::contains("\"name\": \"phantom-rs\""))
         .stdout(predicate::str::contains("\"version\": \"0.1.0\""));
 }
 
