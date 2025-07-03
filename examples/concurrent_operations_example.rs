@@ -1,7 +1,7 @@
 /// Example demonstrating concurrent operations in phantom
 /// This shows how phantom uses async concurrency to improve performance
-use phantom::core::executors::MockCommandExecutor;
-use phantom::worktree::concurrent::{
+use phantom_rs::core::executors::MockCommandExecutor;
+use phantom_rs::worktree::concurrent::{
     check_worktrees_status_concurrent, get_worktrees_info_concurrent, list_worktrees_concurrent,
 };
 use std::path::PathBuf;

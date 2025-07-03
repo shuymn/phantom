@@ -1,17 +1,18 @@
 [package]
-name = "phantom"
+name = "phantom-rs"
 version = "0.1.0"
 edition = "2021"
 authors = ["shuymn <mail@shuymn.me>"]
 description = "Ephemeral Git worktrees made easy - Rust implementation"
 license = "MIT"
-repository = "https://github.com/shuymn/phantom"
-homepage = "https://github.com/shuymn/phantom"
-documentation = "https://docs.rs/phantom"
+repository = "https://github.com/shuymn/phantom-rs"
+homepage = "https://github.com/shuymn/phantom-rs"
+documentation = "https://github.com/shuymn/phantom-rs"
 keywords = ["git", "worktree", "cli", "development", "workflow"]
 categories = ["command-line-utilities", "development-tools"]
 readme = "README.md"
 rust-version = "1.75.0"
+publish = false
 
 [[bin]]
 name = "phantom"

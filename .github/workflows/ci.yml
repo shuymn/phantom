@@ -1,16 +1,10 @@
-name: Rust CI
+name: CI
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'rust/**'
-      - '.github/workflows/rust-ci.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'rust/**'
-      - '.github/workflows/rust-ci.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -20,9 +14,6 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
-defaults:
-  run:
-    working-directory: ./rust
 
 jobs:
   test:
@@ -193,8 +184,8 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            rust/${{ matrix.artifact_name }}.tar.gz
-            rust/${{ matrix.artifact_name }}.tar.gz.sha256
+            ${{ matrix.artifact_name }}.tar.gz
+            ${{ matrix.artifact_name }}.tar.gz.sha256
 
   msrv:
     name: Minimum Supported Rust Version

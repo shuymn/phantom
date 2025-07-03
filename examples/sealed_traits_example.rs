@@ -2,10 +2,10 @@
 ///
 /// This example shows how sealed traits prevent downstream users from
 /// implementing our core traits while still allowing them to use them.
-use phantom::core::command_executor::CommandExecutor;
-use phantom::core::exit_handler::ExitHandler;
-use phantom::core::filesystem::FileSystem;
-use phantom::git::backend::GitBackend;
+use phantom_rs::core::command_executor::CommandExecutor;
+use phantom_rs::core::exit_handler::ExitHandler;
+use phantom_rs::core::filesystem::FileSystem;
+use phantom_rs::git::backend::GitBackend;
 
 // This module represents "external" code trying to use phantom
 
@@ -22,15 +22,15 @@ use phantom::git::backend::GitBackend;
 // struct MyFileSystem;
 //
 // impl FileSystem for MyFileSystem {
-//     // Error: the trait `phantom::core::sealed::Sealed` is not implemented
+//     // Error: the trait `phantom_rs::core::sealed::Sealed` is not implemented
 // }
 
 // ✅ THESE WORK - Using the traits is allowed
 
-use phantom::core::executors::RealCommandExecutor;
-use phantom::core::exit_handler::RealExitHandler;
-use phantom::core::filesystems::RealFileSystem;
-use phantom::git::command_backend::CommandBackend;
+use phantom_rs::core::executors::RealCommandExecutor;
+use phantom_rs::core::exit_handler::RealExitHandler;
+use phantom_rs::core::filesystems::RealFileSystem;
+use phantom_rs::git::command_backend::CommandBackend;
 
 fn accept_command_executor<E: CommandExecutor>(_executor: &E) {
     println!("Received a command executor");
@@ -100,8 +100,8 @@ impl MyExecutorWrapper {
     }
 
     // Can delegate to the inner implementation
-    async fn run_command(&self, program: &str) -> phantom::Result<String> {
-        use phantom::core::command_executor::CommandConfig;
+    async fn run_command(&self, program: &str) -> phantom_rs::Result<String> {
+        use phantom_rs::core::command_executor::CommandConfig;
         let config = CommandConfig::new(program);
         let output = self.inner.execute(config).await?;
         Ok(output.stdout.into_owned())

@@ -1,5 +1,5 @@
-use phantom::core::command_executor::{CommandConfig, CommandExecutor};
-use phantom::core::executors::MockCommandExecutor;
+use phantom_rs::core::command_executor::{CommandConfig, CommandExecutor};
+use phantom_rs::core::executors::MockCommandExecutor;
 use std::sync::Arc;
 
 // Example: Refactored Git operations using CommandExecutor

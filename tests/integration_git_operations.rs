@@ -1,6 +1,6 @@
-use phantom::core::executors::RealCommandExecutor;
-use phantom::git::git_executor_adapter::GitExecutor;
-use phantom::git::libs::{
+use phantom_rs::core::executors::RealCommandExecutor;
+use phantom_rs::git::git_executor_adapter::GitExecutor;
+use phantom_rs::git::libs::{
     add_worktree::add_worktree, attach_worktree::attach_worktree, branch_exists::branch_exists,
     get_current_branch::get_current_branch, get_current_worktree::get_current_worktree,
     get_git_root::get_git_root, list_worktrees::list_worktrees,

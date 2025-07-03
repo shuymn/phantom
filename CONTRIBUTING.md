@@ -24,7 +24,7 @@ Thank you for your interest in contributing to Phantom! This guide will help you
 
 ```bash
 # Clone and setup
-git clone https://github.com/aku11i/phantom.git
+git clone https://github.com/shuymn/phantom-rs.git
 cd phantom
 pnpm install
 

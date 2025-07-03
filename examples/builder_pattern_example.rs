@@ -5,8 +5,8 @@
 //! - Optional fields can be set in any order
 //! - Invalid states are impossible to express
 
-use phantom::git::factory::create_backend_for_dir;
-use phantom::worktree::builder::build_worktree;
+use phantom_rs::git::factory::create_backend_for_dir;
+use phantom_rs::worktree::builder::build_worktree;
 use std::path::Path;
 
 #[tokio::main]

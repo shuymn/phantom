@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use phantom::core::executors::MockCommandExecutor;
-use phantom::git::libs::get_git_root::get_git_root;
+use phantom_rs::core::executors::MockCommandExecutor;
+use phantom_rs::git::libs::get_git_root::get_git_root;
 use std::sync::Arc;
 
 /// Benchmark get_git_root performance
@@ -32,7 +32,7 @@ fn bench_get_git_root_performance(c: &mut Criterion) {
 
 /// Benchmark cloning patterns
 fn bench_cloning_patterns(c: &mut Criterion) {
-    use phantom::cli::context::ProductionContext;
+    use phantom_rs::cli::context::ProductionContext;
 
     let mut group = c.benchmark_group("cloning_patterns");
 

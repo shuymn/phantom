@@ -1,5 +1,5 @@
-use phantom::core::command_executor::{CommandConfig, CommandExecutor};
-use phantom::core::executors::{MockCommandExecutor, RealCommandExecutor};
+use phantom_rs::core::command_executor::{CommandConfig, CommandExecutor};
+use phantom_rs::core::executors::{MockCommandExecutor, RealCommandExecutor};
 use std::sync::Arc;
 
 // Example: A service that uses git commands

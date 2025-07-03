@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use phantom::cli::context::ProductionContext;
-use phantom::cli::{self, Commands};
+use phantom_rs::cli::context::ProductionContext;
+use phantom_rs::cli::{self, Commands};
 use std::process;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -51,13 +51,13 @@ async fn main() {
         cli::output::output().error(&error_message);
 
         // Try to find a PhantomError in the error chain to determine the correct exit code
-        let exit_code = if let Some(phantom_err) = e.downcast_ref::<phantom::PhantomError>() {
+        let exit_code = if let Some(phantom_err) = e.downcast_ref::<phantom_rs::PhantomError>() {
             cli::error::error_to_exit_code(phantom_err)
         } else {
             // Check the error chain for a PhantomError
             let mut exit_code = cli::error::ExitCode::GENERAL_ERROR;
             for cause in e.chain() {
-                if let Some(phantom_err) = cause.downcast_ref::<phantom::PhantomError>() {
+                if let Some(phantom_err) = cause.downcast_ref::<phantom_rs::PhantomError>() {
                     exit_code = cli::error::error_to_exit_code(phantom_err);
                     break;
                 }

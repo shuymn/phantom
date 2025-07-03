@@ -1,8 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use phantom::core::command_executor::{CommandConfig, CommandExecutor};
-use phantom::core::executors::RealCommandExecutor;
-use phantom::worktree::builder::build_worktree;
-use phantom::worktree::validate::validate_worktree_name;
+use phantom_rs::core::command_executor::{CommandConfig, CommandExecutor};
+use phantom_rs::core::executors::RealCommandExecutor;
+use phantom_rs::worktree::builder::build_worktree;
+use phantom_rs::worktree::validate::validate_worktree_name;
 use std::time::Duration;
 
 /// Benchmark command execution patterns
@@ -171,7 +171,7 @@ fn bench_memory_patterns(c: &mut Criterion) {
 
 /// Benchmark startup time (critical for CLI tools)
 fn bench_startup_time(c: &mut Criterion) {
-    use phantom::cli::context::ProductionContext;
+    use phantom_rs::cli::context::ProductionContext;
 
     let mut group = c.benchmark_group("startup");
 
@@ -185,7 +185,7 @@ fn bench_startup_time(c: &mut Criterion) {
     // Benchmark CLI argument parsing
     group.bench_function("cli_parsing", |b| {
         use clap::Parser;
-        use phantom::cli::Cli;
+        use phantom_rs::cli::Cli;
 
         b.iter(|| {
             let args = vec!["phantom", "list"];

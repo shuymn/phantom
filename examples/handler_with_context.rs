@@ -1,8 +1,8 @@
-use phantom::cli::context::{HandlerContext, ProductionContext};
-use phantom::core::command_executor::{CommandConfig, CommandExecutor};
-use phantom::core::executors::MockCommandExecutor;
-use phantom::core::exit_handler::ExitHandler;
-use phantom::core::filesystem::FileSystem;
+use phantom_rs::cli::context::{HandlerContext, ProductionContext};
+use phantom_rs::core::command_executor::{CommandConfig, CommandExecutor};
+use phantom_rs::core::executors::MockCommandExecutor;
+use phantom_rs::core::exit_handler::ExitHandler;
+use phantom_rs::core::filesystem::FileSystem;
 
 // Example: A handler that needs to execute git commands
 struct StatusHandler<E, F, H>
@@ -65,8 +65,8 @@ async fn main() {
     // Use RealExitHandler for the example (MockExitHandler is only available in tests)
     let test_context = HandlerContext::new(
         mock,
-        phantom::core::filesystems::MockFileSystem::new(),
-        phantom::core::exit_handler::RealExitHandler::new(),
+        phantom_rs::core::filesystems::MockFileSystem::new(),
+        phantom_rs::core::exit_handler::RealExitHandler::new(),
     );
     let test_handler = StatusHandler::new(test_context);
 

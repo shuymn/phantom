@@ -12,9 +12,9 @@ use tracing::debug;
 ///
 /// # Example
 /// ```no_run
-/// use phantom::git::libs::get_current_branch::get_current_branch;
-/// use phantom::cli::context::ProductionContext;
-/// use phantom::Result;
+/// use phantom_rs::git::libs::get_current_branch::get_current_branch;
+/// use phantom_rs::cli::context::ProductionContext;
+/// use phantom_rs::Result;
 /// use std::path::Path;
 ///
 /// async fn handle_something(context: ProductionContext) -> Result<()> {

@@ -73,12 +73,12 @@ This document outlines the plan to transition from a dual TypeScript/Rust implem
 
 ### Phase 3: Release Preparation
 
-1. **Distribution Setup**
+1. -[x] **Distribution Setup**
    - Set up GitHub Actions for building binaries
    - Create release workflow for multiple platforms
    - **Note**: This project will NOT be published to crates.io
 
-2. **Update Package Metadata**
+2. -[x] **Update Package Metadata**
    - Update Cargo.toml package name to `phantom-rs`
    - Ensure all references point to `shuymn/phantom-rs`
    - Remove any remaining `@aku11i/phantom` references

@@ -11,9 +11,9 @@ use tracing::debug;
 ///
 /// # Example
 /// ```no_run
-/// use phantom::git::libs::current_commit::current_commit;
-/// use phantom::cli::context::ProductionContext;
-/// use phantom::Result;
+/// use phantom_rs::git::libs::current_commit::current_commit;
+/// use phantom_rs::cli::context::ProductionContext;
+/// use phantom_rs::Result;
 /// use std::path::Path;
 ///
 /// async fn handle_something(context: ProductionContext) -> Result<()> {

@@ -57,8 +57,8 @@ chmod +x /usr/local/bin/phantom
 
 3. Try cloning and building manually:
    ```bash
-   git clone https://github.com/aku11i/phantom.git
-   cd phantom/rust
+   git clone https://github.com/shuymn/phantom-rs.git
+   cd phantom-rs
    cargo build --release
    sudo cp target/release/phantom /usr/local/bin/
    ```
@@ -340,7 +340,7 @@ git worktree list
 
 If these solutions don't resolve your issue:
 
-1. Check existing issues: https://github.com/aku11i/phantom/issues
+1. Check existing issues: https://github.com/shuymn/phantom-rs/issues
 2. Create a new issue with:
    - Problem description
    - Steps to reproduce
