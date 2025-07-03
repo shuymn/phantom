@@ -18,36 +18,47 @@ Thank you for your interest in contributing to Phantom! This guide will help you
 
 ### Prerequisites
 
-- Node.js 22+ and pnpm 10+
+- Rust 1.75.0+ (use rustup: https://rustup.rs/)
+- Git
+- tmux (for testing tmux integration)
 
 ### Getting Started
 
 ```bash
 # Clone and setup
 git clone https://github.com/shuymn/phantom-rs.git
-cd phantom
-pnpm install
+cd phantom-rs
 
-# run phantom in development mode
-pnpm phantom
+# Build the project
+cargo build
+
+# Run phantom in development mode
+cargo run -- --help
 ```
 
 ### Development Workflow
 
 ```bash
 # Run tests
-pnpm test
+cargo test
 
-# Type checking
-pnpm typecheck
+# Run tests with output
+cargo test -- --nocapture
+
+# Run specific test
+cargo test test_name
+
+# Check code without building
+cargo check
 
 # Linting
-pnpm lint
-# or
-pnpm fix
+cargo clippy -- -D warnings
+
+# Format code
+cargo fmt
 
 # Run all checks before committing
-pnpm ready
+make check && make lint && make check-format && cargo test
 ```
 
 ## 📝 Development Guidelines
@@ -60,7 +71,7 @@ pnpm ready
 ### Code Style
 
 - Follow existing code conventions and patterns
-- Use TypeScript for all new code
+- Use Rust idioms and patterns
 - Follow the Single Responsibility Principle
 - Keep modules focused and testable
 
@@ -79,7 +90,7 @@ Phantom uses a structured approach to error handling that provides both type saf
 - **Library code**: Uses `thiserror` for type-safe, matchable errors
 - **Application code (CLI handlers)**: Uses `anyhow` for flexible error handling with context
 
-For detailed error handling guidelines, see [error-handling-guide.md](./rust/docs/error-handling-guide.md).
+For detailed error handling guidelines, see [error-handling-guide.md](./docs/error-handling-guide.md).
 
 #### Quick Examples
 
@@ -127,10 +138,13 @@ pub async fn handle_command(args: Args) -> Result<()> {
 
 ```bash
 # Run all tests
-pnpm test
+cargo test
 
-# Run specific test file
-pnpm test:file src/core/worktree/create.test.js
+# Run specific test module
+cargo test core::worktree::tests
+
+# Run with output visible
+cargo test -- --nocapture
 ```
 
 ### Writing Tests
@@ -170,13 +184,14 @@ mod tests {
 Always run the following command before committing:
 
 ```bash
-pnpm ready
+make check && make lint && make check-format && cargo test
 ```
 
 This command runs:
-- Linting (`pnpm lint`)
-- Type checking (`pnpm typecheck`)
-- All tests (`pnpm test`)
+- Cargo check (`cargo check`)
+- Linting (`cargo clippy`)
+- Format checking (`cargo fmt --check`)
+- All tests (`cargo test`)
 
 ### Security Best Practices
 
@@ -390,42 +405,40 @@ To release a new version of Phantom:
 
 2. **Run all checks**
    ```bash
-   pnpm ready
+   make check && make lint && make check-format && cargo test
    ```
 
-3. **Bump version**
+3. **Bump version in Cargo.toml**
    ```bash
-   # For patch releases (bug fixes)
-   npm version patch
-
-   # For minor releases (new features)
-   npm version minor
-
-   # For major releases (breaking changes)
-   npm version major
+   # Edit Cargo.toml and update the version field
+   # For example: version = "0.2.0"
    ```
 
-4. **Push the version commit and tag**
+4. **Commit version bump**
    ```bash
+   git add Cargo.toml
+   git commit -m "chore: bump version to v<version>"
+   ```
+
+5. **Create and push tag**
+   ```bash
+   git tag v<version>
    git push && git push --tags
    ```
 
-5. **Publish to npm**
-   ```bash
-   pnpm publish
-   ```
-
 6. **Create GitHub release**
+   The release workflow will automatically build binaries for multiple platforms when a tag is pushed.
+   
    ```bash
    # Create a release with automatically generated notes
    gh release create v<version> \
-     --title "Phantom v<version>" \
+     --title "phantom-rs v<version>" \
      --generate-notes \
      --target main
 
    # Example for v0.1.3:
    gh release create v0.1.3 \
-     --title "Phantom v0.1.3" \
+     --title "phantom-rs v0.1.3" \
      --generate-notes \
      --target main
    ```
@@ -455,6 +468,8 @@ To release a new version of Phantom:
    EOF
    )"
    ```
+
+   **Note:** This project is NOT published to crates.io. Binary releases are distributed via GitHub Releases only.
 
 ## 🙏 Thank You!
 
