@@ -1,5 +1,6 @@
 use crate::core::command_executor::CommandExecutor;
 use crate::core::filesystem::FileSystem;
+use crate::git::git_executor_adapter::GitExecutor;
 use crate::worktree::errors::WorktreeError;
 use crate::worktree::types::DeleteWorktreeOptions;
 use crate::worktree::types::DeleteWorktreeSuccess;
@@ -15,13 +16,26 @@ pub struct WorktreeStatus {
     pub changed_files: usize,
 }
 
+/// Helper to create a GitExecutor with the given executor and working directory
+fn create_git_executor<E>(executor: E, cwd: &Path) -> GitExecutor<E>
+where
+    E: CommandExecutor + Clone + 'static,
+{
+    GitExecutor::new(executor).with_cwd(cwd)
+}
+
+/// Helper to convert git operation errors
+fn git_operation_error(operation: &str, error: impl std::fmt::Display) -> PhantomError {
+    WorktreeError::GitOperation { operation: operation.to_string(), details: error.to_string() }
+        .into()
+}
+
 /// Get the status of a worktree (uncommitted changes) with executor
 pub async fn get_worktree_status<E>(executor: E, worktree_path: &Path) -> WorktreeStatus
 where
     E: CommandExecutor + Clone + 'static,
 {
-    let git_executor =
-        crate::git::git_executor_adapter::GitExecutor::new(executor).with_cwd(worktree_path);
+    let git_executor = create_git_executor(executor, worktree_path);
 
     match git_executor.run(&["status", "--porcelain"]).await {
         Ok(output) => {
@@ -50,8 +64,7 @@ async fn remove_worktree<E>(
 where
     E: CommandExecutor + Clone + 'static,
 {
-    let git_executor =
-        crate::git::git_executor_adapter::GitExecutor::new(executor).with_cwd(git_root);
+    let git_executor = create_git_executor(executor, git_root);
 
     // First try normal removal
     let result = git_executor.run(&["worktree", "remove", &worktree_path.to_string_lossy()]).await;
@@ -64,19 +77,9 @@ where
                 .run(&["worktree", "remove", "--force", &worktree_path.to_string_lossy()])
                 .await
                 .map(|_| ())
-                .map_err(|e| {
-                    WorktreeError::GitOperation {
-                        operation: "worktree remove".to_string(),
-                        details: e.to_string(),
-                    }
-                    .into()
-                })
+                .map_err(|e| git_operation_error("worktree remove", e))
         }
-        Err(e) => Err(WorktreeError::GitOperation {
-            operation: "worktree remove".to_string(),
-            details: e.to_string(),
-        }
-        .into()),
+        Err(e) => Err(git_operation_error("worktree remove", e)),
     }
 }
 
@@ -85,8 +88,7 @@ async fn delete_branch<E>(executor: E, git_root: &Path, branch_name: &str) -> Re
 where
     E: CommandExecutor + Clone + 'static,
 {
-    let git_executor =
-        crate::git::git_executor_adapter::GitExecutor::new(executor).with_cwd(git_root);
+    let git_executor = create_git_executor(executor, git_root);
 
     match git_executor.run(&["branch", "-D", branch_name]).await {
         Ok(_) => Ok(true),
