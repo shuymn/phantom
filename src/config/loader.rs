@@ -43,9 +43,12 @@ pub async fn load_config_from_file(path: &Path) -> Result<PhantomConfig> {
     }
 }
 
-/// Load JSON configuration
-async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
-    debug!("Loading JSON configuration from {}", path.display());
+/// Generic configuration loader
+async fn load_config_generic<F>(path: &Path, format_name: &str, parser: F) -> Result<PhantomConfig>
+where
+    F: Fn(&str) -> std::result::Result<PhantomConfig, String>,
+{
+    debug!("Loading {} configuration from {}", format_name, path.display());
 
     let content = fs::read_to_string(path).await.map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
@@ -55,8 +58,8 @@ async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
         }
     })?;
 
-    let config: PhantomConfig = serde_json::from_str(&content)
-        .map_err(|e| ConfigError::ParseError(format!("JSON error: {e}")))?;
+    let config = parser(&content)
+        .map_err(|e| ConfigError::ParseError(format!("{format_name} error: {e}")))?;
 
     validate_config(&config)?;
 
@@ -64,25 +67,18 @@ async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
     Ok(config)
 }
 
+/// Load JSON configuration
+async fn load_json_config(path: &Path) -> Result<PhantomConfig> {
+    load_config_generic(path, "JSON", |content| {
+        serde_json::from_str(content).map_err(|e| e.to_string())
+    })
+    .await
+}
+
 /// Load TOML configuration
 async fn load_toml_config(path: &Path) -> Result<PhantomConfig> {
-    debug!("Loading TOML configuration from {}", path.display());
-
-    let content = fs::read_to_string(path).await.map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            ConfigError::NotFound(path.display().to_string())
-        } else {
-            ConfigError::Io(e)
-        }
-    })?;
-
-    let config: PhantomConfig = toml::from_str(&content)
-        .map_err(|e| ConfigError::ParseError(format!("TOML error: {e}")))?;
-
-    validate_config(&config)?;
-
-    info!("Loaded configuration from {}", path.display());
-    Ok(config)
+    load_config_generic(path, "TOML", |content| toml::from_str(content).map_err(|e| e.to_string()))
+        .await
 }
 
 /// Find configuration file in directory hierarchy
