@@ -15,16 +15,48 @@ impl Output {
         Self { quiet, verbose, json }
     }
 
+    /// Internal helper for common output logic
+    fn should_output(&self, require_verbose: bool) -> bool {
+        !self.json && (!self.quiet || require_verbose && self.verbose)
+    }
+
+    /// Internal helper for styled output
+    fn print_styled(
+        &self,
+        message: &str,
+        prefix: Option<&str>,
+        color: Option<&str>,
+        to_stderr: bool,
+    ) {
+        let formatted = if let Some(prefix) = prefix {
+            format!("{prefix}: {message}")
+        } else {
+            message.to_string()
+        };
+
+        let output = if should_use_color() && color.is_some() {
+            format!("{}{}\x1b[0m", color.unwrap(), formatted)
+        } else {
+            formatted
+        };
+
+        if to_stderr {
+            eprintln!("{output}");
+        } else {
+            println!("{output}");
+        }
+    }
+
     /// Print a normal message
     pub fn log(&self, message: &str) {
-        if !self.quiet && !self.json {
+        if self.should_output(false) {
             println!("{message}");
         }
     }
 
     /// Print a verbose message
     pub fn debug(&self, message: &str) {
-        if self.verbose && !self.quiet && !self.json {
+        if self.should_output(true) {
             println!("{message}");
         }
     }
@@ -46,29 +78,21 @@ impl Output {
 
     /// Print a success message (green if color is enabled)
     pub fn success(&self, message: &str) {
-        if !self.quiet && !self.json {
-            if should_use_color() {
-                println!("\x1b[32m{message}\x1b[0m");
-            } else {
-                println!("{message}");
-            }
+        if self.should_output(false) {
+            self.print_styled(message, None, Some("\x1b[32m"), false);
         }
     }
 
     /// Print a warning message (yellow if color is enabled)
     pub fn warn(&self, message: &str) {
-        if !self.quiet && !self.json {
-            if should_use_color() {
-                eprintln!("\x1b[33mWarning: {message}\x1b[0m");
-            } else {
-                eprintln!("Warning: {message}");
-            }
+        if self.should_output(false) {
+            self.print_styled(message, Some("Warning"), Some("\x1b[33m"), true);
         }
     }
 
     /// Print without newline
     pub fn print(&self, message: &str) {
-        if !self.quiet && !self.json {
+        if self.should_output(false) {
             print!("{message}");
             let _ = io::stdout().flush();
         }

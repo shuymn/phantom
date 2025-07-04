@@ -6,8 +6,40 @@ use crate::worktree::validate::validate_worktree_exists;
 use crate::{PhantomError, Result};
 use std::collections::HashMap;
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tracing::{debug, error, info};
+
+/// Helper to execute a command with optional CommandExecutor
+async fn execute_with_optional_executor<E>(
+    command: &str,
+    args: Vec<String>,
+    cwd: PathBuf,
+    env: HashMap<String, String>,
+    executor: Option<E>,
+) -> Result<SpawnSuccess>
+where
+    E: CommandExecutor,
+{
+    if let Some(executor) = executor {
+        // Use CommandExecutor
+        let config = CommandConfig::new(command).with_args(args).with_cwd(cwd).with_env(env);
+
+        let output = executor.execute(config).await?;
+        Ok(SpawnSuccess { exit_code: output.exit_code })
+    } else {
+        // Fall back to spawn_process
+        let config = SpawnConfig {
+            command: command.to_string(),
+            args,
+            cwd: Some(cwd.to_string_lossy().to_string()),
+            env: Some(env),
+            inherit_stdio: true,
+            ..Default::default()
+        };
+
+        spawn_process(config).await
+    }
+}
 
 /// Execute a command in a specific directory
 pub async fn exec_in_dir(dir: &Path, command: &str, args: &[String]) -> Result<SpawnSuccess> {
@@ -47,28 +79,14 @@ where
     let phantom_env = get_phantom_env(worktree_name, &worktree_path.to_string_lossy());
     env.extend(phantom_env);
 
-    if let Some(executor) = executor {
-        // Use CommandExecutor
-        let config = CommandConfig::new(command)
-            .with_args(args.to_vec())
-            .with_cwd(worktree_path.to_path_buf())
-            .with_env(env);
-
-        let output = executor.execute(config).await?;
-        Ok(SpawnSuccess { exit_code: output.exit_code })
-    } else {
-        // Fall back to spawn_process
-        let config = SpawnConfig {
-            command: command.to_string(),
-            args: args.to_vec(),
-            cwd: Some(worktree_path.to_string_lossy().to_string()),
-            env: Some(env),
-            inherit_stdio: true,
-            ..Default::default()
-        };
-
-        spawn_process(config).await
-    }
+    execute_with_optional_executor(
+        command,
+        args.to_vec(),
+        worktree_path.to_path_buf(),
+        env,
+        executor,
+    )
+    .await
 }
 
 /// Spawn a shell in a specific directory
@@ -117,37 +135,18 @@ where
     // Add a custom prompt or greeting for the shell
     debug!("Shell type: {:?}", shell_info.shell_type);
 
-    if let Some(executor) = executor {
-        // Use CommandExecutor
-        let config = CommandConfig::new(&shell_info.path)
-            .with_args(shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect())
-            .with_cwd(worktree_path.to_path_buf())
-            .with_env(env);
+    let result = execute_with_optional_executor(
+        &shell_info.path,
+        shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect(),
+        worktree_path.to_path_buf(),
+        env,
+        executor,
+    )
+    .await?;
 
-        let output = executor.execute(config).await?;
-        let result = SpawnSuccess { exit_code: output.exit_code };
-
-        // Log exit
-        info!("Shell exited with code {} for worktree '{}'", result.exit_code, worktree_name);
-        Ok(result)
-    } else {
-        // Fall back to spawn_process
-        let config = SpawnConfig {
-            command: shell_info.path,
-            args: shell_info.shell_type.init_args().iter().map(|s| s.to_string()).collect(),
-            cwd: Some(worktree_path.to_string_lossy().to_string()),
-            env: Some(env),
-            inherit_stdio: true,
-            ..Default::default()
-        };
-
-        let result = spawn_process(config).await?;
-
-        // Log exit
-        info!("Shell exited with code {} for worktree '{}'", result.exit_code, worktree_name);
-
-        Ok(result)
-    }
+    // Log exit
+    info!("Shell exited with code {} for worktree '{}'", result.exit_code, worktree_name);
+    Ok(result)
 }
 
 /// Execute multiple commands in sequence

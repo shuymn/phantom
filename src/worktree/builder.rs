@@ -57,6 +57,18 @@ impl WorktreeBuilder<builder_states::NoName> {
     }
 }
 
+impl<State> WorktreeBuilder<State> {
+    /// Internal method to build CreateWorktreeOptions from the builder
+    fn build_options(self) -> CreateWorktreeOptions {
+        let name = self.name.unwrap(); // Safe in both WithName and Ready states
+        CreateWorktreeOptions {
+            branch: self.branch.or_else(|| Some(name.clone())),
+            commitish: self.base,
+            copy_files: if self.copy_files.is_empty() { None } else { Some(self.copy_files) },
+        }
+    }
+}
+
 impl WorktreeBuilder<builder_states::WithName> {
     /// Set the branch name (optional, defaults to worktree name)
     pub fn branch(mut self, branch: impl Into<String>) -> Self {
@@ -100,12 +112,7 @@ impl WorktreeBuilder<builder_states::WithName> {
 
     /// Build without validation (use with caution)
     pub fn build_unchecked(self) -> CreateWorktreeOptions {
-        let name = self.name.unwrap(); // Safe because we're in WithName state
-        CreateWorktreeOptions {
-            branch: self.branch.or_else(|| Some(name.clone())),
-            commitish: self.base,
-            copy_files: if self.copy_files.is_empty() { None } else { Some(self.copy_files) },
-        }
+        self.build_options()
     }
 
     /// Create the worktree directly, validating and building in one step
@@ -121,12 +128,7 @@ impl WorktreeBuilder<builder_states::WithName> {
 impl WorktreeBuilder<builder_states::Ready> {
     /// Build the worktree creation options
     pub fn build(self) -> CreateWorktreeOptions {
-        let name = self.name.unwrap(); // Safe because we validated
-        CreateWorktreeOptions {
-            branch: self.branch.or_else(|| Some(name.clone())),
-            commitish: self.base,
-            copy_files: if self.copy_files.is_empty() { None } else { Some(self.copy_files) },
-        }
+        self.build_options()
     }
 
     /// Get the validated name
