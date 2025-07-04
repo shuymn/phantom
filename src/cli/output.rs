@@ -56,7 +56,7 @@ impl Output {
 
     /// Print a verbose message
     pub fn debug(&self, message: &str) {
-        if self.should_output(false) && self.verbose {
+        if self.should_output(true) {
             println!("{message}");
         }
     }
